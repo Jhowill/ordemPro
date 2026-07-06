@@ -1,15 +1,18 @@
-import { createContext, ReactNode, useCallback, useContext, useEffect, useMemo, useState } from 'react';
+import { createContext, ReactNode, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
 
 import { initialData } from '@/data/seed';
 import { loadAppData, replaceAppData } from '@/database/appDatabase';
-import { AppData, CatalogPart, CatalogService, CompanyProfile, Customer, Equipment, ServiceOrder, ServiceOrderItem, ServiceOrderPdf, ServiceOrderStatusHistory } from '@/types';
+import { AppData, CatalogPart, CatalogService, CompanyProfile, Customer, DefaultTerms, Equipment, PdfSettings, PhotoAttachment, ServiceOrder, ServiceOrderItem, ServiceOrderPdf, ServiceOrderStatusHistory } from '@/types';
 import { calculateOrderTotals } from '@/services/calculations';
 import { makeId, nowIso } from '@/utils/formatters';
 
 type AppDataContextValue = {
   data: AppData;
   loading: boolean;
+  loadError: string | null;
   saveCompany: (company: Partial<CompanyProfile>) => Promise<void>;
+  saveTerms: (terms: Partial<DefaultTerms>) => Promise<void>;
+  savePdfSettings: (settings: Partial<PdfSettings>) => Promise<void>;
   addCustomer: (input: Omit<Customer, 'id' | 'createdAt' | 'updatedAt' | 'status'>) => Promise<Customer>;
   addEquipment: (input: Omit<Equipment, 'id' | 'createdAt' | 'updatedAt' | 'status'>) => Promise<Equipment>;
   addCatalogService: (input: Pick<CatalogService, 'name' | 'category' | 'defaultPriceCents'>) => Promise<void>;
@@ -23,6 +26,7 @@ type AppDataContextValue = {
     items: Pick<ServiceOrderItem, 'type' | 'description' | 'quantity' | 'unitPriceCents' | 'discountCents'>[];
   }) => Promise<ServiceOrder>;
   updateOrderStatus: (id: string, status: ServiceOrder['status']) => Promise<void>;
+  addOrderPhoto: (orderId: string, input: Pick<PhotoAttachment, 'localUri' | 'caption' | 'includeInPdf'>) => Promise<void>;
   updatePdfRecord: (pdf: ServiceOrderPdf) => Promise<void>;
   exportBackup: () => Promise<string>;
   importBackup: (json: string) => Promise<void>;
@@ -43,25 +47,28 @@ function withEntityDates<T extends object>(input: T) {
 
 export function AppDataProvider({ children }: { children: ReactNode }) {
   const [data, setData] = useState<AppData>(initialData);
+  const dataRef = useRef<AppData>(initialData);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
 
   useEffect(() => {
     loadAppData()
       .then((storedData) => {
+        dataRef.current = storedData;
         setData(storedData);
+        setLoadError(null);
       })
       .catch((error) => {
         console.error('Falha ao carregar SQLite do OrdemPro:', error);
+        setLoadError(error instanceof Error ? error.message : 'Nao foi possivel carregar o banco local.');
       })
       .finally(() => setLoading(false));
   }, []);
 
   const commit = useCallback(async (updater: (current: AppData) => AppData) => {
-    let nextData = initialData;
-    setData((current) => {
-      nextData = updater(current);
-      return nextData;
-    });
+    const nextData = updater(dataRef.current);
+    dataRef.current = nextData;
+    setData(nextData);
     await replaceAppData(nextData);
   }, []);
 
@@ -91,6 +98,34 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
         };
         return { ...current, company };
       });
+    },
+    [commit],
+  );
+
+  const saveTerms = useCallback<AppDataContextValue['saveTerms']>(
+    async (termsInput) => {
+      await commit((current) => ({
+        ...current,
+        terms: {
+          ...current.terms,
+          ...termsInput,
+          updatedAt: nowIso(),
+        },
+      }));
+    },
+    [commit],
+  );
+
+  const savePdfSettings = useCallback<AppDataContextValue['savePdfSettings']>(
+    async (settingsInput) => {
+      await commit((current) => ({
+        ...current,
+        pdfSettings: {
+          ...current.pdfSettings,
+          ...settingsInput,
+          updatedAt: nowIso(),
+        },
+      }));
     },
     [commit],
   );
@@ -205,6 +240,27 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
     [commit],
   );
 
+  const addOrderPhoto = useCallback<AppDataContextValue['addOrderPhoto']>(
+    async (orderId, input) => {
+      const date = nowIso();
+      const photo: PhotoAttachment = {
+        id: makeId('photo'),
+        orderId,
+        localUri: input.localUri,
+        caption: input.caption,
+        includeInPdf: input.includeInPdf,
+        createdAt: date,
+        updatedAt: date,
+      };
+      await commit((current) => ({
+        ...current,
+        photos: [photo, ...current.photos],
+        orders: current.orders.map((order) => (order.id === orderId ? { ...order, updatedAt: date, isPdfOutdated: true } : order)),
+      }));
+    },
+    [commit],
+  );
+
   const updatePdfRecord = useCallback<AppDataContextValue['updatePdfRecord']>(
     async (pdf) => {
       await commit((current) => ({
@@ -232,6 +288,7 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
   );
 
   const resetDemo = useCallback(async () => {
+    dataRef.current = initialData;
     setData(initialData);
     await replaceAppData(initialData);
   }, []);
@@ -240,19 +297,23 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
     () => ({
       data,
       loading,
+      loadError,
       saveCompany,
+      saveTerms,
+      savePdfSettings,
       addCustomer,
       addEquipment,
       addCatalogService,
       addCatalogPart,
       createOrder,
       updateOrderStatus,
+      addOrderPhoto,
       updatePdfRecord,
       exportBackup,
       importBackup,
       resetDemo,
     }),
-    [addCatalogPart, addCatalogService, addCustomer, addEquipment, createOrder, data, exportBackup, importBackup, loading, resetDemo, saveCompany, updateOrderStatus, updatePdfRecord],
+    [addCatalogPart, addCatalogService, addCustomer, addEquipment, addOrderPhoto, createOrder, data, exportBackup, importBackup, loadError, loading, resetDemo, saveCompany, savePdfSettings, saveTerms, updateOrderStatus, updatePdfRecord],
   );
 
   return <AppDataContext.Provider value={value}>{children}</AppDataContext.Provider>;

@@ -18,7 +18,7 @@ export default function EquipmentsScreen() {
 
   return (
     <ScreenContainer>
-      <AppHeader title="Equipamentos" subtitle="Historico tecnico" action={<AppButton title="Novo" onPress={() => router.push('/equipments/new')} />} />
+      <AppHeader title="Equipamentos" subtitle="Historico tecnico" action={<AppButton title="Novo" compact onPress={() => router.push('/equipments/new')} />} />
       <SearchInput value={query} onChangeText={setQuery} placeholder="Buscar equipamento..." />
       {equipments.length === 0 ? (
         <EmptyState icon="construct-outline" title="Nenhum equipamento cadastrado" description="Adicione um equipamento para vincular ao cliente e manter historico." actionLabel="Novo equipamento" onAction={() => router.push('/equipments/new')} />
@@ -37,4 +37,3 @@ export default function EquipmentsScreen() {
     </ScreenContainer>
   );
 }
-

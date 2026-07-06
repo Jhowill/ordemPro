@@ -18,7 +18,7 @@ export default function CustomersScreen() {
 
   return (
     <ScreenContainer>
-      <AppHeader title="Clientes" subtitle="Cadastro e historico" action={<AppButton title="Novo" onPress={() => router.push('/customers/new')} />} />
+      <AppHeader title="Clientes" subtitle="Cadastro e historico" action={<AppButton title="Novo" compact onPress={() => router.push('/customers/new')} />} />
       <SearchInput value={query} onChangeText={setQuery} placeholder="Buscar cliente..." />
       {customers.length === 0 ? (
         <EmptyState icon="people-outline" title="Nenhum cliente cadastrado" description="Cadastre o primeiro cliente para criar ordens de servico." actionLabel="Novo cliente" onAction={() => router.push('/customers/new')} />
@@ -34,4 +34,3 @@ export default function CustomersScreen() {
     </ScreenContainer>
   );
 }
-

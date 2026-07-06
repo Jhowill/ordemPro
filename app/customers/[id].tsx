@@ -20,7 +20,7 @@ export default function CustomerDetailScreen() {
 
   return (
     <ScreenContainer>
-      <AppHeader title={customer.name} subtitle="Detalhes do cliente" back action={<AppButton title="Nova OS" onPress={() => router.push('/orders/new')} />} />
+      <AppHeader title={customer.name} subtitle="Detalhes do cliente" back action={<AppButton title="Nova OS" compact onPress={() => router.push('/orders/new')} />} />
       <AppCard>
         <AppText variant="subtitle">Contato</AppText>
         <AppText muted>{customer.phone || customer.whatsapp}</AppText>
@@ -42,4 +42,3 @@ export default function CustomerDetailScreen() {
     </ScreenContainer>
   );
 }
-

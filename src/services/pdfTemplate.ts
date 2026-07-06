@@ -8,6 +8,7 @@ export function buildOrderPdfHtml(data: AppData, order: ServiceOrder) {
   const items = data.items.filter((item) => item.orderId === order.id);
   const services = items.filter((item) => item.type === 'service');
   const parts = items.filter((item) => item.type === 'part');
+  const photos = data.photos.filter((item) => item.orderId === order.id && item.includeInPdf);
   const primary = data.pdfSettings.primaryColor;
 
   const rows = (target: typeof items) =>
@@ -52,12 +53,18 @@ export function buildOrderPdfHtml(data: AppData, order: ServiceOrder) {
         .signature { border: 1px solid #cbd5e1; border-radius: 8px; min-height: 92px; padding: 12px; text-align: center; }
         .line { border-top: 1px solid ${primary}; margin-top: 34px; padding-top: 8px; font-weight: 700; }
         .footer { border-top: 1px solid #cbd5e1; margin-top: 16px; padding-top: 10px; text-align: center; color: #475569; font-size: 10px; }
+        .photo-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
+        .photo { width: 100%; height: 92px; object-fit: cover; border: 1px solid #cbd5e1; border-radius: 6px; }
       </style>
     </head>
     <body>
       <section class="header">
         <div class="brand">
-          <div class="logo">OP</div>
+          ${
+            company?.logoUri
+              ? `<img class="logo" src="${company.logoUri}" />`
+              : '<div class="logo">OP</div>'
+          }
           <div>
             <h1>${company?.name ?? 'OrdemPro'}</h1>
             <p>${company?.document ?? ''}</p>
@@ -101,6 +108,12 @@ export function buildOrderPdfHtml(data: AppData, order: ServiceOrder) {
       <h2>PECAS</h2>
       <table><thead><tr><th>Descricao</th><th>Qtd</th><th>Valor Unit.</th><th>Total</th></tr></thead><tbody>${rows(parts) || '<tr><td colspan="4">Nenhuma peca informada.</td></tr>'}</tbody></table>
 
+      ${
+        data.pdfSettings.showPhotos && photos.length
+          ? `<h2>FOTOS DO SERVICO</h2><div class="photo-grid">${photos.map((photo) => `<img class="photo" src="${photo.localUri}" />`).join('')}</div>`
+          : ''
+      }
+
       <h2>VALORES</h2>
       <table class="summary">
         <tr><td>Subtotal servicos</td><td class="right">${formatMoney(order.laborTotalCents)}</td></tr>
@@ -133,4 +146,3 @@ export function buildOrderPdfHtml(data: AppData, order: ServiceOrder) {
     </body>
   </html>`;
 }
-

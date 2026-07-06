@@ -1,4 +1,6 @@
-import { openDatabaseAsync, SQLiteDatabase } from 'expo-sqlite';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { Platform } from 'react-native';
+import type { SQLiteDatabase } from 'expo-sqlite';
 
 import { initialData } from '@/data/seed';
 import { createSchemaSql, CURRENT_SCHEMA_VERSION } from '@/database/schema';
@@ -7,6 +9,7 @@ import { nowIso } from '@/utils/formatters';
 
 const DATABASE_NAME = 'ordempro.db';
 const BACKUP_ID = 'backup_metadata';
+const WEB_STORAGE_KEY = '@ordempro/app-data';
 
 type DbRow = Record<string, string | number | null>;
 
@@ -49,10 +52,16 @@ async function isDatabaseEmpty(db: SQLiteDatabase) {
 }
 
 export async function getDatabase() {
+  if (Platform.OS === 'web') throw new Error('SQLite nativo nao e usado no web.');
   databasePromise ??= openDatabaseAsync(DATABASE_NAME);
   const db = await databasePromise;
   await runMigrations(db);
   return db;
+}
+
+async function openDatabaseAsync(name: string) {
+  const sqlite = await import('expo-sqlite');
+  return sqlite.openDatabaseAsync(name);
 }
 
 export async function runMigrations(db: SQLiteDatabase) {
@@ -68,6 +77,15 @@ export async function runMigrations(db: SQLiteDatabase) {
 }
 
 export async function loadAppData(): Promise<AppData> {
+  if (Platform.OS === 'web') {
+    const stored = await AsyncStorage.getItem(WEB_STORAGE_KEY);
+    if (!stored) {
+      await AsyncStorage.setItem(WEB_STORAGE_KEY, JSON.stringify(initialData));
+      return initialData;
+    }
+    return { ...initialData, ...JSON.parse(stored) } as AppData;
+  }
+
   const db = await getDatabase();
   const [companyRows, pdfRows, termRows, customerRows, equipmentRows, serviceRows, partRows, orderRows, itemRows, paymentRows, photoRows, signatureRows, pdfRecordRows, statusHistoryRows, backupRows, lastOrderRow, themeRow] = await Promise.all([
     db.getAllAsync<DbRow>('SELECT * FROM company_profile WHERE deleted_at IS NULL ORDER BY updated_at DESC LIMIT 1'),
@@ -114,6 +132,11 @@ export async function loadAppData(): Promise<AppData> {
 }
 
 export async function replaceAppData(data: AppData) {
+  if (Platform.OS === 'web') {
+    await AsyncStorage.setItem(WEB_STORAGE_KEY, JSON.stringify(data));
+    return;
+  }
+
   const db = databasePromise ? await databasePromise : await openDatabaseAsync(DATABASE_NAME);
   databasePromise ??= Promise.resolve(db);
   await db.execAsync(createSchemaSql);

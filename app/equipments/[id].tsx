@@ -19,7 +19,7 @@ export default function EquipmentDetailScreen() {
 
   return (
     <ScreenContainer>
-      <AppHeader title={`${equipment.type ?? equipment.category} ${equipment.brand ?? ''}`} subtitle={customer?.name ?? 'Cliente'} back action={<AppButton title="Nova OS" onPress={() => router.push('/orders/new')} />} />
+      <AppHeader title={`${equipment.type ?? equipment.category} ${equipment.brand ?? ''}`} subtitle={customer?.name ?? 'Cliente'} back action={<AppButton title="Nova OS" compact onPress={() => router.push('/orders/new')} />} />
       <AppCard>
         <AppText variant="subtitle">Identificacao</AppText>
         <AppText>Modelo: {equipment.model || '-'}</AppText>
@@ -36,4 +36,3 @@ export default function EquipmentDetailScreen() {
     </ScreenContainer>
   );
 }
-

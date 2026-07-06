@@ -1,5 +1,5 @@
 import { router, useLocalSearchParams } from 'expo-router';
-import { Alert, StyleSheet, View } from 'react-native';
+import { Alert, Image, StyleSheet, View } from 'react-native';
 
 import { AppButton } from '@/components/ui/AppButton';
 import { AppCard } from '@/components/ui/AppCard';
@@ -10,6 +10,7 @@ import { ScreenContainer } from '@/components/ui/ScreenContainer';
 import { SectionTitle } from '@/components/ui/SectionTitle';
 import { StatusBadge } from '@/components/ui/StatusBadge';
 import { spacing } from '@/constants/theme';
+import { pickAndStoreImage } from '@/services/media';
 import { useAppData } from '@/services/storage';
 import { ServiceOrderStatus } from '@/types';
 import { formatDate, formatMoney, statusLabel } from '@/utils/formatters';
@@ -18,13 +19,14 @@ const nextStatuses: ServiceOrderStatus[] = ['diagnosis', 'waiting_approval', 'ap
 
 export default function OrderDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
-  const { data, updateOrderStatus } = useAppData();
+  const { data, updateOrderStatus, addOrderPhoto } = useAppData();
   const order = data.orders.find((item) => item.id === id);
   if (!order) return <ScreenContainer><EmptyState icon="alert-circle-outline" title="OS nao encontrada" description="A ordem pode ter sido removida." /></ScreenContainer>;
   const activeOrder = order;
   const customer = data.customers.find((item) => item.id === activeOrder.customerId);
   const equipment = data.equipments.find((item) => item.id === activeOrder.equipmentId);
   const items = data.items.filter((item) => item.orderId === activeOrder.id);
+  const photos = data.photos.filter((item) => item.orderId === activeOrder.id);
   const statusHistory = data.statusHistory.filter((item) => item.orderId === activeOrder.id);
 
   function advanceStatus() {
@@ -39,6 +41,16 @@ export default function OrderDetailScreen() {
       { text: 'Voltar', style: 'cancel' },
       { text: 'Cancelar OS', style: 'destructive', onPress: () => updateOrderStatus(activeOrder.id, 'cancelled') },
     ]);
+  }
+
+  async function addPhoto() {
+    try {
+      const image = await pickAndStoreImage('orders');
+      if (!image) return;
+      await addOrderPhoto(activeOrder.id, { localUri: image.localUri, caption: `Foto da ${activeOrder.shortCode}`, includeInPdf: true });
+    } catch (error) {
+      Alert.alert('Foto nao adicionada', error instanceof Error ? error.message : 'Tente novamente.');
+    }
   }
 
   return (
@@ -78,6 +90,23 @@ export default function OrderDetailScreen() {
       </AppCard>
 
       <AppCard>
+        <SectionTitle title="Fotos da OS" description={`${photos.length} foto${photos.length === 1 ? '' : 's'} salva${photos.length === 1 ? '' : 's'} localmente`} />
+        <AppButton title="Adicionar foto" variant="secondary" onPress={addPhoto} />
+        {photos.length ? (
+          <View style={styles.photoGrid}>
+            {photos.map((photo) => (
+              <View key={photo.id} style={styles.photoItem}>
+                <Image source={{ uri: photo.localUri }} style={styles.photo} />
+                <AppText variant="caption" muted numberOfLines={1}>{photo.caption ?? 'Foto da OS'}</AppText>
+              </View>
+            ))}
+          </View>
+        ) : (
+          <AppText muted>Nenhuma foto adicionada ainda.</AppText>
+        )}
+      </AppCard>
+
+      <AppCard>
         <SectionTitle title="Resumo financeiro" />
         <View style={styles.item}><AppText>Servicos</AppText><AppText>{formatMoney(activeOrder.laborTotalCents)}</AppText></View>
         <View style={styles.item}><AppText>Pecas</AppText><AppText>{formatMoney(activeOrder.partsTotalCents)}</AppText></View>
@@ -109,4 +138,7 @@ const styles = StyleSheet.create({
   actions: { flexDirection: 'row', gap: spacing.sm, marginBottom: spacing.md },
   item: { flexDirection: 'row', justifyContent: 'space-between', gap: spacing.md, marginBottom: spacing.xs },
   timelineItem: { borderLeftWidth: 2, paddingLeft: spacing.sm, marginBottom: spacing.sm },
+  photoGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm, marginTop: spacing.sm },
+  photoItem: { width: '47%', gap: spacing.xs },
+  photo: { width: '100%', aspectRatio: 1, borderRadius: 8, backgroundColor: '#E5E7EB' },
 });

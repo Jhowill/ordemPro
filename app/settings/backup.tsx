@@ -1,3 +1,4 @@
+import * as DocumentPicker from 'expo-document-picker';
 import * as Sharing from 'expo-sharing';
 import { useState } from 'react';
 import { Alert } from 'react-native';
@@ -33,6 +34,19 @@ export default function BackupSettingsScreen() {
     }
   }
 
+  async function pickBackupFile() {
+    const result = await DocumentPicker.getDocumentAsync({ type: 'application/json', copyToCacheDirectory: true });
+    if (result.canceled || !result.assets[0]?.uri) return;
+    const content = await FileSystem.readAsStringAsync(result.assets[0].uri);
+    setJson(content);
+    try {
+      await importBackup(content);
+      Alert.alert('Backup importado');
+    } catch (error) {
+      Alert.alert('Backup invalido', error instanceof Error ? error.message : 'Verifique o arquivo selecionado.');
+    }
+  }
+
   return (
     <ScreenContainer>
       <AppHeader title="Backup" subtitle="Exportacao manual offline" back />
@@ -42,6 +56,7 @@ export default function BackupSettingsScreen() {
       </AppCard>
       <AppButton title="Fazer backup agora" onPress={exportJson} />
       <InputField label="Importar JSON de backup" value={json} onChangeText={setJson} multiline style={{ minHeight: 120 }} />
+      <AppButton title="Selecionar arquivo JSON" variant="secondary" onPress={pickBackupFile} />
       <AppButton title="Restaurar backup" variant="secondary" onPress={importJson} />
       <AppButton title="Restaurar dados de demonstracao" variant="danger" onPress={resetDemo} />
     </ScreenContainer>

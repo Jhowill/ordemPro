@@ -1,0 +1,450 @@
+[
+  {
+    "arquivo": "01_onboarding_boas_vindas.png",
+    "titulo": "Onboarding — Boas-vindas",
+    "crop": [
+      22,
+      56,
+      172,
+      370
+    ],
+    "size": [
+      166,
+      330
+    ]
+  },
+  {
+    "arquivo": "02_onboarding_empresa_dados.png",
+    "titulo": "Onboarding — Dados da empresa",
+    "crop": [
+      197,
+      45,
+      349,
+      370
+    ],
+    "size": [
+      168,
+      341
+    ]
+  },
+  {
+    "arquivo": "03_onboarding_empresa_endereco_logo.png",
+    "titulo": "Onboarding — Endereço e logo",
+    "crop": [
+      367,
+      45,
+      517,
+      370
+    ],
+    "size": [
+      166,
+      341
+    ]
+  },
+  {
+    "arquivo": "04_onboarding_empresa_termos.png",
+    "titulo": "Onboarding — Termos padrão",
+    "crop": [
+      535,
+      45,
+      686,
+      370
+    ],
+    "size": [
+      167,
+      341
+    ]
+  },
+  {
+    "arquivo": "05_onboarding_conclusao.png",
+    "titulo": "Onboarding — Conclusão",
+    "crop": [
+      704,
+      45,
+      854,
+      370
+    ],
+    "size": [
+      166,
+      341
+    ]
+  },
+  {
+    "arquivo": "06_home.png",
+    "titulo": "Home",
+    "crop": [
+      878,
+      43,
+      1035,
+      394
+    ],
+    "size": [
+      173,
+      367
+    ]
+  },
+  {
+    "arquivo": "07_lista_os.png",
+    "titulo": "Lista de OS",
+    "crop": [
+      22,
+      399,
+      170,
+      658
+    ],
+    "size": [
+      164,
+      275
+    ]
+  },
+  {
+    "arquivo": "08_nova_os_cliente.png",
+    "titulo": "Nova OS — Cliente",
+    "crop": [
+      197,
+      397,
+      348,
+      658
+    ],
+    "size": [
+      167,
+      277
+    ]
+  },
+  {
+    "arquivo": "09_nova_os_equipamento.png",
+    "titulo": "Nova OS — Equipamento",
+    "crop": [
+      349,
+      397,
+      499,
+      658
+    ],
+    "size": [
+      166,
+      277
+    ]
+  },
+  {
+    "arquivo": "10_nova_os_problema.png",
+    "titulo": "Nova OS — Problema",
+    "crop": [
+      501,
+      397,
+      627,
+      658
+    ],
+    "size": [
+      142,
+      277
+    ]
+  },
+  {
+    "arquivo": "11_nova_os_detalhes_itens.png",
+    "titulo": "Nova OS — Detalhes/itens",
+    "crop": [
+      649,
+      397,
+      779,
+      658
+    ],
+    "size": [
+      146,
+      277
+    ]
+  },
+  {
+    "arquivo": "12_nova_os_resumo.png",
+    "titulo": "Nova OS — Resumo",
+    "crop": [
+      800,
+      397,
+      919,
+      658
+    ],
+    "size": [
+      135,
+      277
+    ]
+  },
+  {
+    "arquivo": "13_detalhes_os.png",
+    "titulo": "Detalhes da OS",
+    "crop": [
+      942,
+      397,
+      1052,
+      658
+    ],
+    "size": [
+      126,
+      277
+    ]
+  },
+  {
+    "arquivo": "14_clientes.png",
+    "titulo": "Clientes",
+    "crop": [
+      22,
+      678,
+      126,
+      864
+    ],
+    "size": [
+      120,
+      202
+    ]
+  },
+  {
+    "arquivo": "15_novo_cliente.png",
+    "titulo": "Novo cliente",
+    "crop": [
+      151,
+      678,
+      250,
+      864
+    ],
+    "size": [
+      115,
+      202
+    ]
+  },
+  {
+    "arquivo": "16_equipamentos.png",
+    "titulo": "Equipamentos",
+    "crop": [
+      275,
+      678,
+      376,
+      864
+    ],
+    "size": [
+      117,
+      202
+    ]
+  },
+  {
+    "arquivo": "17_novo_equipamento.png",
+    "titulo": "Novo equipamento",
+    "crop": [
+      402,
+      678,
+      501,
+      864
+    ],
+    "size": [
+      115,
+      202
+    ]
+  },
+  {
+    "arquivo": "18_catalogo_servicos.png",
+    "titulo": "Catálogo — Serviços",
+    "crop": [
+      521,
+      678,
+      627,
+      864
+    ],
+    "size": [
+      122,
+      202
+    ]
+  },
+  {
+    "arquivo": "19_catalogo_pecas.png",
+    "titulo": "Catálogo — Peças",
+    "crop": [
+      647,
+      678,
+      750,
+      864
+    ],
+    "size": [
+      119,
+      202
+    ]
+  },
+  {
+    "arquivo": "20_configuracoes_empresa.png",
+    "titulo": "Configurações — Empresa",
+    "crop": [
+      773,
+      678,
+      878,
+      864
+    ],
+    "size": [
+      121,
+      202
+    ]
+  },
+  {
+    "arquivo": "21_configuracoes_pdf.png",
+    "titulo": "Configurações — PDF",
+    "crop": [
+      906,
+      678,
+      1022,
+      864
+    ],
+    "size": [
+      132,
+      202
+    ]
+  },
+  {
+    "arquivo": "22_configuracoes_backup.png",
+    "titulo": "Configurações — Backup",
+    "crop": [
+      1055,
+      678,
+      1165,
+      864
+    ],
+    "size": [
+      126,
+      202
+    ]
+  },
+  {
+    "arquivo": "23_configuracoes_seguranca.png",
+    "titulo": "Configurações — Segurança",
+    "crop": [
+      1197,
+      678,
+      1298,
+      864
+    ],
+    "size": [
+      117,
+      202
+    ]
+  },
+  {
+    "arquivo": "24_loading_inicial.png",
+    "titulo": "Carregamento inicial",
+    "crop": [
+      25,
+      888,
+      140,
+      1020
+    ],
+    "size": [
+      131,
+      148
+    ]
+  },
+  {
+    "arquivo": "25_loading_entre_telas.png",
+    "titulo": "Carregamento entre telas",
+    "crop": [
+      153,
+      888,
+      274,
+      1020
+    ],
+    "size": [
+      137,
+      148
+    ]
+  },
+  {
+    "arquivo": "26_erro_offline.png",
+    "titulo": "Erro — Offline",
+    "crop": [
+      304,
+      888,
+      426,
+      1020
+    ],
+    "size": [
+      138,
+      148
+    ]
+  },
+  {
+    "arquivo": "27_erro_generico.png",
+    "titulo": "Erro — Genérico",
+    "crop": [
+      456,
+      888,
+      578,
+      1020
+    ],
+    "size": [
+      138,
+      148
+    ]
+  },
+  {
+    "arquivo": "28_empty_state_os.png",
+    "titulo": "Tela vazia — OS",
+    "crop": [
+      610,
+      888,
+      731,
+      1020
+    ],
+    "size": [
+      137,
+      148
+    ]
+  },
+  {
+    "arquivo": "29_empty_state_clientes.png",
+    "titulo": "Tela vazia — Clientes",
+    "crop": [
+      760,
+      888,
+      881,
+      1020
+    ],
+    "size": [
+      137,
+      148
+    ]
+  },
+  {
+    "arquivo": "30_empty_state_equipamentos.png",
+    "titulo": "Tela vazia — Equipamentos",
+    "crop": [
+      912,
+      888,
+      1028,
+      1020
+    ],
+    "size": [
+      132,
+      148
+    ]
+  },
+  {
+    "arquivo": "31_confirmacao_acao.png",
+    "titulo": "Confirmação de ação",
+    "crop": [
+      1051,
+      888,
+      1148,
+      1020
+    ],
+    "size": [
+      113,
+      148
+    ]
+  },
+  {
+    "arquivo": "37_pdf_os_exemplo.png",
+    "titulo": "PDF — Ordem de Serviço exemplo",
+    "crop": [
+      1061,
+      48,
+      1515,
+      632
+    ],
+    "size": [
+      470,
+      600
+    ]
+  }
+]

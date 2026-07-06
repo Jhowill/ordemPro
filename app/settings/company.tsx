@@ -1,11 +1,15 @@
 import { router } from 'expo-router';
 import { useState } from 'react';
-import { Alert } from 'react-native';
+import { Alert, Image, StyleSheet, View } from 'react-native';
 
 import { AppButton } from '@/components/ui/AppButton';
+import { AppCard } from '@/components/ui/AppCard';
+import { AppText } from '@/components/ui/AppText';
 import { AppHeader } from '@/components/ui/AppHeader';
 import { InputField } from '@/components/ui/InputField';
 import { ScreenContainer } from '@/components/ui/ScreenContainer';
+import { spacing } from '@/constants/theme';
+import { pickAndStoreImage } from '@/services/media';
 import { useAppData } from '@/services/storage';
 
 export default function CompanySettingsScreen() {
@@ -21,8 +25,18 @@ export default function CompanySettingsScreen() {
     addressLine: data.company?.addressLine ?? '',
     city: data.company?.city ?? '',
     state: data.company?.state ?? '',
+    logoUri: data.company?.logoUri ?? '',
   });
   const update = (key: keyof typeof form, value: string) => setForm((current) => ({ ...current, [key]: value }));
+
+  async function chooseLogo() {
+    try {
+      const image = await pickAndStoreImage('logos');
+      if (image) update('logoUri', image.localUri);
+    } catch (error) {
+      Alert.alert('Logo nao selecionada', error instanceof Error ? error.message : 'Tente novamente.');
+    }
+  }
 
   async function save() {
     await saveCompany(form);
@@ -33,6 +47,14 @@ export default function CompanySettingsScreen() {
   return (
     <ScreenContainer footer={<AppButton title="Salvar alteracoes" onPress={save} />}>
       <AppHeader title="Dados da empresa" subtitle="Usado no PDF" back />
+      <AppCard>
+        <AppText variant="subtitle">Logo da empresa</AppText>
+        {form.logoUri ? <Image source={{ uri: form.logoUri }} style={styles.logoPreview} resizeMode="contain" /> : <AppText muted>Nenhuma logo selecionada.</AppText>}
+        <View style={styles.row}>
+          <AppButton title={form.logoUri ? 'Trocar logo' : 'Adicionar logo'} variant="secondary" onPress={chooseLogo} />
+          {form.logoUri ? <AppButton title="Remover" variant="danger" onPress={() => update('logoUri', '')} /> : null}
+        </View>
+      </AppCard>
       <InputField label="Nome" value={form.name} onChangeText={(value) => update('name', value)} />
       <InputField label="Nome fantasia" value={form.tradeName} onChangeText={(value) => update('tradeName', value)} />
       <InputField label="CPF/CNPJ" value={form.document} onChangeText={(value) => update('document', value)} />
@@ -47,3 +69,7 @@ export default function CompanySettingsScreen() {
   );
 }
 
+const styles = StyleSheet.create({
+  logoPreview: { width: '100%', height: 104, marginVertical: spacing.sm },
+  row: { flexDirection: 'row', gap: spacing.sm, marginTop: spacing.sm },
+});

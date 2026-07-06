@@ -18,15 +18,9 @@ export function AppCard({ children, onPress }: Props) {
 
 const styles = StyleSheet.create({
   card: {
-    borderRadius: radius.lg,
+    borderRadius: radius.sm,
     borderWidth: 1,
-    padding: spacing.md,
+    padding: spacing.sm,
     marginBottom: spacing.sm,
-    shadowColor: '#0F172A',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.05,
-    shadowRadius: 10,
-    elevation: 2,
   },
 });
-

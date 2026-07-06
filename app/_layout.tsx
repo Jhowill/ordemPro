@@ -5,11 +5,13 @@ import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
 
+import { AppButton } from '@/components/ui/AppButton';
+import { AppText } from '@/components/ui/AppText';
 import { AppDataProvider, useAppData } from '@/services/storage';
 import { useThemeColors } from '@/hooks/useThemeColors';
 
 function RootNavigator() {
-  const { data, loading } = useAppData();
+  const { data, loading, loadError } = useAppData();
   const segments = useSegments();
   const colors = useThemeColors();
 
@@ -26,8 +28,20 @@ function RootNavigator() {
 
   if (loading) {
     return (
-      <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.background }}>
+      <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', gap: 14, padding: 24, backgroundColor: colors.background }}>
         <ActivityIndicator color={colors.primary} />
+        <AppText variant="subtitle">OrdemPro</AppText>
+        <AppText muted>Carregando dados locais...</AppText>
+      </View>
+    );
+  }
+
+  if (loadError) {
+    return (
+      <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', gap: 14, padding: 24, backgroundColor: colors.background }}>
+        <AppText variant="title" style={{ textAlign: 'center' }}>Algo deu errado</AppText>
+        <AppText muted style={{ textAlign: 'center' }}>{loadError}</AppText>
+        <AppButton title="Tentar novamente" onPress={() => router.replace('/')} />
       </View>
     );
   }
@@ -51,4 +65,3 @@ export default function Layout() {
     </GestureHandlerRootView>
   );
 }
-
