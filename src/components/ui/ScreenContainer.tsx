@@ -1,5 +1,5 @@
 import { ReactNode } from 'react';
-import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet, View } from 'react-native';
+import { KeyboardAvoidingView, Platform, ScrollView, ScrollViewProps, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { spacing } from '@/constants/theme';
@@ -10,12 +10,13 @@ type Props = {
   scroll?: boolean;
   padded?: boolean;
   footer?: ReactNode;
+  scrollEnabled?: ScrollViewProps['scrollEnabled'];
 };
 
-export function ScreenContainer({ children, scroll = true, padded = true, footer }: Props) {
+export function ScreenContainer({ children, scroll = true, scrollEnabled = true, padded = true, footer }: Props) {
   const colors = useThemeColors();
   const content = scroll ? (
-    <ScrollView contentContainerStyle={[styles.content, padded && styles.padded]} showsVerticalScrollIndicator={false}>
+    <ScrollView contentContainerStyle={[styles.content, padded && styles.padded]} scrollEnabled={scrollEnabled} showsVerticalScrollIndicator={false}>
       {children}
     </ScrollView>
   ) : (
@@ -39,4 +40,3 @@ const styles = StyleSheet.create({
   padded: { paddingHorizontal: spacing.md, paddingTop: spacing.md },
   footer: { padding: spacing.md },
 });
-

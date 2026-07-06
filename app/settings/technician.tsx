@@ -23,6 +23,7 @@ export default function TechnicianSettingsScreen() {
   const [email, setEmail] = useState(current?.email ?? data.company?.email ?? '');
   const [signatureUri, setSignatureUri] = useState(current?.signatureUri ?? '');
   const [showSignaturePad, setShowSignaturePad] = useState(false);
+  const [isSigning, setIsSigning] = useState(false);
   const [saving, setSaving] = useState(false);
 
   async function selectSignature(source: 'library' | 'camera') {
@@ -59,7 +60,7 @@ export default function TechnicianSettingsScreen() {
   }
 
   return (
-    <ScreenContainer>
+    <ScreenContainer scrollEnabled={!isSigning}>
       <AppHeader title="Tecnico responsavel" subtitle="Perfil e assinatura para OS e PDF" back />
       <AppCard>
         <SectionTitle title="Dados do tecnico" />
@@ -75,11 +76,16 @@ export default function TechnicianSettingsScreen() {
         {showSignaturePad ? (
           <SignaturePad
             title="Assinatura do tecnico"
+            onSigningChange={setIsSigning}
             onSave={(uri) => {
               setSignatureUri(uri);
               setShowSignaturePad(false);
+              setIsSigning(false);
             }}
-            onCancel={() => setShowSignaturePad(false)}
+            onCancel={() => {
+              setShowSignaturePad(false);
+              setIsSigning(false);
+            }}
           />
         ) : (
           <>

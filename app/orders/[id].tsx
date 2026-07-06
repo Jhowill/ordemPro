@@ -23,6 +23,7 @@ export default function OrderDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const { data, updateOrderStatus, addOrderPhoto, updateOrderPhoto, removeOrderPhoto, addSignature } = useAppData();
   const [showCustomerSignaturePad, setShowCustomerSignaturePad] = useState(false);
+  const [isSigning, setIsSigning] = useState(false);
   const order = data.orders.find((item) => item.id === id);
   if (!order) return <ScreenContainer><EmptyState icon="alert-circle-outline" title="OS nao encontrada" description="A ordem pode ter sido removida." /></ScreenContainer>;
   const activeOrder = order;
@@ -82,10 +83,11 @@ export default function OrderDetailScreen() {
       signerDocument: customer?.document,
     });
     setShowCustomerSignaturePad(false);
+    setIsSigning(false);
   }
 
   return (
-    <ScreenContainer>
+    <ScreenContainer scrollEnabled={!isSigning}>
       <AppHeader title={activeOrder.shortCode} subtitle={customer?.name ?? 'Cliente'} back action={<StatusBadge status={activeOrder.status} />} />
       <View style={styles.actions}>
         <AppButton title={activeOrder.status === 'delivered' ? 'Ver PDF' : 'Avancar status'} onPress={activeOrder.status === 'delivered' ? () => router.push(`/orders/${activeOrder.id}/pdf`) : advanceStatus} />
@@ -147,7 +149,15 @@ export default function OrderDetailScreen() {
       <AppCard>
         <SectionTitle title="Assinaturas" description="Assinaturas usadas no PDF" />
         {showCustomerSignaturePad ? (
-          <SignaturePad title="Assinatura do cliente" onSave={saveDrawnCustomerSignature} onCancel={() => setShowCustomerSignaturePad(false)} />
+          <SignaturePad
+            title="Assinatura do cliente"
+            onSigningChange={setIsSigning}
+            onSave={saveDrawnCustomerSignature}
+            onCancel={() => {
+              setShowCustomerSignaturePad(false);
+              setIsSigning(false);
+            }}
+          />
         ) : (
           <>
             <View style={styles.signatureRow}>

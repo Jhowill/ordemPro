@@ -52,10 +52,11 @@ export function buildOrderPdfHtml(data: AppData, order: ServiceOrder) {
         .center { text-align: center; }
         .summary { width: 260px; margin-left: auto; }
         .terms { font-size: 10px; line-height: 1.45; }
-        .signatures { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-top: 12px; }
-        .signature { border: 1px solid #cbd5e1; border-radius: 8px; min-height: 92px; padding: 12px; text-align: center; }
-        .signature-img { width: 100%; height: 42px; object-fit: contain; margin-bottom: 6px; }
-        .line { border-top: 1px solid ${primary}; margin-top: 34px; padding-top: 8px; font-weight: 700; }
+        .signatures { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-top: 12px; }
+        .signature { border: 1px solid #cbd5e1; border-radius: 8px; height: 118px; padding: 10px 12px 8px; text-align: center; display: flex; flex-direction: column; justify-content: flex-end; break-inside: avoid; }
+        .signature-image-wrap { height: 62px; display: flex; align-items: center; justify-content: center; margin-bottom: 5px; }
+        .signature-img { max-width: 100%; width: 100%; height: 62px; object-fit: contain; display: block; }
+        .signature-line { border-top: 1px solid ${primary}; padding-top: 7px; font-weight: 700; line-height: 1.25; }
         .footer { border-top: 1px solid #cbd5e1; margin-top: 16px; padding-top: 10px; text-align: center; color: #475569; font-size: 10px; }
         .photo-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
         .photo { width: 100%; height: 92px; object-fit: cover; border: 1px solid #cbd5e1; border-radius: 6px; }
@@ -150,12 +151,12 @@ export function buildOrderPdfHtml(data: AppData, order: ServiceOrder) {
               <h2>ASSINATURAS</h2>
               <div class="signatures">
                 <div class="signature">
-                  ${customerSignature?.localUri ? `<img class="signature-img" src="${customerSignature.localUri}" />` : ''}
-                  <div class="line">${customerSignature?.signerName ?? customer?.name ?? 'Cliente'}<br />Cliente</div>
+                  <div class="signature-image-wrap">${customerSignature?.localUri ? `<img class="signature-img" src="${customerSignature.localUri}" />` : ''}</div>
+                  <div class="signature-line">${customerSignature?.signerName ?? customer?.name ?? 'Cliente'}<br />Cliente</div>
                 </div>
                 <div class="signature">
-                  ${technician?.signatureUri ? `<img class="signature-img" src="${technician.signatureUri}" />` : ''}
-                  <div class="line">${technicianName}<br />Tecnico/Responsavel</div>
+                  <div class="signature-image-wrap">${technician?.signatureUri ? `<img class="signature-img" src="${technician.signatureUri}" />` : ''}</div>
+                  <div class="signature-line">${technicianName}<br />Tecnico/Responsavel</div>
                 </div>
               </div>
             </div>
