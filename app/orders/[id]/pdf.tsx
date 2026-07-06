@@ -39,6 +39,16 @@ export default function OrderPdfScreen() {
         localUri: result.uri,
         generatedAt: nowIso(),
         totalCents: activeOrder.totalCents,
+        snapshotJson: JSON.stringify({
+          order: activeOrder,
+          customer: data.customers.find((item) => item.id === activeOrder.customerId),
+          equipment: data.equipments.find((item) => item.id === activeOrder.equipmentId),
+          technician: data.technicians.find((item) => item.id === activeOrder.technicianId),
+          items: data.items.filter((item) => item.orderId === activeOrder.id),
+          payments: data.payments.filter((item) => item.orderId === activeOrder.id),
+          photos: data.photos.filter((item) => item.orderId === activeOrder.id),
+          signatures: data.signatures.filter((item) => item.orderId === activeOrder.id),
+        }),
       };
       await updatePdfRecord(record);
       Alert.alert('PDF gerado', 'O arquivo foi salvo localmente.');

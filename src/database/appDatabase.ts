@@ -4,7 +4,7 @@ import type { SQLiteDatabase } from 'expo-sqlite';
 
 import { initialData } from '@/data/seed';
 import { createSchemaSql, CURRENT_SCHEMA_VERSION } from '@/database/schema';
-import { AppData, CatalogPart, CatalogService, CompanyProfile, Customer, DefaultTerms, Equipment, Payment, PdfSettings, PhotoAttachment, ServiceOrder, ServiceOrderItem, ServiceOrderPdf, ServiceOrderStatusHistory, SignatureRecord } from '@/types';
+import { AppData, CatalogPart, CatalogService, CompanyProfile, Customer, DefaultTerms, Equipment, Payment, PdfSettings, PhotoAttachment, ServiceOrder, ServiceOrderItem, ServiceOrderPdf, ServiceOrderStatusHistory, SignatureRecord, TechnicianProfile } from '@/types';
 import { nowIso } from '@/utils/formatters';
 
 const DATABASE_NAME = 'ordempro.db';
@@ -68,12 +68,25 @@ export async function runMigrations(db: SQLiteDatabase) {
   await db.execAsync(createSchemaSql);
   const versionRow = await db.getFirstAsync<{ value: string }>("SELECT value FROM app_meta WHERE key = 'schema_version'");
   const version = Number(versionRow?.value ?? 0);
+  await migrateExistingDatabase(db);
   if (version < CURRENT_SCHEMA_VERSION) {
     await setMeta(db, 'schema_version', String(CURRENT_SCHEMA_VERSION));
   }
   if (await isDatabaseEmpty(db)) {
     await replaceAppData(initialData);
   }
+}
+
+async function migrateExistingDatabase(db: SQLiteDatabase) {
+  await addColumnIfMissing(db, 'service_orders', 'technician_id', 'TEXT');
+  await addColumnIfMissing(db, 'signature_records', 'kind', "TEXT NOT NULL DEFAULT 'customer'");
+  await addColumnIfMissing(db, 'service_order_pdfs', 'snapshot_json', 'TEXT');
+}
+
+async function addColumnIfMissing(db: SQLiteDatabase, table: string, column: string, definition: string) {
+  const columns = await db.getAllAsync<{ name: string }>(`PRAGMA table_info(${table})`);
+  if (columns.some((item) => item.name === column)) return;
+  await db.execAsync(`ALTER TABLE ${table} ADD COLUMN ${column} ${definition}`);
 }
 
 export async function loadAppData(): Promise<AppData> {
@@ -87,12 +100,13 @@ export async function loadAppData(): Promise<AppData> {
   }
 
   const db = await getDatabase();
-  const [companyRows, pdfRows, termRows, customerRows, equipmentRows, serviceRows, partRows, orderRows, itemRows, paymentRows, photoRows, signatureRows, pdfRecordRows, statusHistoryRows, backupRows, lastOrderRow, themeRow] = await Promise.all([
+  const [companyRows, pdfRows, termRows, customerRows, equipmentRows, technicianRows, serviceRows, partRows, orderRows, itemRows, paymentRows, photoRows, signatureRows, pdfRecordRows, statusHistoryRows, backupRows, lastOrderRow, themeRow] = await Promise.all([
     db.getAllAsync<DbRow>('SELECT * FROM company_profile WHERE deleted_at IS NULL ORDER BY updated_at DESC LIMIT 1'),
     db.getAllAsync<DbRow>('SELECT * FROM pdf_settings WHERE deleted_at IS NULL LIMIT 1'),
     db.getAllAsync<DbRow>('SELECT * FROM default_terms WHERE deleted_at IS NULL LIMIT 1'),
     db.getAllAsync<DbRow>('SELECT * FROM customers WHERE deleted_at IS NULL ORDER BY updated_at DESC'),
     db.getAllAsync<DbRow>('SELECT * FROM equipments WHERE deleted_at IS NULL ORDER BY updated_at DESC'),
+    db.getAllAsync<DbRow>('SELECT * FROM technician_profiles WHERE deleted_at IS NULL ORDER BY is_default DESC, updated_at DESC'),
     db.getAllAsync<DbRow>('SELECT * FROM service_catalog_items WHERE deleted_at IS NULL ORDER BY updated_at DESC'),
     db.getAllAsync<DbRow>('SELECT * FROM part_catalog_items WHERE deleted_at IS NULL ORDER BY updated_at DESC'),
     db.getAllAsync<DbRow>('SELECT * FROM service_orders WHERE deleted_at IS NULL ORDER BY number DESC'),
@@ -113,6 +127,7 @@ export async function loadAppData(): Promise<AppData> {
     terms: termRows[0] ? mapTerms(termRows[0]) : initialData.terms,
     customers: customerRows.map(mapCustomer),
     equipments: equipmentRows.map(mapEquipment),
+    technicians: technicianRows.map(mapTechnician),
     services: serviceRows.map(mapCatalogService),
     parts: partRows.map(mapCatalogPart),
     orders: orderRows.map(mapOrder),
@@ -140,6 +155,7 @@ export async function replaceAppData(data: AppData) {
   const db = databasePromise ? await databasePromise : await openDatabaseAsync(DATABASE_NAME);
   databasePromise ??= Promise.resolve(db);
   await db.execAsync(createSchemaSql);
+  await migrateExistingDatabase(db);
   await db.withTransactionAsync(async () => {
     await clearWritableTables(db);
     if (data.company) await insertCompany(db, data.company);
@@ -147,6 +163,7 @@ export async function replaceAppData(data: AppData) {
     await insertTerms(db, data.terms);
     for (const customer of data.customers) await insertCustomer(db, customer);
     for (const equipment of data.equipments) await insertEquipment(db, equipment);
+    for (const technician of data.technicians) await insertTechnician(db, technician);
     for (const service of data.services) await insertCatalogService(db, service);
     for (const part of data.parts) await insertCatalogPart(db, part);
     for (const order of data.orders) await insertOrder(db, order);
@@ -172,6 +189,7 @@ async function clearWritableTables(db: SQLiteDatabase) {
     DELETE FROM payments;
     DELETE FROM service_order_items;
     DELETE FROM service_orders;
+    DELETE FROM technician_profiles;
     DELETE FROM part_catalog_items;
     DELETE FROM service_catalog_items;
     DELETE FROM equipments;
@@ -284,6 +302,24 @@ async function insertEquipment(db: SQLiteDatabase, equipment: Equipment) {
   );
 }
 
+async function insertTechnician(db: SQLiteDatabase, technician: TechnicianProfile) {
+  await db.runAsync(
+    `INSERT INTO technician_profiles VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+    technician.id,
+    technician.name,
+    toNullable(technician.document),
+    toNullable(technician.phone),
+    toNullable(technician.email),
+    toNullable(technician.role),
+    toNullable(technician.signatureUri),
+    technician.isDefault ? 1 : 0,
+    technician.status,
+    technician.createdAt,
+    technician.updatedAt,
+    technician.deletedAt ?? null,
+  );
+}
+
 async function insertCatalogService(db: SQLiteDatabase, service: CatalogService) {
   await db.runAsync(
     `INSERT INTO service_catalog_items VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
@@ -322,6 +358,7 @@ async function insertOrder(db: SQLiteDatabase, order: ServiceOrder) {
       short_code,
       customer_id,
       equipment_id,
+      technician_id,
       is_service_without_equipment,
       opened_at,
       expected_completion_at,
@@ -344,12 +381,13 @@ async function insertOrder(db: SQLiteDatabase, order: ServiceOrder) {
       created_at,
       updated_at,
       deleted_at
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     order.id,
     order.number,
     order.shortCode,
     order.customerId,
     order.equipmentId ?? null,
+    order.technicianId ?? null,
     order.isServiceWithoutEquipment ? 1 : 0,
     order.openedAt,
     order.expectedCompletionAt ?? null,
@@ -423,9 +461,21 @@ async function insertPhoto(db: SQLiteDatabase, photo: PhotoAttachment) {
 
 async function insertSignature(db: SQLiteDatabase, signature: SignatureRecord) {
   await db.runAsync(
-    `INSERT INTO signature_records VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+    `INSERT INTO signature_records (
+      id,
+      order_id,
+      kind,
+      local_uri,
+      signer_name,
+      signer_document,
+      signed_at,
+      created_at,
+      updated_at,
+      deleted_at
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     signature.id,
     signature.orderId,
+    signature.kind,
     signature.localUri,
     signature.signerName,
     toNullable(signature.signerDocument),
@@ -438,13 +488,25 @@ async function insertSignature(db: SQLiteDatabase, signature: SignatureRecord) {
 
 async function insertPdfRecord(db: SQLiteDatabase, pdf: ServiceOrderPdf) {
   await db.runAsync(
-    `INSERT INTO service_order_pdfs VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+    `INSERT INTO service_order_pdfs (
+      id,
+      order_id,
+      version,
+      local_uri,
+      generated_at,
+      total_cents,
+      snapshot_json,
+      created_at,
+      updated_at,
+      deleted_at
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     pdf.id,
     pdf.orderId,
     pdf.version,
     pdf.localUri,
     pdf.generatedAt,
     pdf.totalCents,
+    toNullable(pdf.snapshotJson),
     pdf.createdAt,
     pdf.updatedAt,
     pdf.deletedAt ?? null,
@@ -571,6 +633,20 @@ function mapCatalogService(row: DbRow): CatalogService {
   };
 }
 
+function mapTechnician(row: DbRow): TechnicianProfile {
+  return {
+    ...rowBase(row),
+    name: String(row.name),
+    document: row.document ? String(row.document) : undefined,
+    phone: row.phone ? String(row.phone) : undefined,
+    email: row.email ? String(row.email) : undefined,
+    role: row.role ? String(row.role) : undefined,
+    signatureUri: row.signature_uri ? String(row.signature_uri) : undefined,
+    isDefault: toBoolean(row.is_default),
+    status: row.status as TechnicianProfile['status'],
+  };
+}
+
 function mapCatalogPart(row: DbRow): CatalogPart {
   return {
     ...rowBase(row),
@@ -589,6 +665,7 @@ function mapOrder(row: DbRow): ServiceOrder {
     shortCode: String(row.short_code),
     customerId: String(row.customer_id),
     equipmentId: row.equipment_id ? String(row.equipment_id) : null,
+    technicianId: row.technician_id ? String(row.technician_id) : null,
     isServiceWithoutEquipment: toBoolean(row.is_service_without_equipment),
     openedAt: String(row.opened_at),
     expectedCompletionAt: row.expected_completion_at ? String(row.expected_completion_at) : undefined,
@@ -649,6 +726,7 @@ function mapSignature(row: DbRow): SignatureRecord {
   return {
     ...rowBase(row),
     orderId: String(row.order_id),
+    kind: (row.kind ? String(row.kind) : 'customer') as SignatureRecord['kind'],
     localUri: String(row.local_uri),
     signerName: String(row.signer_name),
     signerDocument: row.signer_document ? String(row.signer_document) : undefined,
@@ -664,6 +742,7 @@ function mapPdfRecord(row: DbRow): ServiceOrderPdf {
     localUri: String(row.local_uri),
     generatedAt: String(row.generated_at),
     totalCents: toInteger(row.total_cents),
+    snapshotJson: row.snapshot_json ? String(row.snapshot_json) : undefined,
   };
 }
 

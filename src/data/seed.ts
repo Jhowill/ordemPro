@@ -58,6 +58,17 @@ export const initialData: AppData = {
       status: 'active',
     },
   ],
+  technicians: [
+    {
+      id: 'technician_demo',
+      createdAt,
+      updatedAt: createdAt,
+      name: 'Tecnico responsavel',
+      role: 'Tecnico',
+      isDefault: true,
+      status: 'active',
+    },
+  ],
   orders: [
     {
       id: 'order_demo',
@@ -67,6 +78,7 @@ export const initialData: AppData = {
       shortCode: 'OS-000123',
       customerId: 'customer_demo',
       equipmentId: 'equipment_demo',
+      technicianId: 'technician_demo',
       isServiceWithoutEquipment: false,
       openedAt: createdAt,
       status: 'in_progress',

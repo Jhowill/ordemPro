@@ -104,6 +104,18 @@ export type ServiceOrderStatus =
 export type ServiceOrderPriority = 'low' | 'normal' | 'high' | 'urgent';
 export type OrderItemType = 'service' | 'part' | 'other_cost';
 export type PaymentMethod = 'cash' | 'pix' | 'debit_card' | 'credit_card' | 'bank_transfer' | 'other';
+export type SignatureKind = 'customer' | 'technician';
+
+export type TechnicianProfile = BaseEntity & {
+  name: string;
+  document?: string;
+  phone?: string;
+  email?: string;
+  role?: string;
+  signatureUri?: string;
+  isDefault: boolean;
+  status: EntityStatus;
+};
 
 export type ServiceOrderItem = BaseEntity & {
   orderId: UUID;
@@ -127,6 +139,7 @@ export type ServiceOrder = BaseEntity & {
   shortCode: string;
   customerId: UUID;
   equipmentId?: UUID | null;
+  technicianId?: UUID | null;
   isServiceWithoutEquipment: boolean;
   openedAt: ISODateString;
   expectedCompletionAt?: ISODateString;
@@ -158,6 +171,7 @@ export type PhotoAttachment = BaseEntity & {
 
 export type SignatureRecord = BaseEntity & {
   orderId: UUID;
+  kind: SignatureKind;
   localUri: string;
   signerName: string;
   signerDocument?: string;
@@ -170,6 +184,7 @@ export type ServiceOrderPdf = BaseEntity & {
   localUri: string;
   generatedAt: ISODateString;
   totalCents: MoneyCents;
+  snapshotJson?: string;
 };
 
 export type ServiceOrderStatusHistory = BaseEntity & {
@@ -208,6 +223,7 @@ export type AppData = {
   terms: DefaultTerms;
   customers: Customer[];
   equipments: Equipment[];
+  technicians: TechnicianProfile[];
   orders: ServiceOrder[];
   items: ServiceOrderItem[];
   payments: Payment[];

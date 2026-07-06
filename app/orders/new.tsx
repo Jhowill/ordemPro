@@ -23,9 +23,11 @@ export default function NewOrderScreen() {
   const [step, setStep] = useState(0);
   const [customerId, setCustomerId] = useState(data.customers[0]?.id ?? '');
   const [equipmentId, setEquipmentId] = useState<string | null>(data.equipments[0]?.id ?? null);
+  const [technicianId, setTechnicianId] = useState(data.technicians.find((item) => item.isDefault)?.id ?? data.technicians[0]?.id ?? '');
   const [withoutEquipment, setWithoutEquipment] = useState(false);
   const [reportedIssue, setReportedIssue] = useState('');
   const [diagnosis, setDiagnosis] = useState('');
+  const [performedService, setPerformedService] = useState('');
   const [item, setItem] = useState({ description: '', price: '' });
   const [items, setItems] = useState<DraftItem[]>([]);
 
@@ -51,7 +53,7 @@ export default function NewOrderScreen() {
       setStep(2);
       return;
     }
-    const order = await createOrder({ customerId, equipmentId, isServiceWithoutEquipment: withoutEquipment, reportedIssue, diagnosis, items });
+    const order = await createOrder({ customerId, equipmentId, technicianId, isServiceWithoutEquipment: withoutEquipment, reportedIssue, diagnosis, performedService, items });
     router.replace(`/orders/${order.id}`);
   }
 
@@ -104,8 +106,19 @@ export default function NewOrderScreen() {
       {step === 2 ? (
         <>
           <SectionTitle title="Problema" description="Descreva o motivo da abertura" />
+          <SectionTitle title="Tecnico responsavel" />
+          {data.technicians.map((technician) => (
+            <Pressable key={technician.id} onPress={() => setTechnicianId(technician.id)}>
+              <AppCard>
+                <AppText variant="subtitle" color={technicianId === technician.id ? colors.primary : undefined}>{technician.name}</AppText>
+                <AppText muted>{technician.signatureUri ? 'Assinatura salva para PDF' : 'Sem assinatura cadastrada'}</AppText>
+              </AppCard>
+            </Pressable>
+          ))}
+          {!data.technicians.length ? <AppButton title="Cadastrar tecnico" variant="secondary" onPress={() => router.push('/settings/technician')} /> : null}
           <InputField label="Defeito relatado ou servico solicitado" value={reportedIssue} onChangeText={setReportedIssue} multiline style={styles.textArea} />
           <InputField label="Diagnostico tecnico" value={diagnosis} onChangeText={setDiagnosis} multiline style={styles.textArea} />
+          <InputField label="Servico executado" value={performedService} onChangeText={setPerformedService} multiline style={styles.textArea} />
         </>
       ) : null}
 
@@ -134,6 +147,7 @@ export default function NewOrderScreen() {
             <AppText variant="subtitle">Solicitacao</AppText>
             <AppText>{reportedIssue}</AppText>
             <AppText muted>{withoutEquipment ? 'Servico sem equipamento' : 'Com equipamento vinculado'}</AppText>
+            <AppText muted>Tecnico: {data.technicians.find((item) => item.id === technicianId)?.name ?? 'Nao selecionado'}</AppText>
           </AppCard>
           <AppCard>
             <AppText variant="subtitle">Valores</AppText>
@@ -150,4 +164,3 @@ const styles = StyleSheet.create({
   footer: { flexDirection: 'row', gap: spacing.sm },
   textArea: { minHeight: 96, textAlignVertical: 'top' },
 });
-

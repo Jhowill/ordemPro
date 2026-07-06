@@ -24,6 +24,13 @@
 - Logo da empresa ganhou selecao, preview e remocao no onboarding e nas configuracoes.
 - Detalhe da OS ganhou adicao e preview de fotos locais.
 - PDF passou a exibir logo e fotos da OS quando configurado para isso.
+- Configuracoes ganharam perfil de tecnico responsavel com assinatura salva por galeria/camera.
+- Nova OS e edicao de OS permitem selecionar tecnico; a assinatura do perfil e aplicada automaticamente no PDF.
+- Detalhe da OS ganhou captura por camera/galeria, alternancia de inclusao no PDF e remocao de fotos.
+- Detalhe da OS ganhou assinatura do cliente por camera/galeria e visualizacao das assinaturas usadas no PDF.
+- Edicao de OS passou a cobrir prioridade, previsao, dados tecnicos, garantia, aprovacao do cliente e pagamento simples.
+- SQLite ganhou `technician_profiles`, `service_orders.technician_id`, `signature_records.kind` e `service_order_pdfs.snapshot_json`.
+- Permissoes nativas de camera e galeria foram declaradas no `app.json`.
 - Persistencia local foi corrigida para gravar sempre o estado atualizado.
 - Web ganhou fallback em AsyncStorage para auditoria visual; Expo Go nativo continua usando SQLite.
 - Componentes visuais foram compactados para ficarem mais proximos das referencias: cards com raio menor, botoes de rodape full-width e botoes de cabecalho compactos.
@@ -43,13 +50,13 @@
 - `npm.cmd run lint`
 - `npx.cmd expo install --check`
 - `npm.cmd run start -- --localhost`
+- Verificacao HTTP local do Metro em `http://localhost:8082` com status 200.
 - Verificacao web mobile de onboarding, home, lista de OS, nova OS e configuracoes de PDF.
 - Verificacao web mobile de configuracoes de empresa com logo e detalhe de OS com fotos.
 
 ## Pendencias recomendadas para proxima rodada
 
-- Implementar captura real de fotos.
-- Implementar assinatura desenhada em canvas ou biblioteca apropriada.
-- Adicionar edicao completa de OS apos criada.
 - Adicionar preview visual do PDF dentro do app antes de compartilhar.
+- Evoluir assinatura desenhada em tela se a V1 exigir canvas nativo; a implementacao atual usa imagem/camera.
+- Evoluir backup ZIP com binarios de logos, fotos, assinaturas e PDFs; o backup atual preserva JSON e referencias `localUri`.
 - Criar testes automatizados para persistencia, calculos e fluxo de OS.

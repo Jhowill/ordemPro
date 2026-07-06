@@ -11,6 +11,9 @@ type PickedImage = {
   height?: number;
 };
 
+type MediaFolder = 'logos' | 'orders' | 'signatures';
+type ImageSource = 'library' | 'camera';
+
 const mediaRoot = `${FileSystem.documentDirectory ?? ''}ordempro-media`;
 
 async function ensureDirectory(path: string) {
@@ -18,25 +21,26 @@ async function ensureDirectory(path: string) {
   await FileSystem.makeDirectoryAsync(path, { intermediates: true });
 }
 
-export async function pickAndStoreImage(folder: 'logos' | 'orders'): Promise<PickedImage | null> {
-  const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
+export async function pickAndStoreImage(folder: MediaFolder, source: ImageSource = 'library'): Promise<PickedImage | null> {
+  const permission = source === 'camera' ? await ImagePicker.requestCameraPermissionsAsync() : await ImagePicker.requestMediaLibraryPermissionsAsync();
   if (!permission.granted) {
-    throw new Error('Permita acesso as fotos para selecionar uma imagem.');
+    throw new Error(source === 'camera' ? 'Permita acesso a camera para tirar fotos.' : 'Permita acesso as fotos para selecionar uma imagem.');
   }
 
-  const result = await ImagePicker.launchImageLibraryAsync({
+  const options: ImagePicker.ImagePickerOptions = {
     mediaTypes: ImagePicker.MediaTypeOptions.Images,
     allowsEditing: false,
     quality: 0.85,
-  });
+  };
+  const result = source === 'camera' ? await ImagePicker.launchCameraAsync(options) : await ImagePicker.launchImageLibraryAsync(options);
 
   if (result.canceled || !result.assets[0]?.uri) return null;
 
   const asset = result.assets[0];
   const resized = await ImageManipulator.manipulateAsync(
     asset.uri,
-    [{ resize: { width: folder === 'logos' ? 720 : 1280 } }],
-    { compress: 0.78, format: ImageManipulator.SaveFormat.JPEG },
+    [{ resize: { width: folder === 'logos' || folder === 'signatures' ? 720 : 1280 } }],
+    { compress: folder === 'orders' ? 0.78 : 0.86, format: ImageManipulator.SaveFormat.JPEG },
   );
 
   if (Platform.OS === 'web') {

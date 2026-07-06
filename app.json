@@ -8,13 +8,28 @@
     "userInterfaceStyle": "automatic",
     "assetBundlePatterns": ["**/*"],
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "infoPlist": {
+        "NSCameraUsageDescription": "Permita tirar fotos de equipamentos, servicos e assinaturas.",
+        "NSPhotoLibraryUsageDescription": "Permita selecionar logos, fotos das OS e assinaturas.",
+        "NSPhotoLibraryAddUsageDescription": "Permita salvar imagens usadas pelo OrdemPro."
+      }
     },
     "android": {
+      "permissions": ["CAMERA", "READ_MEDIA_IMAGES", "READ_EXTERNAL_STORAGE"],
       "adaptiveIcon": {
         "backgroundColor": "#1E4FD7"
       }
     },
-    "plugins": ["expo-router"]
+    "plugins": [
+      "expo-router",
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "Permita selecionar logos, fotos das OS e assinaturas.",
+          "cameraPermission": "Permita tirar fotos de equipamentos, servicos e assinaturas."
+        }
+      ]
+    ]
   }
 }

@@ -1,4 +1,4 @@
-export const CURRENT_SCHEMA_VERSION = 1;
+export const CURRENT_SCHEMA_VERSION = 2;
 
 export const createSchemaSql = `
 PRAGMA foreign_keys = ON;
@@ -120,12 +120,28 @@ CREATE TABLE IF NOT EXISTS part_catalog_items (
   deleted_at TEXT
 );
 
+CREATE TABLE IF NOT EXISTS technician_profiles (
+  id TEXT PRIMARY KEY NOT NULL,
+  name TEXT NOT NULL,
+  document TEXT,
+  phone TEXT,
+  email TEXT,
+  role TEXT,
+  signature_uri TEXT,
+  is_default INTEGER NOT NULL,
+  status TEXT NOT NULL,
+  created_at TEXT NOT NULL,
+  updated_at TEXT NOT NULL,
+  deleted_at TEXT
+);
+
 CREATE TABLE IF NOT EXISTS service_orders (
   id TEXT PRIMARY KEY NOT NULL,
   number INTEGER NOT NULL UNIQUE,
   short_code TEXT NOT NULL UNIQUE,
   customer_id TEXT NOT NULL,
   equipment_id TEXT,
+  technician_id TEXT,
   is_service_without_equipment INTEGER NOT NULL,
   opened_at TEXT NOT NULL,
   expected_completion_at TEXT,
@@ -149,7 +165,8 @@ CREATE TABLE IF NOT EXISTS service_orders (
   updated_at TEXT NOT NULL,
   deleted_at TEXT,
   FOREIGN KEY (customer_id) REFERENCES customers(id),
-  FOREIGN KEY (equipment_id) REFERENCES equipments(id)
+  FOREIGN KEY (equipment_id) REFERENCES equipments(id),
+  FOREIGN KEY (technician_id) REFERENCES technician_profiles(id)
 );
 
 CREATE TABLE IF NOT EXISTS service_order_items (
@@ -194,6 +211,7 @@ CREATE TABLE IF NOT EXISTS photo_attachments (
 CREATE TABLE IF NOT EXISTS signature_records (
   id TEXT PRIMARY KEY NOT NULL,
   order_id TEXT NOT NULL,
+  kind TEXT NOT NULL DEFAULT 'customer',
   local_uri TEXT NOT NULL,
   signer_name TEXT NOT NULL,
   signer_document TEXT,
@@ -211,6 +229,7 @@ CREATE TABLE IF NOT EXISTS service_order_pdfs (
   local_uri TEXT NOT NULL,
   generated_at TEXT NOT NULL,
   total_cents INTEGER NOT NULL,
+  snapshot_json TEXT,
   created_at TEXT NOT NULL,
   updated_at TEXT NOT NULL,
   deleted_at TEXT,
@@ -244,7 +263,10 @@ CREATE INDEX IF NOT EXISTS idx_equipments_customer ON equipments(customer_id);
 CREATE INDEX IF NOT EXISTS idx_equipments_search ON equipments(brand, model, serial_number);
 CREATE INDEX IF NOT EXISTS idx_orders_customer ON service_orders(customer_id);
 CREATE INDEX IF NOT EXISTS idx_orders_equipment ON service_orders(equipment_id);
+CREATE INDEX IF NOT EXISTS idx_orders_technician ON service_orders(technician_id);
 CREATE INDEX IF NOT EXISTS idx_orders_status ON service_orders(status);
 CREATE INDEX IF NOT EXISTS idx_order_items_order ON service_order_items(order_id);
+CREATE INDEX IF NOT EXISTS idx_signatures_order ON signature_records(order_id);
+CREATE INDEX IF NOT EXISTS idx_signatures_kind ON signature_records(kind);
 CREATE INDEX IF NOT EXISTS idx_pdfs_order ON service_order_pdfs(order_id);
 `;

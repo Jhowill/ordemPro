@@ -5,11 +5,14 @@ export function buildOrderPdfHtml(data: AppData, order: ServiceOrder) {
   const company = data.company;
   const customer = data.customers.find((item) => item.id === order.customerId);
   const equipment = data.equipments.find((item) => item.id === order.equipmentId);
+  const technician = data.technicians.find((item) => item.id === order.technicianId) ?? data.technicians.find((item) => item.isDefault);
   const items = data.items.filter((item) => item.orderId === order.id);
   const services = items.filter((item) => item.type === 'service');
   const parts = items.filter((item) => item.type === 'part');
   const photos = data.photos.filter((item) => item.orderId === order.id && item.includeInPdf);
+  const customerSignature = data.signatures.find((item) => item.orderId === order.id && item.kind === 'customer');
   const primary = data.pdfSettings.primaryColor;
+  const technicianName = technician?.name ?? company?.responsibleName ?? 'Responsavel';
 
   const rows = (target: typeof items) =>
     target
@@ -51,6 +54,7 @@ export function buildOrderPdfHtml(data: AppData, order: ServiceOrder) {
         .terms { font-size: 10px; line-height: 1.45; }
         .signatures { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-top: 12px; }
         .signature { border: 1px solid #cbd5e1; border-radius: 8px; min-height: 92px; padding: 12px; text-align: center; }
+        .signature-img { width: 100%; height: 42px; object-fit: contain; margin-bottom: 6px; }
         .line { border-top: 1px solid ${primary}; margin-top: 34px; padding-top: 8px; font-weight: 700; }
         .footer { border-top: 1px solid #cbd5e1; margin-top: 16px; padding-top: 10px; text-align: center; color: #475569; font-size: 10px; }
         .photo-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
@@ -93,6 +97,7 @@ export function buildOrderPdfHtml(data: AppData, order: ServiceOrder) {
           <p><span class="label">Marca:</span> ${equipment?.brand ?? '-'}</p>
           <p><span class="label">Modelo:</span> ${equipment?.model ?? '-'}</p>
           <p><span class="label">Serie:</span> ${equipment?.serialNumber ?? '-'}</p>
+          <p><span class="label">Tecnico:</span> ${technicianName}</p>
         </div>
       </section>
 
@@ -101,6 +106,9 @@ export function buildOrderPdfHtml(data: AppData, order: ServiceOrder) {
 
       <h2>DIAGNOSTICO</h2>
       <p>${order.diagnosis ?? '-'}</p>
+
+      <h2>SERVICO EXECUTADO</h2>
+      <p>${order.performedService ?? '-'}</p>
 
       <h2>SERVICOS</h2>
       <table><thead><tr><th>Descricao</th><th>Qtd</th><th>Valor Unit.</th><th>Total</th></tr></thead><tbody>${rows(services) || '<tr><td colspan="4">Nenhum servico informado.</td></tr>'}</tbody></table>
@@ -114,13 +122,18 @@ export function buildOrderPdfHtml(data: AppData, order: ServiceOrder) {
           : ''
       }
 
-      <h2>VALORES</h2>
-      <table class="summary">
-        <tr><td>Subtotal servicos</td><td class="right">${formatMoney(order.laborTotalCents)}</td></tr>
-        <tr><td>Subtotal pecas</td><td class="right">${formatMoney(order.partsTotalCents)}</td></tr>
-        <tr><td><strong>Total</strong></td><td class="right"><strong>${formatMoney(order.totalCents)}</strong></td></tr>
-        <tr><td>Pendente</td><td class="right">${formatMoney(order.pendingCents)}</td></tr>
-      </table>
+      ${
+        data.pdfSettings.showValues
+          ? `<h2>VALORES</h2>
+            <table class="summary">
+              <tr><td>Subtotal servicos</td><td class="right">${formatMoney(order.laborTotalCents)}</td></tr>
+              <tr><td>Subtotal pecas</td><td class="right">${formatMoney(order.partsTotalCents)}</td></tr>
+              <tr><td><strong>Total</strong></td><td class="right"><strong>${formatMoney(order.totalCents)}</strong></td></tr>
+              <tr><td>Pago</td><td class="right">${formatMoney(order.paidCents)}</td></tr>
+              <tr><td>Pendente</td><td class="right">${formatMoney(order.pendingCents)}</td></tr>
+            </table>`
+          : ''
+      }
 
       <section class="grid">
         <div>
@@ -131,13 +144,24 @@ export function buildOrderPdfHtml(data: AppData, order: ServiceOrder) {
             <p>${data.terms.dataResponsibilityText}</p>
           </div>
         </div>
-        <div>
-          <h2>ASSINATURAS</h2>
-          <div class="signatures">
-            <div class="signature"><div class="line">${customer?.name ?? 'Cliente'}<br />Cliente</div></div>
-            <div class="signature"><div class="line">${company?.responsibleName ?? 'Responsavel'}<br />Tecnico/Responsavel</div></div>
-          </div>
-        </div>
+        ${
+          data.pdfSettings.showSignatures
+            ? `<div>
+              <h2>ASSINATURAS</h2>
+              <div class="signatures">
+                <div class="signature">
+                  ${customerSignature?.localUri ? `<img class="signature-img" src="${customerSignature.localUri}" />` : ''}
+                  <div class="line">${customerSignature?.signerName ?? customer?.name ?? 'Cliente'}<br />Cliente</div>
+                </div>
+                <div class="signature">
+                  ${technician?.signatureUri ? `<img class="signature-img" src="${technician.signatureUri}" />` : ''}
+                  <div class="line">${technicianName}<br />Tecnico/Responsavel</div>
+                </div>
+              </div>
+            </div>
+            `
+            : ''
+        }
       </section>
 
       <div class="footer">

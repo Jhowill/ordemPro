@@ -11,6 +11,7 @@ import { useThemeColors } from '@/hooks/useThemeColors';
 
 const rows = [
   ['business-outline', 'Dados da empresa', '/settings/company'],
+  ['construct-outline', 'Tecnico responsavel', '/settings/technician'],
   ['document-text-outline', 'PDF e termos', '/settings/pdf'],
   ['briefcase-outline', 'Catalogo de servicos', '/catalog/services'],
   ['cube-outline', 'Catalogo de pecas', '/catalog/parts'],
@@ -39,4 +40,3 @@ export default function SettingsScreen() {
 const styles = StyleSheet.create({
   row: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
 });
-
