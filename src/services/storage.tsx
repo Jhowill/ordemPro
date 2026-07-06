@@ -39,6 +39,7 @@ type AppDataContextValue = {
   removeOrderPhoto: (photoId: string) => Promise<void>;
   addSignature: (orderId: string, input: Pick<SignatureRecord, 'kind' | 'localUri' | 'signerName' | 'signerDocument'>) => Promise<void>;
   addPayment: (orderId: string, input: Pick<Payment, 'amountCents' | 'method' | 'paidAt'>) => Promise<void>;
+  removePayment: (paymentId: string) => Promise<void>;
   updatePdfRecord: (pdf: ServiceOrderPdf) => Promise<void>;
   exportBackup: () => Promise<string>;
   importBackup: (json: string) => Promise<void>;
@@ -463,6 +464,33 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
     [commit],
   );
 
+  const removePayment = useCallback<AppDataContextValue['removePayment']>(
+    async (paymentId) => {
+      const date = nowIso();
+      await commit((current) => {
+        const payment = current.payments.find((item) => item.id === paymentId);
+        if (!payment) return current;
+        const nextPayments = current.payments.filter((item) => item.id !== paymentId);
+        return {
+          ...current,
+          payments: nextPayments,
+          orders: current.orders.map((order) =>
+            order.id === payment.orderId
+              ? {
+                  ...recalculateOrder(
+                    { ...order, updatedAt: date, isPdfOutdated: true },
+                    current.items.filter((item) => item.orderId === order.id),
+                    nextPayments.filter((item) => item.orderId === order.id),
+                  ),
+                }
+              : order,
+          ),
+        };
+      });
+    },
+    [commit],
+  );
+
   const updatePdfRecord = useCallback<AppDataContextValue['updatePdfRecord']>(
     async (pdf) => {
       await commit((current) => ({
@@ -526,12 +554,13 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
       removeOrderPhoto,
       addSignature,
       addPayment,
+      removePayment,
       updatePdfRecord,
       exportBackup,
       importBackup,
       resetDemo,
     }),
-    [addCatalogPart, addCatalogService, addCustomer, addEquipment, addOrderPhoto, addPayment, addSignature, createOrder, data, exportBackup, importBackup, loadError, loading, removeOrderPhoto, replaceOrderItems, resetDemo, saveCompany, savePdfSettings, saveTechnician, saveTerms, updateOrder, updateOrderPhoto, updateOrderStatus, updatePdfRecord],
+    [addCatalogPart, addCatalogService, addCustomer, addEquipment, addOrderPhoto, addPayment, addSignature, createOrder, data, exportBackup, importBackup, loadError, loading, removeOrderPhoto, removePayment, replaceOrderItems, resetDemo, saveCompany, savePdfSettings, saveTechnician, saveTerms, updateOrder, updateOrderPhoto, updateOrderStatus, updatePdfRecord],
   );
 
   return <AppDataContext.Provider value={value}>{children}</AppDataContext.Provider>;

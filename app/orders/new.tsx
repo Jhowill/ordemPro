@@ -1,6 +1,6 @@
 import { router } from 'expo-router';
 import { useState } from 'react';
-import { Alert, Pressable, StyleSheet, View } from 'react-native';
+import { Alert, Image, Pressable, StyleSheet, View } from 'react-native';
 
 import { AppButton } from '@/components/ui/AppButton';
 import { AppCard } from '@/components/ui/AppCard';
@@ -9,19 +9,24 @@ import { AppText } from '@/components/ui/AppText';
 import { InputField } from '@/components/ui/InputField';
 import { ScreenContainer } from '@/components/ui/ScreenContainer';
 import { SectionTitle } from '@/components/ui/SectionTitle';
+import { SignaturePad } from '@/components/ui/SignaturePad';
 import { spacing } from '@/constants/theme';
 import { useThemeColors } from '@/hooks/useThemeColors';
+import { pickAndStoreImage } from '@/services/media';
 import { useAppData } from '@/services/storage';
 import { CatalogPart, CatalogService, OrderItemType } from '@/types';
 import { formatMoney, formatMoneyInput, makeId, moneyFromText } from '@/utils/formatters';
 
 type DraftItem = { id: string; type: OrderItemType; description: string; quantity: number; unitPriceCents: number; discountCents: number };
+type DraftPhoto = { id: string; localUri: string; caption: string; includeInPdf: boolean };
 
 export default function NewOrderScreen() {
-  const { data, createOrder, addEquipment } = useAppData();
+  const { data, addCustomer, createOrder, addEquipment, addOrderPhoto, addSignature } = useAppData();
   const colors = useThemeColors();
   const [step, setStep] = useState(0);
   const [customerId, setCustomerId] = useState(data.customers[0]?.id ?? '');
+  const [showNewCustomer, setShowNewCustomer] = useState(false);
+  const [customerForm, setCustomerForm] = useState({ name: '', phone: '', whatsapp: '', email: '', document: '', city: '', state: '' });
   const [equipmentId, setEquipmentId] = useState<string | null>(data.equipments[0]?.id ?? null);
   const [showNewEquipment, setShowNewEquipment] = useState(false);
   const [equipmentForm, setEquipmentForm] = useState({ type: 'Equipamento', brand: '', model: '', serialNumber: '', description: '' });
@@ -32,6 +37,10 @@ export default function NewOrderScreen() {
   const [performedService, setPerformedService] = useState('');
   const [item, setItem] = useState({ description: '', price: '' });
   const [items, setItems] = useState<DraftItem[]>([]);
+  const [photos, setPhotos] = useState<DraftPhoto[]>([]);
+  const [customerSignatureUri, setCustomerSignatureUri] = useState('');
+  const [showSignaturePad, setShowSignaturePad] = useState(false);
+  const [isSigning, setIsSigning] = useState(false);
 
   function addItem(type: OrderItemType) {
     if (!item.description.trim()) return;
@@ -84,6 +93,38 @@ export default function NewOrderScreen() {
     );
   }
 
+  async function createCustomerInOrder() {
+    if (!customerForm.name.trim()) {
+      Alert.alert('Informe o nome do cliente.');
+      return;
+    }
+    const customer = await addCustomer({
+      kind: 'person',
+      name: customerForm.name,
+      phone: customerForm.phone,
+      whatsapp: customerForm.whatsapp,
+      email: customerForm.email,
+      document: customerForm.document,
+      city: customerForm.city,
+      state: customerForm.state,
+    });
+    setCustomerId(customer.id);
+    setEquipmentId(null);
+    setWithoutEquipment(false);
+    setShowNewCustomer(false);
+    setCustomerForm({ name: '', phone: '', whatsapp: '', email: '', document: '', city: '', state: '' });
+  }
+
+  async function addDraftPhoto(source: 'library' | 'camera') {
+    try {
+      const image = await pickAndStoreImage('orders', source);
+      if (!image) return;
+      setPhotos((current) => [...current, { id: makeId('draft_photo'), localUri: image.localUri, caption: 'Foto da OS', includeInPdf: true }]);
+    } catch (error) {
+      Alert.alert('Foto nao adicionada', error instanceof Error ? error.message : 'Tente novamente.');
+    }
+  }
+
   async function createEquipmentInOrder() {
     if (!customerId) {
       Alert.alert('Selecione um cliente antes de adicionar equipamento.');
@@ -126,6 +167,18 @@ export default function NewOrderScreen() {
       return;
     }
     const order = await createOrder({ customerId, equipmentId, technicianId, isServiceWithoutEquipment: withoutEquipment, reportedIssue, diagnosis, performedService, items });
+    for (const photo of photos) {
+      await addOrderPhoto(order.id, { localUri: photo.localUri, caption: photo.caption, includeInPdf: photo.includeInPdf });
+    }
+    if (customerSignatureUri) {
+      const customer = data.customers.find((item) => item.id === customerId);
+      await addSignature(order.id, {
+        kind: 'customer',
+        localUri: customerSignatureUri,
+        signerName: customer?.name ?? (customerForm.name || 'Cliente'),
+        signerDocument: customer?.document || customerForm.document,
+      });
+    }
     router.replace(`/orders/${order.id}`);
   }
 
@@ -133,6 +186,7 @@ export default function NewOrderScreen() {
 
   return (
     <ScreenContainer
+      scrollEnabled={!isSigning}
       footer={
         <View style={styles.footer}>
           {step > 0 ? <AppButton title="Voltar" variant="secondary" onPress={() => setStep((value) => value - 1)} /> : null}
@@ -156,7 +210,22 @@ export default function NewOrderScreen() {
               </AppCard>
             </Pressable>
           ))}
-          <AppButton title="Novo cliente" variant="secondary" onPress={() => router.push('/customers/new')} />
+          <AppButton title={showNewCustomer ? 'Fechar novo cliente' : 'Adicionar cliente'} variant="secondary" onPress={() => setShowNewCustomer((value) => !value)} />
+          {showNewCustomer ? (
+            <AppCard>
+              <SectionTitle title="Novo cliente" description="Sera selecionado para esta OS" />
+              <InputField label="Nome" value={customerForm.name} onChangeText={(value) => setCustomerForm((current) => ({ ...current, name: value }))} />
+              <InputField label="Telefone" value={customerForm.phone} onChangeText={(value) => setCustomerForm((current) => ({ ...current, phone: value }))} keyboardType="phone-pad" />
+              <InputField label="WhatsApp" value={customerForm.whatsapp} onChangeText={(value) => setCustomerForm((current) => ({ ...current, whatsapp: value }))} keyboardType="phone-pad" />
+              <InputField label="Documento" value={customerForm.document} onChangeText={(value) => setCustomerForm((current) => ({ ...current, document: value }))} />
+              <InputField label="E-mail" value={customerForm.email} onChangeText={(value) => setCustomerForm((current) => ({ ...current, email: value }))} keyboardType="email-address" autoCapitalize="none" />
+              <View style={styles.footer}>
+                <InputField label="Cidade" value={customerForm.city} onChangeText={(value) => setCustomerForm((current) => ({ ...current, city: value }))} style={styles.compactInput} />
+                <InputField label="UF" value={customerForm.state} onChangeText={(value) => setCustomerForm((current) => ({ ...current, state: value }))} style={styles.compactInput} autoCapitalize="characters" />
+              </View>
+              <AppButton title="Salvar e selecionar" onPress={createCustomerInOrder} />
+            </AppCard>
+          ) : null}
         </>
       ) : null}
 
@@ -283,6 +352,46 @@ export default function NewOrderScreen() {
             <AppText variant="money">{formatMoney(total)}</AppText>
             <AppText muted>{items.length} itens adicionados</AppText>
           </AppCard>
+          <AppCard>
+            <SectionTitle title="Fotos" description={`${photos.length} foto${photos.length === 1 ? '' : 's'} antes de salvar`} />
+            <View style={styles.footer}>
+              <AppButton title="Galeria" variant="secondary" compact onPress={() => addDraftPhoto('library')} />
+              <AppButton title="Camera" variant="secondary" compact onPress={() => addDraftPhoto('camera')} />
+            </View>
+            {photos.length ? (
+              <View style={styles.photoGrid}>
+                {photos.map((photo) => (
+                  <View key={photo.id} style={styles.photoItem}>
+                    <Image source={{ uri: photo.localUri }} style={styles.photo} />
+                    <AppButton title="Retirar" variant="danger" compact onPress={() => setPhotos((current) => current.filter((item) => item.id !== photo.id))} />
+                  </View>
+                ))}
+              </View>
+            ) : <AppText muted>Nenhuma foto adicionada.</AppText>}
+          </AppCard>
+          <AppCard>
+            <SectionTitle title="Assinatura do cliente" description="Opcional antes de salvar a OS" />
+            {showSignaturePad ? (
+              <SignaturePad
+                title="Assinatura do cliente"
+                onSigningChange={setIsSigning}
+                onSave={(uri) => {
+                  setCustomerSignatureUri(uri);
+                  setShowSignaturePad(false);
+                  setIsSigning(false);
+                }}
+                onCancel={() => {
+                  setShowSignaturePad(false);
+                  setIsSigning(false);
+                }}
+              />
+            ) : (
+              <>
+                <AppText muted>{customerSignatureUri ? 'Assinatura salva para esta OS.' : 'Cliente ainda nao assinou.'}</AppText>
+                <AppButton title={customerSignatureUri ? 'Refazer assinatura' : 'Assinar na tela'} variant="secondary" onPress={() => setShowSignaturePad(true)} />
+              </>
+            )}
+          </AppCard>
         </>
       ) : null}
     </ScreenContainer>
@@ -295,5 +404,8 @@ const styles = StyleSheet.create({
   itemInfo: { flex: 1, gap: spacing.xxs },
   compactFields: { flexDirection: 'row', gap: spacing.xs, marginTop: spacing.xs },
   compactInput: { minHeight: 42, paddingHorizontal: spacing.xs },
+  photoGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm, marginTop: spacing.sm },
+  photoItem: { width: '47%', gap: spacing.xs },
+  photo: { width: '100%', aspectRatio: 1, borderRadius: 8, backgroundColor: '#E5E7EB' },
   textArea: { minHeight: 96, textAlignVertical: 'top' },
 });

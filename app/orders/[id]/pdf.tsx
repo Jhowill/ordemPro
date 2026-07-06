@@ -13,7 +13,7 @@ import { ScreenContainer } from '@/components/ui/ScreenContainer';
 import { buildOrderPdfHtml } from '@/services/pdfTemplate';
 import { useAppData } from '@/services/storage';
 import { ServiceOrderPdf } from '@/types';
-import { formatDate, makeId, nowIso } from '@/utils/formatters';
+import { formatDate, formatMoney, makeId, nowIso } from '@/utils/formatters';
 
 export default function OrderPdfScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -24,6 +24,12 @@ export default function OrderPdfScreen() {
 
   if (!order) return <ScreenContainer><EmptyState icon="document-outline" title="OS nao encontrada" description="Nao foi possivel abrir o PDF." /></ScreenContainer>;
   const activeOrder = order;
+  const customer = data.customers.find((item) => item.id === activeOrder.customerId);
+  const equipment = data.equipments.find((item) => item.id === activeOrder.equipmentId);
+  const technician = data.technicians.find((item) => item.id === activeOrder.technicianId);
+  const items = data.items.filter((item) => item.orderId === activeOrder.id);
+  const photos = data.photos.filter((item) => item.orderId === activeOrder.id && item.includeInPdf);
+  const signatures = data.signatures.filter((item) => item.orderId === activeOrder.id);
 
   async function generate() {
     try {
@@ -79,6 +85,14 @@ export default function OrderPdfScreen() {
         <AppText variant="subtitle">{pdf ? 'PDF gerado' : 'Nenhum PDF gerado'}</AppText>
         <AppText muted>{pdf ? `Versao ${pdf.version} - ${formatDate(pdf.generatedAt)}` : 'Gere o documento profissional para enviar ao cliente.'}</AppText>
         {activeOrder.isPdfOutdated ? <AppText color="#F59E0B">A OS foi alterada depois da ultima geracao.</AppText> : null}
+      </AppCard>
+      <AppCard>
+        <AppText variant="subtitle">Previa do conteudo</AppText>
+        <AppText>Cliente: {customer?.name ?? '-'}</AppText>
+        <AppText>Equipamento: {equipment ? `${equipment.type ?? equipment.category} ${equipment.brand ?? ''} ${equipment.model ?? ''}` : 'Servico sem equipamento'}</AppText>
+        <AppText>Tecnico: {technician?.name ?? data.company?.responsibleName ?? '-'}</AppText>
+        <AppText>Total: {formatMoney(activeOrder.totalCents)}</AppText>
+        <AppText muted>{items.length} itens, {photos.length} fotos no PDF, {signatures.length} assinatura(s)</AppText>
       </AppCard>
       <AppButton title={pdf ? 'Regenerar PDF' : 'Gerar PDF'} loading={loading} onPress={generate} />
       <AppButton title="Compartilhar PDF" variant="secondary" onPress={share} />

@@ -21,7 +21,7 @@ const nextStatuses: ServiceOrderStatus[] = ['diagnosis', 'waiting_approval', 'ap
 
 export default function OrderDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
-  const { data, updateOrderStatus, addOrderPhoto, updateOrderPhoto, removeOrderPhoto, addSignature } = useAppData();
+  const { data, updateOrderStatus, addOrderPhoto, updateOrderPhoto, removeOrderPhoto, addSignature, removePayment } = useAppData();
   const [showCustomerSignaturePad, setShowCustomerSignaturePad] = useState(false);
   const [isSigning, setIsSigning] = useState(false);
   const order = data.orders.find((item) => item.id === id);
@@ -47,6 +47,13 @@ export default function OrderDetailScreen() {
     Alert.alert('Cancelar OS', 'Deseja marcar esta OS como cancelada?', [
       { text: 'Voltar', style: 'cancel' },
       { text: 'Cancelar OS', style: 'destructive', onPress: () => updateOrderStatus(activeOrder.id, 'cancelled') },
+    ]);
+  }
+
+  function confirmRemovePayment(paymentId: string) {
+    Alert.alert('Remover pagamento', 'Deseja retirar este pagamento da OS?', [
+      { text: 'Voltar', style: 'cancel' },
+      { text: 'Remover', style: 'destructive', onPress: () => removePayment(paymentId) },
     ]);
   }
 
@@ -191,7 +198,13 @@ export default function OrderDetailScreen() {
         <View style={styles.item}><AppText>Pago</AppText><AppText>{formatMoney(activeOrder.paidCents)}</AppText></View>
         <View style={styles.item}><AppText>Pendente</AppText><AppText>{formatMoney(activeOrder.pendingCents)}</AppText></View>
         {payments.map((payment) => (
-          <View key={payment.id} style={styles.item}><AppText muted>Pagamento</AppText><AppText muted>{formatMoney(payment.amountCents)}</AppText></View>
+          <View key={payment.id} style={styles.paymentRow}>
+            <View style={styles.itemInfo}>
+              <AppText muted>Pagamento</AppText>
+              <AppText muted>{formatMoney(payment.amountCents)}</AppText>
+            </View>
+            <AppButton title="Remover" variant="danger" compact onPress={() => confirmRemovePayment(payment.id)} />
+          </View>
         ))}
       </AppCard>
 
@@ -218,6 +231,8 @@ export default function OrderDetailScreen() {
 const styles = StyleSheet.create({
   actions: { flexDirection: 'row', gap: spacing.sm, marginBottom: spacing.md },
   item: { flexDirection: 'row', justifyContent: 'space-between', gap: spacing.md, marginBottom: spacing.xs },
+  itemInfo: { flex: 1 },
+  paymentRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: spacing.sm, marginTop: spacing.sm },
   timelineItem: { borderLeftWidth: 2, paddingLeft: spacing.sm, marginBottom: spacing.sm },
   photoGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm, marginTop: spacing.sm },
   photoItem: { width: '47%', gap: spacing.xs },
