@@ -14,7 +14,7 @@ import { spacing } from '@/constants/theme';
 import { useThemeColors } from '@/hooks/useThemeColors';
 import { useAppData } from '@/services/storage';
 import { PaymentMethod, ServiceOrderPriority } from '@/types';
-import { formatMoney, moneyFromText } from '@/utils/formatters';
+import { formatMoney, formatMoneyInput, moneyFromText } from '@/utils/formatters';
 
 const priorities: ServiceOrderPriority[] = ['low', 'normal', 'high', 'urgent'];
 const paymentMethods: PaymentMethod[] = ['cash', 'pix', 'debit_card', 'credit_card', 'bank_transfer', 'other'];
@@ -120,7 +120,7 @@ export default function EditOrderScreen() {
 
       <AppCard>
         <SectionTitle title="Pagamento" description={`Pendente atual: ${formatMoney(activeOrder.pendingCents)}`} />
-        <InputField label="Valor recebido em centavos" value={paymentValue} onChangeText={setPaymentValue} keyboardType="numeric" />
+        <InputField label="Valor recebido" value={paymentValue} onChangeText={(value) => setPaymentValue(formatMoneyInput(value))} keyboardType="numeric" placeholder="R$ 0,00" />
         <View style={styles.row}>
           {paymentMethods.map((item) => (
             <AppButton key={item} title={paymentLabel[item]} variant={paymentMethod === item ? 'primary' : 'secondary'} compact onPress={() => setPaymentMethod(item)} />

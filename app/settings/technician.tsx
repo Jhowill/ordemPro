@@ -8,6 +8,7 @@ import { AppText } from '@/components/ui/AppText';
 import { InputField } from '@/components/ui/InputField';
 import { ScreenContainer } from '@/components/ui/ScreenContainer';
 import { SectionTitle } from '@/components/ui/SectionTitle';
+import { SignaturePad } from '@/components/ui/SignaturePad';
 import { spacing } from '@/constants/theme';
 import { pickAndStoreImage } from '@/services/media';
 import { useAppData } from '@/services/storage';
@@ -21,6 +22,7 @@ export default function TechnicianSettingsScreen() {
   const [phone, setPhone] = useState(current?.phone ?? data.company?.phone ?? '');
   const [email, setEmail] = useState(current?.email ?? data.company?.email ?? '');
   const [signatureUri, setSignatureUri] = useState(current?.signatureUri ?? '');
+  const [showSignaturePad, setShowSignaturePad] = useState(false);
   const [saving, setSaving] = useState(false);
 
   async function selectSignature(source: 'library' | 'camera') {
@@ -70,12 +72,28 @@ export default function TechnicianSettingsScreen() {
 
       <AppCard>
         <SectionTitle title="Assinatura do tecnico" description="Imagem salva no perfil e aplicada automaticamente ao PDF" />
-        {signatureUri ? <Image source={{ uri: signatureUri }} style={styles.signature} /> : <AppText muted>Nenhuma assinatura salva.</AppText>}
-        <View style={styles.row}>
-          <AppButton title="Galeria" variant="secondary" compact onPress={() => selectSignature('library')} />
-          <AppButton title="Camera" variant="secondary" compact onPress={() => selectSignature('camera')} />
-          {signatureUri ? <AppButton title="Remover" variant="danger" compact onPress={() => setSignatureUri('')} /> : null}
-        </View>
+        {showSignaturePad ? (
+          <SignaturePad
+            title="Assinatura do tecnico"
+            onSave={(uri) => {
+              setSignatureUri(uri);
+              setShowSignaturePad(false);
+            }}
+            onCancel={() => setShowSignaturePad(false)}
+          />
+        ) : (
+          <>
+            {signatureUri ? (
+              signatureUri.startsWith('data:image/svg+xml') ? <View style={styles.signature}><AppText muted>Assinatura desenhada salva.</AppText></View> : <Image source={{ uri: signatureUri }} style={styles.signature} />
+            ) : <AppText muted>Nenhuma assinatura salva.</AppText>}
+            <View style={styles.row}>
+              <AppButton title="Assinar na tela" variant="secondary" compact onPress={() => setShowSignaturePad(true)} />
+              <AppButton title="Galeria" variant="secondary" compact onPress={() => selectSignature('library')} />
+              <AppButton title="Camera" variant="secondary" compact onPress={() => selectSignature('camera')} />
+              {signatureUri ? <AppButton title="Remover" variant="danger" compact onPress={() => setSignatureUri('')} /> : null}
+            </View>
+          </>
+        )}
       </AppCard>
 
       <AppButton title="Salvar tecnico" loading={saving} onPress={save} />
@@ -85,5 +103,5 @@ export default function TechnicianSettingsScreen() {
 
 const styles = StyleSheet.create({
   row: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm, marginTop: spacing.sm },
-  signature: { width: '100%', height: 120, resizeMode: 'contain', borderRadius: 8, backgroundColor: '#F8FAFC' },
+  signature: { width: '100%', height: 120, resizeMode: 'contain', borderRadius: 8, backgroundColor: '#F8FAFC', alignItems: 'center', justifyContent: 'center' },
 });

@@ -8,7 +8,7 @@ import { AppText } from '@/components/ui/AppText';
 import { InputField } from '@/components/ui/InputField';
 import { ScreenContainer } from '@/components/ui/ScreenContainer';
 import { useAppData } from '@/services/storage';
-import { formatMoney, moneyFromText } from '@/utils/formatters';
+import { formatMoney, formatMoneyInput, moneyFromText } from '@/utils/formatters';
 
 export default function PartsCatalogScreen() {
   const { data, addCatalogPart } = useAppData();
@@ -29,7 +29,7 @@ export default function PartsCatalogScreen() {
     <ScreenContainer footer={<AppButton title="Adicionar peca" onPress={save} />}>
       <AppHeader title="Catalogo de pecas" subtitle="Sem controle de estoque na V1" back />
       <InputField label="Nome da peca" value={name} onChangeText={setName} />
-      <InputField label="Preco de venda" value={price} onChangeText={setPrice} keyboardType="numeric" placeholder="9500 = R$ 95,00" />
+      <InputField label="Preco de venda" value={price} onChangeText={(value) => setPrice(formatMoneyInput(value))} keyboardType="numeric" placeholder="R$ 0,00" />
       {data.parts.map((part) => (
         <AppCard key={part.id}>
           <AppText variant="subtitle">{part.name}</AppText>
@@ -39,4 +39,3 @@ export default function PartsCatalogScreen() {
     </ScreenContainer>
   );
 }
-

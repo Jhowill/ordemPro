@@ -8,7 +8,7 @@ import { AppText } from '@/components/ui/AppText';
 import { InputField } from '@/components/ui/InputField';
 import { ScreenContainer } from '@/components/ui/ScreenContainer';
 import { useAppData } from '@/services/storage';
-import { formatMoney, moneyFromText } from '@/utils/formatters';
+import { formatMoney, formatMoneyInput, moneyFromText } from '@/utils/formatters';
 
 export default function ServicesCatalogScreen() {
   const { data, addCatalogService } = useAppData();
@@ -29,7 +29,7 @@ export default function ServicesCatalogScreen() {
     <ScreenContainer footer={<AppButton title="Adicionar servico" onPress={save} />}>
       <AppHeader title="Catalogo de servicos" subtitle="Servicos frequentes para agilizar a OS" back />
       <InputField label="Nome do servico" value={name} onChangeText={setName} />
-      <InputField label="Valor padrao" value={price} onChangeText={setPrice} keyboardType="numeric" placeholder="8000 = R$ 80,00" />
+      <InputField label="Valor padrao" value={price} onChangeText={(value) => setPrice(formatMoneyInput(value))} keyboardType="numeric" placeholder="R$ 0,00" />
       {data.services.map((service) => (
         <AppCard key={service.id}>
           <AppText variant="subtitle">{service.name}</AppText>
@@ -39,4 +39,3 @@ export default function ServicesCatalogScreen() {
     </ScreenContainer>
   );
 }
-

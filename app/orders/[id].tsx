@@ -1,4 +1,5 @@
 import { router, useLocalSearchParams } from 'expo-router';
+import { useState } from 'react';
 import { Alert, Image, StyleSheet, View } from 'react-native';
 
 import { AppButton } from '@/components/ui/AppButton';
@@ -8,6 +9,7 @@ import { AppText } from '@/components/ui/AppText';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { ScreenContainer } from '@/components/ui/ScreenContainer';
 import { SectionTitle } from '@/components/ui/SectionTitle';
+import { SignaturePad } from '@/components/ui/SignaturePad';
 import { StatusBadge } from '@/components/ui/StatusBadge';
 import { spacing } from '@/constants/theme';
 import { pickAndStoreImage } from '@/services/media';
@@ -20,6 +22,7 @@ const nextStatuses: ServiceOrderStatus[] = ['diagnosis', 'waiting_approval', 'ap
 export default function OrderDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const { data, updateOrderStatus, addOrderPhoto, updateOrderPhoto, removeOrderPhoto, addSignature } = useAppData();
+  const [showCustomerSignaturePad, setShowCustomerSignaturePad] = useState(false);
   const order = data.orders.find((item) => item.id === id);
   if (!order) return <ScreenContainer><EmptyState icon="alert-circle-outline" title="OS nao encontrada" description="A ordem pode ter sido removida." /></ScreenContainer>;
   const activeOrder = order;
@@ -69,6 +72,16 @@ export default function OrderDetailScreen() {
     } catch (error) {
       Alert.alert('Assinatura nao adicionada', error instanceof Error ? error.message : 'Tente novamente.');
     }
+  }
+
+  async function saveDrawnCustomerSignature(uri: string) {
+    await addSignature(activeOrder.id, {
+      kind: 'customer',
+      localUri: uri,
+      signerName: customer?.name ?? 'Cliente',
+      signerDocument: customer?.document,
+    });
+    setShowCustomerSignaturePad(false);
   }
 
   return (
@@ -133,20 +146,31 @@ export default function OrderDetailScreen() {
 
       <AppCard>
         <SectionTitle title="Assinaturas" description="Assinaturas usadas no PDF" />
-        <View style={styles.signatureRow}>
-          <View style={styles.signatureBox}>
-            <AppText variant="subtitle">Cliente</AppText>
-            {customerSignature ? <Image source={{ uri: customerSignature.localUri }} style={styles.signatureImage} /> : <AppText muted>Nao assinou.</AppText>}
-          </View>
-          <View style={styles.signatureBox}>
-            <AppText variant="subtitle">Tecnico</AppText>
-            {technician?.signatureUri ? <Image source={{ uri: technician.signatureUri }} style={styles.signatureImage} /> : <AppText muted>Sem assinatura no perfil.</AppText>}
-          </View>
-        </View>
-        <View style={styles.actions}>
-          <AppButton title="Assinar galeria" variant="secondary" compact onPress={() => addCustomerSignature('library')} />
-          <AppButton title="Assinar camera" variant="secondary" compact onPress={() => addCustomerSignature('camera')} />
-        </View>
+        {showCustomerSignaturePad ? (
+          <SignaturePad title="Assinatura do cliente" onSave={saveDrawnCustomerSignature} onCancel={() => setShowCustomerSignaturePad(false)} />
+        ) : (
+          <>
+            <View style={styles.signatureRow}>
+              <View style={styles.signatureBox}>
+                <AppText variant="subtitle">Cliente</AppText>
+                {customerSignature ? (
+                  customerSignature.localUri.startsWith('data:image/svg+xml') ? <View style={styles.signatureImage}><AppText muted>Assinatura desenhada salva.</AppText></View> : <Image source={{ uri: customerSignature.localUri }} style={styles.signatureImage} />
+                ) : <AppText muted>Nao assinou.</AppText>}
+              </View>
+              <View style={styles.signatureBox}>
+                <AppText variant="subtitle">Tecnico</AppText>
+                {technician?.signatureUri ? (
+                  technician.signatureUri.startsWith('data:image/svg+xml') ? <View style={styles.signatureImage}><AppText muted>Assinatura do perfil salva.</AppText></View> : <Image source={{ uri: technician.signatureUri }} style={styles.signatureImage} />
+                ) : <AppText muted>Sem assinatura no perfil.</AppText>}
+              </View>
+            </View>
+            <View style={styles.actions}>
+              <AppButton title="Assinar na tela" variant="secondary" compact onPress={() => setShowCustomerSignaturePad(true)} />
+              <AppButton title="Assinar galeria" variant="secondary" compact onPress={() => addCustomerSignature('library')} />
+              <AppButton title="Assinar camera" variant="secondary" compact onPress={() => addCustomerSignature('camera')} />
+            </View>
+          </>
+        )}
       </AppCard>
 
       <AppCard>
@@ -190,5 +214,5 @@ const styles = StyleSheet.create({
   photo: { width: '100%', aspectRatio: 1, borderRadius: 8, backgroundColor: '#E5E7EB' },
   signatureRow: { flexDirection: 'row', gap: spacing.sm, marginBottom: spacing.sm },
   signatureBox: { flex: 1, gap: spacing.xs },
-  signatureImage: { width: '100%', height: 80, resizeMode: 'contain', borderRadius: 8, backgroundColor: '#F8FAFC' },
+  signatureImage: { width: '100%', height: 80, resizeMode: 'contain', borderRadius: 8, backgroundColor: '#F8FAFC', alignItems: 'center', justifyContent: 'center' },
 });

@@ -13,7 +13,7 @@ import { spacing } from '@/constants/theme';
 import { useThemeColors } from '@/hooks/useThemeColors';
 import { useAppData } from '@/services/storage';
 import { OrderItemType } from '@/types';
-import { formatMoney, moneyFromText } from '@/utils/formatters';
+import { formatMoney, formatMoneyInput, moneyFromText } from '@/utils/formatters';
 
 type DraftItem = { type: OrderItemType; description: string; quantity: number; unitPriceCents: number; discountCents: number };
 
@@ -126,7 +126,7 @@ export default function NewOrderScreen() {
         <>
           <SectionTitle title="Pecas e servicos" description="Adicione itens cobrados ou descritivos" />
           <InputField label="Descricao do item" value={item.description} onChangeText={(value) => setItem((current) => ({ ...current, description: value }))} />
-          <InputField label="Valor em centavos" value={item.price} onChangeText={(value) => setItem((current) => ({ ...current, price: value }))} keyboardType="numeric" />
+          <InputField label="Valor" value={item.price} onChangeText={(value) => setItem((current) => ({ ...current, price: formatMoneyInput(value) }))} keyboardType="numeric" placeholder="R$ 0,00" />
           <View style={styles.footer}>
             <AppButton title="Servico" variant="secondary" onPress={() => addItem('service')} />
             <AppButton title="Peca" variant="secondary" onPress={() => addItem('part')} />
