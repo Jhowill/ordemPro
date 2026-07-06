@@ -81,6 +81,10 @@ async function migrateExistingDatabase(db: SQLiteDatabase) {
   await addColumnIfMissing(db, 'service_orders', 'technician_id', 'TEXT');
   await addColumnIfMissing(db, 'signature_records', 'kind', "TEXT NOT NULL DEFAULT 'customer'");
   await addColumnIfMissing(db, 'service_order_pdfs', 'snapshot_json', 'TEXT');
+  await db.execAsync(`
+    CREATE INDEX IF NOT EXISTS idx_orders_technician ON service_orders(technician_id);
+    CREATE INDEX IF NOT EXISTS idx_signatures_kind ON signature_records(kind);
+  `);
 }
 
 async function addColumnIfMissing(db: SQLiteDatabase, table: string, column: string, definition: string) {
