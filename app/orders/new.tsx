@@ -12,10 +12,10 @@ import { SectionTitle } from '@/components/ui/SectionTitle';
 import { spacing } from '@/constants/theme';
 import { useThemeColors } from '@/hooks/useThemeColors';
 import { useAppData } from '@/services/storage';
-import { OrderItemType } from '@/types';
-import { formatMoney, formatMoneyInput, moneyFromText } from '@/utils/formatters';
+import { CatalogPart, CatalogService, OrderItemType } from '@/types';
+import { formatMoney, formatMoneyInput, makeId, moneyFromText } from '@/utils/formatters';
 
-type DraftItem = { type: OrderItemType; description: string; quantity: number; unitPriceCents: number; discountCents: number };
+type DraftItem = { id: string; type: OrderItemType; description: string; quantity: number; unitPriceCents: number; discountCents: number };
 
 export default function NewOrderScreen() {
   const { data, createOrder, addEquipment } = useAppData();
@@ -35,8 +35,53 @@ export default function NewOrderScreen() {
 
   function addItem(type: OrderItemType) {
     if (!item.description.trim()) return;
-    setItems((current) => [...current, { type, description: item.description, quantity: 1, unitPriceCents: moneyFromText(item.price), discountCents: 0 }]);
+    setItems((current) => [...current, { id: makeId('draft_item'), type, description: item.description, quantity: 1, unitPriceCents: moneyFromText(item.price), discountCents: 0 }]);
     setItem({ description: '', price: '' });
+  }
+
+  function addCatalogService(service: CatalogService) {
+    setItems((current) => [
+      ...current,
+      {
+        id: makeId('draft_service'),
+        type: 'service',
+        description: service.name,
+        quantity: 1,
+        unitPriceCents: service.defaultPriceCents,
+        discountCents: 0,
+      },
+    ]);
+  }
+
+  function addCatalogPart(part: CatalogPart) {
+    setItems((current) => [
+      ...current,
+      {
+        id: makeId('draft_part'),
+        type: 'part',
+        description: part.name,
+        quantity: 1,
+        unitPriceCents: part.salePriceCents,
+        discountCents: 0,
+      },
+    ]);
+  }
+
+  function removeItem(id: string) {
+    setItems((current) => current.filter((draft) => draft.id !== id));
+  }
+
+  function updateItem(id: string, input: Partial<Pick<DraftItem, 'quantity' | 'unitPriceCents' | 'discountCents'>>) {
+    setItems((current) =>
+      current.map((draft) => (
+        draft.id === id
+          ? {
+              ...draft,
+              ...input,
+            }
+          : draft
+      )),
+    );
   }
 
   async function createEquipmentInOrder() {
@@ -171,18 +216,56 @@ export default function NewOrderScreen() {
       {step === 3 ? (
         <>
           <SectionTitle title="Pecas e servicos" description="Adicione itens cobrados ou descritivos" />
+          <SectionTitle title="Catalogo de servicos" />
+          {data.services.length ? data.services.map((service) => (
+            <AppCard key={service.id}>
+              <View style={styles.itemRow}>
+                <View style={styles.itemInfo}>
+                  <AppText variant="subtitle">{service.name}</AppText>
+                  <AppText muted>{service.category ?? 'Servico'} - {formatMoney(service.defaultPriceCents)}</AppText>
+                </View>
+                <AppButton title="Adicionar" variant="secondary" compact onPress={() => addCatalogService(service)} />
+              </View>
+            </AppCard>
+          )) : <AppText muted>Nenhum servico cadastrado no catalogo.</AppText>}
+
+          <SectionTitle title="Catalogo de pecas" />
+          {data.parts.length ? data.parts.map((part) => (
+            <AppCard key={part.id}>
+              <View style={styles.itemRow}>
+                <View style={styles.itemInfo}>
+                  <AppText variant="subtitle">{part.name}</AppText>
+                  <AppText muted>{part.category ?? 'Peca'} - {formatMoney(part.salePriceCents)}</AppText>
+                </View>
+                <AppButton title="Adicionar" variant="secondary" compact onPress={() => addCatalogPart(part)} />
+              </View>
+            </AppCard>
+          )) : <AppText muted>Nenhuma peca cadastrada no catalogo.</AppText>}
+
+          <SectionTitle title="Item manual" />
           <InputField label="Descricao do item" value={item.description} onChangeText={(value) => setItem((current) => ({ ...current, description: value }))} />
           <InputField label="Valor" value={item.price} onChangeText={(value) => setItem((current) => ({ ...current, price: formatMoneyInput(value) }))} keyboardType="numeric" placeholder="R$ 0,00" />
           <View style={styles.footer}>
             <AppButton title="Servico" variant="secondary" onPress={() => addItem('service')} />
             <AppButton title="Peca" variant="secondary" onPress={() => addItem('part')} />
           </View>
-          {items.map((draft, index) => (
-            <AppCard key={`${draft.description}_${index}`}>
-              <AppText variant="subtitle">{draft.description}</AppText>
-              <AppText muted>{draft.type === 'service' ? 'Servico' : 'Peca'} - {formatMoney(draft.unitPriceCents)}</AppText>
+          <SectionTitle title="Itens da OS" description={`${items.length} item${items.length === 1 ? '' : 's'} selecionado${items.length === 1 ? '' : 's'}`} />
+          {items.length ? items.map((draft) => (
+            <AppCard key={draft.id}>
+              <View style={styles.itemRow}>
+                <View style={styles.itemInfo}>
+                  <AppText variant="subtitle">{draft.description}</AppText>
+                  <AppText muted>{draft.type === 'service' ? 'Servico' : 'Peca'} - Total {formatMoney(Math.max(0, draft.quantity * draft.unitPriceCents - draft.discountCents))}</AppText>
+                  <View style={styles.compactFields}>
+                    <InputField label="Qtd" value={String(draft.quantity)} onChangeText={(value) => updateItem(draft.id, { quantity: Math.max(1, Number(value.replace(/\D/g, '') || 1)) })} keyboardType="numeric" style={styles.compactInput} />
+                    <InputField label="Valor" value={formatMoney(draft.unitPriceCents)} onChangeText={(value) => updateItem(draft.id, { unitPriceCents: moneyFromText(value) })} keyboardType="numeric" style={styles.compactInput} />
+                    <InputField label="Desc." value={formatMoney(draft.discountCents)} onChangeText={(value) => updateItem(draft.id, { discountCents: moneyFromText(value) })} keyboardType="numeric" style={styles.compactInput} />
+                  </View>
+                </View>
+                <AppButton title="Retirar" variant="danger" compact onPress={() => removeItem(draft.id)} />
+              </View>
             </AppCard>
-          ))}
+          )) : <AppText muted>Nenhum item selecionado ainda.</AppText>}
         </>
       ) : null}
 
@@ -208,5 +291,9 @@ export default function NewOrderScreen() {
 
 const styles = StyleSheet.create({
   footer: { flexDirection: 'row', gap: spacing.sm },
+  itemRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
+  itemInfo: { flex: 1, gap: spacing.xxs },
+  compactFields: { flexDirection: 'row', gap: spacing.xs, marginTop: spacing.xs },
+  compactInput: { minHeight: 42, paddingHorizontal: spacing.xs },
   textArea: { minHeight: 96, textAlignVertical: 'top' },
 });

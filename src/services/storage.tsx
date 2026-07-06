@@ -32,6 +32,7 @@ type AppDataContextValue = {
     items: Pick<ServiceOrderItem, 'type' | 'description' | 'quantity' | 'unitPriceCents' | 'discountCents'>[];
   }) => Promise<ServiceOrder>;
   updateOrder: (id: string, input: Partial<Pick<ServiceOrder, 'technicianId' | 'expectedCompletionAt' | 'priority' | 'reportedIssue' | 'diagnosis' | 'performedService' | 'warrantyDays' | 'isApprovedByCustomer'>>) => Promise<void>;
+  replaceOrderItems: (orderId: string, items: Pick<ServiceOrderItem, 'type' | 'description' | 'quantity' | 'unitPriceCents' | 'discountCents'>[]) => Promise<void>;
   updateOrderStatus: (id: string, status: ServiceOrder['status']) => Promise<void>;
   addOrderPhoto: (orderId: string, input: Pick<PhotoAttachment, 'localUri' | 'caption' | 'includeInPdf'>) => Promise<void>;
   updateOrderPhoto: (photoId: string, input: Partial<Pick<PhotoAttachment, 'caption' | 'includeInPdf'>>) => Promise<void>;
@@ -293,6 +294,40 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
     [commit],
   );
 
+  const replaceOrderItems = useCallback<AppDataContextValue['replaceOrderItems']>(
+    async (orderId, inputItems) => {
+      const date = nowIso();
+      const nextItems: ServiceOrderItem[] = inputItems.map((item) => ({
+        id: makeId('item'),
+        orderId,
+        type: item.type,
+        description: item.description,
+        quantity: item.quantity,
+        unitPriceCents: item.unitPriceCents,
+        discountCents: item.discountCents,
+        totalCents: Math.max(0, item.quantity * item.unitPriceCents - item.discountCents),
+        createdAt: date,
+        updatedAt: date,
+      }));
+      await commit((current) => ({
+        ...current,
+        items: [...nextItems, ...current.items.filter((item) => item.orderId !== orderId)],
+        orders: current.orders.map((order) =>
+          order.id === orderId
+            ? {
+                ...recalculateOrder(
+                  { ...order, updatedAt: date, isPdfOutdated: true },
+                  nextItems,
+                  current.payments.filter((payment) => payment.orderId === orderId),
+                ),
+              }
+            : order,
+        ),
+      }));
+    },
+    [commit],
+  );
+
   const updateOrderStatus = useCallback<AppDataContextValue['updateOrderStatus']>(
     async (id, status) => {
       await commit((current) => ({
@@ -484,6 +519,7 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
       saveTechnician,
       createOrder,
       updateOrder,
+      replaceOrderItems,
       updateOrderStatus,
       addOrderPhoto,
       updateOrderPhoto,
@@ -495,7 +531,7 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
       importBackup,
       resetDemo,
     }),
-    [addCatalogPart, addCatalogService, addCustomer, addEquipment, addOrderPhoto, addPayment, addSignature, createOrder, data, exportBackup, importBackup, loadError, loading, removeOrderPhoto, resetDemo, saveCompany, savePdfSettings, saveTechnician, saveTerms, updateOrder, updateOrderPhoto, updateOrderStatus, updatePdfRecord],
+    [addCatalogPart, addCatalogService, addCustomer, addEquipment, addOrderPhoto, addPayment, addSignature, createOrder, data, exportBackup, importBackup, loadError, loading, removeOrderPhoto, replaceOrderItems, resetDemo, saveCompany, savePdfSettings, saveTechnician, saveTerms, updateOrder, updateOrderPhoto, updateOrderStatus, updatePdfRecord],
   );
 
   return <AppDataContext.Provider value={value}>{children}</AppDataContext.Provider>;

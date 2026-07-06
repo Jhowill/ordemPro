@@ -13,8 +13,10 @@ import { SectionTitle } from '@/components/ui/SectionTitle';
 import { spacing } from '@/constants/theme';
 import { useThemeColors } from '@/hooks/useThemeColors';
 import { useAppData } from '@/services/storage';
-import { PaymentMethod, ServiceOrderPriority } from '@/types';
-import { formatMoney, formatMoneyInput, moneyFromText } from '@/utils/formatters';
+import { CatalogPart, CatalogService, OrderItemType, PaymentMethod, ServiceOrderPriority } from '@/types';
+import { formatMoney, formatMoneyInput, makeId, moneyFromText } from '@/utils/formatters';
+
+type DraftItem = { id: string; type: OrderItemType; description: string; quantity: number; unitPriceCents: number; discountCents: number };
 
 const priorities: ServiceOrderPriority[] = ['low', 'normal', 'high', 'urgent'];
 const paymentMethods: PaymentMethod[] = ['cash', 'pix', 'debit_card', 'credit_card', 'bank_transfer', 'other'];
@@ -37,7 +39,7 @@ const paymentLabel: Record<PaymentMethod, string> = {
 
 export default function EditOrderScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
-  const { data, updateOrder, addPayment } = useAppData();
+  const { data, updateOrder, replaceOrderItems, addPayment } = useAppData();
   const colors = useThemeColors();
   const order = data.orders.find((item) => item.id === id);
   const [saving, setSaving] = useState(false);
@@ -51,6 +53,19 @@ export default function EditOrderScreen() {
   const [approved, setApproved] = useState(order?.isApprovedByCustomer ?? false);
   const [paymentValue, setPaymentValue] = useState('');
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>('pix');
+  const [manualItem, setManualItem] = useState({ description: '', price: '' });
+  const [items, setItems] = useState<DraftItem[]>(
+    data.items
+      .filter((item) => item.orderId === id)
+      .map((item) => ({
+        id: item.id,
+        type: item.type,
+        description: item.description,
+        quantity: item.quantity,
+        unitPriceCents: item.unitPriceCents,
+        discountCents: item.discountCents,
+      })),
+  );
 
   if (!order) return <ScreenContainer><EmptyState icon="alert-circle-outline" title="OS nao encontrada" description="Nao foi possivel editar esta ordem." /></ScreenContainer>;
   const activeOrder = order;
@@ -72,6 +87,7 @@ export default function EditOrderScreen() {
         warrantyDays: warrantyDays ? Number(warrantyDays) : undefined,
         isApprovedByCustomer: approved,
       });
+      await replaceOrderItems(activeOrder.id, items);
       const amountCents = moneyFromText(paymentValue);
       if (amountCents > 0) {
         await addPayment(activeOrder.id, { amountCents, method: paymentMethod, paidAt: new Date().toISOString() });
@@ -83,6 +99,46 @@ export default function EditOrderScreen() {
       setSaving(false);
     }
   }
+
+  function addManualItem(type: OrderItemType) {
+    if (!manualItem.description.trim()) return;
+    setItems((current) => [
+      ...current,
+      {
+        id: makeId('draft_item'),
+        type,
+        description: manualItem.description,
+        quantity: 1,
+        unitPriceCents: moneyFromText(manualItem.price),
+        discountCents: 0,
+      },
+    ]);
+    setManualItem({ description: '', price: '' });
+  }
+
+  function addCatalogService(service: CatalogService) {
+    setItems((current) => [
+      ...current,
+      { id: makeId('draft_service'), type: 'service', description: service.name, quantity: 1, unitPriceCents: service.defaultPriceCents, discountCents: 0 },
+    ]);
+  }
+
+  function addCatalogPart(part: CatalogPart) {
+    setItems((current) => [
+      ...current,
+      { id: makeId('draft_part'), type: 'part', description: part.name, quantity: 1, unitPriceCents: part.salePriceCents, discountCents: 0 },
+    ]);
+  }
+
+  function updateItem(id: string, input: Partial<Pick<DraftItem, 'quantity' | 'unitPriceCents' | 'discountCents'>>) {
+    setItems((current) => current.map((item) => (item.id === id ? { ...item, ...input } : item)));
+  }
+
+  function removeItem(id: string) {
+    setItems((current) => current.filter((item) => item.id !== id));
+  }
+
+  const itemsTotal = items.reduce((sum, item) => sum + Math.max(0, item.quantity * item.unitPriceCents - item.discountCents), 0);
 
   return (
     <ScreenContainer footer={<AppButton title="Salvar alteracoes" loading={saving} onPress={save} />}>
@@ -119,6 +175,54 @@ export default function EditOrderScreen() {
       </AppCard>
 
       <AppCard>
+        <SectionTitle title="Pecas e servicos" description={`Total dos itens: ${formatMoney(itemsTotal)}`} />
+        <SectionTitle title="Catalogo de servicos" />
+        {data.services.map((service) => (
+          <View key={service.id} style={styles.itemRow}>
+            <View style={styles.itemInfo}>
+              <AppText variant="subtitle">{service.name}</AppText>
+              <AppText muted>{service.category ?? 'Servico'} - {formatMoney(service.defaultPriceCents)}</AppText>
+            </View>
+            <AppButton title="Adicionar" variant="secondary" compact onPress={() => addCatalogService(service)} />
+          </View>
+        ))}
+        <SectionTitle title="Catalogo de pecas" />
+        {data.parts.map((part) => (
+          <View key={part.id} style={styles.itemRow}>
+            <View style={styles.itemInfo}>
+              <AppText variant="subtitle">{part.name}</AppText>
+              <AppText muted>{part.category ?? 'Peca'} - {formatMoney(part.salePriceCents)}</AppText>
+            </View>
+            <AppButton title="Adicionar" variant="secondary" compact onPress={() => addCatalogPart(part)} />
+          </View>
+        ))}
+        <SectionTitle title="Item manual" />
+        <InputField label="Descricao" value={manualItem.description} onChangeText={(value) => setManualItem((current) => ({ ...current, description: value }))} />
+        <InputField label="Valor" value={manualItem.price} onChangeText={(value) => setManualItem((current) => ({ ...current, price: formatMoneyInput(value) }))} keyboardType="numeric" />
+        <View style={styles.row}>
+          <AppButton title="Servico" variant="secondary" compact onPress={() => addManualItem('service')} />
+          <AppButton title="Peca" variant="secondary" compact onPress={() => addManualItem('part')} />
+        </View>
+        <SectionTitle title="Itens da OS" />
+        {items.map((item) => (
+          <View key={item.id} style={styles.itemBlock}>
+            <View style={styles.itemRow}>
+              <View style={styles.itemInfo}>
+                <AppText variant="subtitle">{item.description}</AppText>
+                <AppText muted>{item.type === 'service' ? 'Servico' : 'Peca'} - Total {formatMoney(Math.max(0, item.quantity * item.unitPriceCents - item.discountCents))}</AppText>
+              </View>
+              <AppButton title="Retirar" variant="danger" compact onPress={() => removeItem(item.id)} />
+            </View>
+            <View style={styles.compactFields}>
+              <InputField label="Qtd" value={String(item.quantity)} onChangeText={(value) => updateItem(item.id, { quantity: Math.max(1, Number(value.replace(/\D/g, '') || 1)) })} keyboardType="numeric" style={styles.compactInput} />
+              <InputField label="Valor" value={formatMoney(item.unitPriceCents)} onChangeText={(value) => updateItem(item.id, { unitPriceCents: moneyFromText(value) })} keyboardType="numeric" style={styles.compactInput} />
+              <InputField label="Desc." value={formatMoney(item.discountCents)} onChangeText={(value) => updateItem(item.id, { discountCents: moneyFromText(value) })} keyboardType="numeric" style={styles.compactInput} />
+            </View>
+          </View>
+        ))}
+      </AppCard>
+
+      <AppCard>
         <SectionTitle title="Pagamento" description={`Pendente atual: ${formatMoney(activeOrder.pendingCents)}`} />
         <InputField label="Valor recebido" value={paymentValue} onChangeText={(value) => setPaymentValue(formatMoneyInput(value))} keyboardType="numeric" placeholder="R$ 0,00" />
         <View style={styles.row}>
@@ -134,5 +238,10 @@ export default function EditOrderScreen() {
 const styles = StyleSheet.create({
   option: { gap: spacing.xs, marginBottom: spacing.sm },
   row: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm, marginBottom: spacing.sm },
+  itemRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm, marginBottom: spacing.sm },
+  itemInfo: { flex: 1, gap: spacing.xxs },
+  itemBlock: { borderTopWidth: 1, borderTopColor: '#E5E7EB', paddingTop: spacing.sm, marginTop: spacing.sm },
+  compactFields: { flexDirection: 'row', gap: spacing.xs },
+  compactInput: { minHeight: 42, paddingHorizontal: spacing.xs },
   textArea: { minHeight: 96, textAlignVertical: 'top' },
 });
