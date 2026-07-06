@@ -1,6 +1,6 @@
 import { useMemo, useRef, useState } from 'react';
 import { LayoutChangeEvent, PanResponder, StyleSheet, View } from 'react-native';
-import Svg, { Path } from 'react-native-svg';
+import Svg, { Path } from 'react-native-svg/lib/commonjs';
 
 import { radius, spacing } from '@/constants/theme';
 import { useThemeColors } from '@/hooks/useThemeColors';
