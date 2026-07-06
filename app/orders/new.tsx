@@ -18,11 +18,13 @@ import { formatMoney, formatMoneyInput, moneyFromText } from '@/utils/formatters
 type DraftItem = { type: OrderItemType; description: string; quantity: number; unitPriceCents: number; discountCents: number };
 
 export default function NewOrderScreen() {
-  const { data, createOrder } = useAppData();
+  const { data, createOrder, addEquipment } = useAppData();
   const colors = useThemeColors();
   const [step, setStep] = useState(0);
   const [customerId, setCustomerId] = useState(data.customers[0]?.id ?? '');
   const [equipmentId, setEquipmentId] = useState<string | null>(data.equipments[0]?.id ?? null);
+  const [showNewEquipment, setShowNewEquipment] = useState(false);
+  const [equipmentForm, setEquipmentForm] = useState({ type: 'Equipamento', brand: '', model: '', serialNumber: '', description: '' });
   const [technicianId, setTechnicianId] = useState(data.technicians.find((item) => item.isDefault)?.id ?? data.technicians[0]?.id ?? '');
   const [withoutEquipment, setWithoutEquipment] = useState(false);
   const [reportedIssue, setReportedIssue] = useState('');
@@ -35,6 +37,31 @@ export default function NewOrderScreen() {
     if (!item.description.trim()) return;
     setItems((current) => [...current, { type, description: item.description, quantity: 1, unitPriceCents: moneyFromText(item.price), discountCents: 0 }]);
     setItem({ description: '', price: '' });
+  }
+
+  async function createEquipmentInOrder() {
+    if (!customerId) {
+      Alert.alert('Selecione um cliente antes de adicionar equipamento.');
+      setStep(0);
+      return;
+    }
+    if (!equipmentForm.type.trim() && !equipmentForm.description.trim()) {
+      Alert.alert('Informe o tipo ou descricao do equipamento.');
+      return;
+    }
+    const equipment = await addEquipment({
+      customerId,
+      category: 'other',
+      type: equipmentForm.type,
+      brand: equipmentForm.brand,
+      model: equipmentForm.model,
+      serialNumber: equipmentForm.serialNumber,
+      description: equipmentForm.description,
+    });
+    setEquipmentId(equipment.id);
+    setWithoutEquipment(false);
+    setShowNewEquipment(false);
+    setEquipmentForm({ type: 'Equipamento', brand: '', model: '', serialNumber: '', description: '' });
   }
 
   async function save() {
@@ -73,7 +100,11 @@ export default function NewOrderScreen() {
         <>
           <SectionTitle title="Cliente" description="Selecione um cliente existente" />
           {data.customers.map((customer) => (
-            <Pressable key={customer.id} onPress={() => setCustomerId(customer.id)}>
+            <Pressable key={customer.id} onPress={() => {
+              setCustomerId(customer.id);
+              setEquipmentId(null);
+              setWithoutEquipment(false);
+            }}>
               <AppCard>
                 <AppText variant="subtitle" color={customerId === customer.id ? colors.primary : undefined}>{customer.name}</AppText>
                 <AppText muted>{customer.phone || customer.whatsapp}</AppText>
@@ -92,6 +123,21 @@ export default function NewOrderScreen() {
               <AppText variant="subtitle" color={withoutEquipment ? colors.primary : undefined}>Servico sem equipamento</AppText>
             </AppCard>
           </Pressable>
+          <AppButton title={showNewEquipment ? 'Fechar novo equipamento' : 'Adicionar equipamento'} variant="secondary" onPress={() => {
+            setShowNewEquipment((value) => !value);
+            setWithoutEquipment(false);
+          }} />
+          {showNewEquipment ? (
+            <AppCard>
+              <SectionTitle title="Novo equipamento" description="Sera vinculado ao cliente selecionado" />
+              <InputField label="Tipo" value={equipmentForm.type} onChangeText={(value) => setEquipmentForm((current) => ({ ...current, type: value }))} />
+              <InputField label="Marca" value={equipmentForm.brand} onChangeText={(value) => setEquipmentForm((current) => ({ ...current, brand: value }))} />
+              <InputField label="Modelo" value={equipmentForm.model} onChangeText={(value) => setEquipmentForm((current) => ({ ...current, model: value }))} />
+              <InputField label="Numero de serie" value={equipmentForm.serialNumber} onChangeText={(value) => setEquipmentForm((current) => ({ ...current, serialNumber: value }))} />
+              <InputField label="Descricao" value={equipmentForm.description} onChangeText={(value) => setEquipmentForm((current) => ({ ...current, description: value }))} multiline style={styles.textArea} />
+              <AppButton title="Salvar e selecionar" onPress={createEquipmentInOrder} />
+            </AppCard>
+          ) : null}
           {!withoutEquipment ? data.equipments.filter((equipment) => equipment.customerId === customerId).map((equipment) => (
             <Pressable key={equipment.id} onPress={() => setEquipmentId(equipment.id)}>
               <AppCard>
