@@ -1,39 +1,49 @@
 # OrdemPro
 
-Aplicativo Expo/React Native para gestao de ordens de servico, clientes, equipamentos, catalogo de servicos/pecas, configuracoes da empresa, visualizacao de PDF e persistencia local SQLite.
+App mobile offline-first para gestao de ordens de servico, clientes, equipamentos, pecas, servicos, PDF profissional e backup manual.
 
-## Fonte do aplicativo
+## Stack
 
-O codigo tecnico atualizado esta no arquivo `ordempro-source.tar.gz` na raiz do repositorio.
+- Expo SDK 54
+- React Native
+- TypeScript
+- Expo Router
+- SQLite local
+- `expo-print` e `expo-sharing` para PDF
 
-Para abrir localmente:
+## Rodar localmente
 
 ```bash
-tar -xzf ordempro-source.tar.gz
 npm install
-npm run typecheck
-npm run lint
+npx expo install --check
 npm run start -- --localhost
 ```
 
-URLs usadas na validacao local:
+Verificacoes:
 
-- Expo/Metro: `exp://127.0.0.1:8081`
-- Web: `http://localhost:8081`
+```bash
+npm run typecheck
+npm run lint
+```
 
-## Status da entrega
+## Fluxos implementados
 
-- App Expo criado com Expo Router e TypeScript.
-- Telas principais implementadas: dashboard, ordens, clientes, equipamentos e configuracoes.
-- Fluxos de cadastro/detalhe implementados para ordens, clientes e equipamentos.
-- Catalogo de servicos e pecas incluso.
-- Preview de ordem em formato PDF/relatorio incluso.
-- Banco local SQLite implementado com tabelas normalizadas, indices e migracao V1.
-- Historico de status de OS salvo em SQL e exibido nos detalhes da OS.
-- Tema claro/escuro e backup JSON mantidos.
-- `npm run typecheck` aprovado.
-- `npm run lint` aprovado.
+- Onboarding da empresa
+- Home operacional
+- Clientes
+- Equipamentos
+- Catalogo de servicos
+- Catalogo de pecas
+- Criacao de OS guiada
+- Detalhe de OS
+- Status da OS
+- Calculo de valores
+- PDF local profissional
+- Compartilhamento de PDF
+- Backup JSON manual
+- Configuracoes de empresa, PDF, backup e seguranca
+- Historico de status salvo em SQL
 
-## Observacao
+## Observacoes
 
-O ambiente desta execucao nao tinha `git.exe` local disponivel; por isso o envio foi feito pela API do GitHub. O source foi publicado como arquivo compactado para preservar o projeto dentro das limitacoes do conector.
+Os documentos em `docs/` continuam sendo a fonte de produto e implementacao. Esta V1 usa persistencia local em SQLite, com valores monetarios em centavos, datas em ISO string e arquivos locais como `localUri`.

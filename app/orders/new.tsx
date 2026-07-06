@@ -1,0 +1,153 @@
+import { router } from 'expo-router';
+import { useState } from 'react';
+import { Alert, Pressable, StyleSheet, View } from 'react-native';
+
+import { AppButton } from '@/components/ui/AppButton';
+import { AppCard } from '@/components/ui/AppCard';
+import { AppHeader } from '@/components/ui/AppHeader';
+import { AppText } from '@/components/ui/AppText';
+import { InputField } from '@/components/ui/InputField';
+import { ScreenContainer } from '@/components/ui/ScreenContainer';
+import { SectionTitle } from '@/components/ui/SectionTitle';
+import { spacing } from '@/constants/theme';
+import { useThemeColors } from '@/hooks/useThemeColors';
+import { useAppData } from '@/services/storage';
+import { OrderItemType } from '@/types';
+import { formatMoney, moneyFromText } from '@/utils/formatters';
+
+type DraftItem = { type: OrderItemType; description: string; quantity: number; unitPriceCents: number; discountCents: number };
+
+export default function NewOrderScreen() {
+  const { data, createOrder } = useAppData();
+  const colors = useThemeColors();
+  const [step, setStep] = useState(0);
+  const [customerId, setCustomerId] = useState(data.customers[0]?.id ?? '');
+  const [equipmentId, setEquipmentId] = useState<string | null>(data.equipments[0]?.id ?? null);
+  const [withoutEquipment, setWithoutEquipment] = useState(false);
+  const [reportedIssue, setReportedIssue] = useState('');
+  const [diagnosis, setDiagnosis] = useState('');
+  const [item, setItem] = useState({ description: '', price: '' });
+  const [items, setItems] = useState<DraftItem[]>([]);
+
+  function addItem(type: OrderItemType) {
+    if (!item.description.trim()) return;
+    setItems((current) => [...current, { type, description: item.description, quantity: 1, unitPriceCents: moneyFromText(item.price), discountCents: 0 }]);
+    setItem({ description: '', price: '' });
+  }
+
+  async function save() {
+    if (!customerId) {
+      Alert.alert('Selecione um cliente.');
+      setStep(0);
+      return;
+    }
+    if (!withoutEquipment && !equipmentId) {
+      Alert.alert('Selecione um equipamento ou marque servico sem equipamento.');
+      setStep(1);
+      return;
+    }
+    if (!reportedIssue.trim()) {
+      Alert.alert('Informe o problema ou servico solicitado.');
+      setStep(2);
+      return;
+    }
+    const order = await createOrder({ customerId, equipmentId, isServiceWithoutEquipment: withoutEquipment, reportedIssue, diagnosis, items });
+    router.replace(`/orders/${order.id}`);
+  }
+
+  const total = items.reduce((sum, draft) => sum + draft.quantity * draft.unitPriceCents - draft.discountCents, 0);
+
+  return (
+    <ScreenContainer
+      footer={
+        <View style={styles.footer}>
+          {step > 0 ? <AppButton title="Voltar" variant="secondary" onPress={() => setStep((value) => value - 1)} /> : null}
+          <AppButton title={step === 4 ? 'Salvar OS' : 'Avancar'} onPress={() => (step === 4 ? save() : setStep((value) => value + 1))} />
+        </View>
+      }
+    >
+      <AppHeader title="Nova Ordem de Servico" subtitle={`Etapa ${step + 1} de 5`} back />
+      {step === 0 ? (
+        <>
+          <SectionTitle title="Cliente" description="Selecione um cliente existente" />
+          {data.customers.map((customer) => (
+            <Pressable key={customer.id} onPress={() => setCustomerId(customer.id)}>
+              <AppCard>
+                <AppText variant="subtitle" color={customerId === customer.id ? colors.primary : undefined}>{customer.name}</AppText>
+                <AppText muted>{customer.phone || customer.whatsapp}</AppText>
+              </AppCard>
+            </Pressable>
+          ))}
+          <AppButton title="Novo cliente" variant="secondary" onPress={() => router.push('/customers/new')} />
+        </>
+      ) : null}
+
+      {step === 1 ? (
+        <>
+          <SectionTitle title="Equipamento" description="Vincule ao cliente ou marque servico sem equipamento" />
+          <Pressable onPress={() => setWithoutEquipment((value) => !value)}>
+            <AppCard>
+              <AppText variant="subtitle" color={withoutEquipment ? colors.primary : undefined}>Servico sem equipamento</AppText>
+            </AppCard>
+          </Pressable>
+          {!withoutEquipment ? data.equipments.filter((equipment) => equipment.customerId === customerId).map((equipment) => (
+            <Pressable key={equipment.id} onPress={() => setEquipmentId(equipment.id)}>
+              <AppCard>
+                <AppText variant="subtitle" color={equipmentId === equipment.id ? colors.primary : undefined}>{equipment.type ?? equipment.category} {equipment.brand ?? ''} {equipment.model ?? ''}</AppText>
+                <AppText muted>{equipment.serialNumber ?? 'Sem serie'}</AppText>
+              </AppCard>
+            </Pressable>
+          )) : null}
+        </>
+      ) : null}
+
+      {step === 2 ? (
+        <>
+          <SectionTitle title="Problema" description="Descreva o motivo da abertura" />
+          <InputField label="Defeito relatado ou servico solicitado" value={reportedIssue} onChangeText={setReportedIssue} multiline style={styles.textArea} />
+          <InputField label="Diagnostico tecnico" value={diagnosis} onChangeText={setDiagnosis} multiline style={styles.textArea} />
+        </>
+      ) : null}
+
+      {step === 3 ? (
+        <>
+          <SectionTitle title="Pecas e servicos" description="Adicione itens cobrados ou descritivos" />
+          <InputField label="Descricao do item" value={item.description} onChangeText={(value) => setItem((current) => ({ ...current, description: value }))} />
+          <InputField label="Valor em centavos" value={item.price} onChangeText={(value) => setItem((current) => ({ ...current, price: value }))} keyboardType="numeric" />
+          <View style={styles.footer}>
+            <AppButton title="Servico" variant="secondary" onPress={() => addItem('service')} />
+            <AppButton title="Peca" variant="secondary" onPress={() => addItem('part')} />
+          </View>
+          {items.map((draft, index) => (
+            <AppCard key={`${draft.description}_${index}`}>
+              <AppText variant="subtitle">{draft.description}</AppText>
+              <AppText muted>{draft.type === 'service' ? 'Servico' : 'Peca'} - {formatMoney(draft.unitPriceCents)}</AppText>
+            </AppCard>
+          ))}
+        </>
+      ) : null}
+
+      {step === 4 ? (
+        <>
+          <SectionTitle title="Resumo da OS" />
+          <AppCard>
+            <AppText variant="subtitle">Solicitacao</AppText>
+            <AppText>{reportedIssue}</AppText>
+            <AppText muted>{withoutEquipment ? 'Servico sem equipamento' : 'Com equipamento vinculado'}</AppText>
+          </AppCard>
+          <AppCard>
+            <AppText variant="subtitle">Valores</AppText>
+            <AppText variant="money">{formatMoney(total)}</AppText>
+            <AppText muted>{items.length} itens adicionados</AppText>
+          </AppCard>
+        </>
+      ) : null}
+    </ScreenContainer>
+  );
+}
+
+const styles = StyleSheet.create({
+  footer: { flexDirection: 'row', gap: spacing.sm },
+  textArea: { minHeight: 96, textAlignVertical: 'top' },
+});
+

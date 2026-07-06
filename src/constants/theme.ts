@@ -1,0 +1,91 @@
+export const lightColors = {
+  background: '#F4F6F8',
+  surface: '#FFFFFF',
+  surfaceAlt: '#F8FAFC',
+  primary: '#1E4FD7',
+  primaryDark: '#173EA8',
+  primarySoft: '#E8EEFF',
+  secondary: '#0F172A',
+  accent: '#0EA5E9',
+  success: '#16A34A',
+  successSoft: '#DCFCE7',
+  warning: '#F59E0B',
+  warningSoft: '#FEF3C7',
+  danger: '#DC2626',
+  dangerSoft: '#FEE2E2',
+  info: '#2563EB',
+  infoSoft: '#DBEAFE',
+  text: '#111827',
+  textSecondary: '#4B5563',
+  muted: '#6B7280',
+  disabled: '#9CA3AF',
+  border: '#E5E7EB',
+  divider: '#EEF2F7',
+  overlay: 'rgba(15, 23, 42, 0.45)',
+  white: '#FFFFFF',
+};
+
+export const darkColors = {
+  background: '#0B1120',
+  surface: '#111827',
+  surfaceAlt: '#1F2937',
+  primary: '#5B7CFA',
+  primaryDark: '#405DD8',
+  primarySoft: 'rgba(91, 124, 250, 0.18)',
+  secondary: '#F9FAFB',
+  accent: '#38BDF8',
+  success: '#22C55E',
+  successSoft: 'rgba(34, 197, 94, 0.16)',
+  warning: '#FBBF24',
+  warningSoft: 'rgba(251, 191, 36, 0.18)',
+  danger: '#F87171',
+  dangerSoft: 'rgba(248, 113, 113, 0.16)',
+  info: '#60A5FA',
+  infoSoft: 'rgba(96, 165, 250, 0.16)',
+  text: '#F9FAFB',
+  textSecondary: '#CBD5E1',
+  muted: '#94A3B8',
+  disabled: '#64748B',
+  border: '#334155',
+  divider: '#1F2937',
+  overlay: 'rgba(0, 0, 0, 0.62)',
+  white: '#FFFFFF',
+};
+
+export const spacing = {
+  xxs: 4,
+  xs: 8,
+  sm: 12,
+  md: 16,
+  lg: 20,
+  xl: 24,
+  '2xl': 32,
+  '3xl': 40,
+};
+
+export const radius = {
+  xs: 6,
+  sm: 8,
+  md: 12,
+  lg: 16,
+  xl: 20,
+  '2xl': 24,
+  pill: 999,
+};
+
+export const typography = {
+  h1: { fontSize: 28, lineHeight: 36, fontWeight: '700' as const },
+  h2: { fontSize: 24, lineHeight: 32, fontWeight: '700' as const },
+  h3: { fontSize: 20, lineHeight: 28, fontWeight: '700' as const },
+  title: { fontSize: 18, lineHeight: 26, fontWeight: '700' as const },
+  subtitle: { fontSize: 16, lineHeight: 24, fontWeight: '600' as const },
+  body: { fontSize: 15, lineHeight: 22, fontWeight: '400' as const },
+  bodyMedium: { fontSize: 15, lineHeight: 22, fontWeight: '500' as const },
+  small: { fontSize: 13, lineHeight: 18, fontWeight: '400' as const },
+  caption: { fontSize: 12, lineHeight: 16, fontWeight: '500' as const },
+  button: { fontSize: 15, lineHeight: 20, fontWeight: '700' as const },
+  money: { fontSize: 22, lineHeight: 30, fontWeight: '700' as const },
+};
+
+export type ThemeColors = typeof lightColors;
+

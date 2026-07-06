@@ -2,8 +2,12 @@ node_modules/
 .expo/
 dist/
 build/
-web-build/
-*.log
-.env
-.env.*
+coverage/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
 .DS_Store
+*.log
+*.tar.gz
+*.zip
+github-tree.json
