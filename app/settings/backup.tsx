@@ -18,11 +18,16 @@ export default function BackupSettingsScreen() {
   const [json, setJson] = useState('');
 
   async function exportJson() {
-    const backup = await exportBackup();
-    setJson(backup);
-    const uri = `${FileSystem.documentDirectory}ordempro-backup.json`;
-    await FileSystem.writeAsStringAsync(uri, backup);
-    if (await Sharing.isAvailableAsync()) await Sharing.shareAsync(uri);
+    try {
+      const backup = await exportBackup();
+      setJson(backup);
+      if (!FileSystem.documentDirectory) throw new Error('Armazenamento local indisponivel neste dispositivo.');
+      const uri = `${FileSystem.documentDirectory}ordempro-backup.json`;
+      await FileSystem.writeAsStringAsync(uri, backup);
+      if (await Sharing.isAvailableAsync()) await Sharing.shareAsync(uri);
+    } catch (error) {
+      Alert.alert('Falha no backup', error instanceof Error ? error.message : 'Nao foi possivel gerar o arquivo de backup.');
+    }
   }
 
   async function importJson() {
@@ -35,11 +40,11 @@ export default function BackupSettingsScreen() {
   }
 
   async function pickBackupFile() {
-    const result = await DocumentPicker.getDocumentAsync({ type: 'application/json', copyToCacheDirectory: true });
-    if (result.canceled || !result.assets[0]?.uri) return;
-    const content = await FileSystem.readAsStringAsync(result.assets[0].uri);
-    setJson(content);
     try {
+      const result = await DocumentPicker.getDocumentAsync({ type: 'application/json', copyToCacheDirectory: true });
+      if (result.canceled || !result.assets[0]?.uri) return;
+      const content = await FileSystem.readAsStringAsync(result.assets[0].uri);
+      setJson(content);
       await importBackup(content);
       Alert.alert('Backup importado');
     } catch (error) {

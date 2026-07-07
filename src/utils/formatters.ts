@@ -49,7 +49,9 @@ export function formatPhoneInput(value: string) {
 
 export function formatDate(value?: string) {
   if (!value) return '-';
-  return new Intl.DateTimeFormat('pt-BR').format(new Date(value));
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return '-';
+  return new Intl.DateTimeFormat('pt-BR').format(date);
 }
 
 export function normalizeSearch(value: string) {

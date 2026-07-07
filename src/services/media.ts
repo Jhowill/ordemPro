@@ -14,7 +14,14 @@ type PickedImage = {
 type MediaFolder = 'logos' | 'orders' | 'signatures';
 type ImageSource = 'library' | 'camera';
 
-const mediaRoot = `${FileSystem.documentDirectory ?? ''}ordempro-media`;
+function getDocumentDirectory() {
+  if (!FileSystem.documentDirectory) throw new Error('Armazenamento local indisponivel neste dispositivo.');
+  return FileSystem.documentDirectory;
+}
+
+function getMediaRoot() {
+  return `${getDocumentDirectory()}ordempro-media`;
+}
 
 async function ensureDirectory(path: string) {
   if (Platform.OS === 'web') return;
@@ -47,7 +54,7 @@ export async function pickAndStoreImage(folder: MediaFolder, source: ImageSource
     return { localUri: resized.uri, width: resized.width, height: resized.height };
   }
 
-  const directory = `${mediaRoot}/${folder}`;
+  const directory = `${getMediaRoot()}/${folder}`;
   await ensureDirectory(directory);
   const destination = `${directory}/${makeId(folder)}.jpg`;
   await FileSystem.copyAsync({ from: resized.uri, to: destination });
@@ -58,7 +65,7 @@ export async function pickAndStoreImage(folder: MediaFolder, source: ImageSource
 export async function clearStoredMedia() {
   if (Platform.OS === 'web' || !FileSystem.documentDirectory) return;
   try {
-    await FileSystem.deleteAsync(mediaRoot, { idempotent: true });
+    await FileSystem.deleteAsync(getMediaRoot(), { idempotent: true });
   } catch (error) {
     console.warn('Nao foi possivel limpar midias locais do OrdemPro:', error);
   }
@@ -96,6 +103,7 @@ async function collectFiles(path: string): Promise<string[]> {
 
 export async function cleanupOrphanMedia(usedUris: string[]) {
   if (Platform.OS === 'web' || !FileSystem.documentDirectory) return { scanned: 0, removed: 0 };
+  const mediaRoot = getMediaRoot();
   const used = new Set(usedUris.filter((uri) => uri && uri.startsWith(mediaRoot)));
   const files = await collectFiles(mediaRoot);
   let removed = 0;
