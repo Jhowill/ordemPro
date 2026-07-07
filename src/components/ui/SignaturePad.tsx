@@ -1,6 +1,5 @@
 import { useMemo, useRef, useState } from 'react';
 import { LayoutChangeEvent, PanResponder, StyleSheet, View } from 'react-native';
-import Svg, { Path } from 'react-native-svg/lib/commonjs';
 
 import { radius, spacing } from '@/constants/theme';
 import { useThemeColors } from '@/hooks/useThemeColors';
@@ -53,6 +52,24 @@ function encodeSvg(svg: string) {
   return `data:image/svg+xml;utf8,${encodeURIComponent(svg)}`;
 }
 
+function strokeToSegments(stroke: Stroke) {
+  const segments: { id: string; x: number; y: number; width: number; angle: number }[] = [];
+  for (let index = 1; index < stroke.length; index += 1) {
+    const start = stroke[index - 1];
+    const end = stroke[index];
+    const width = distance(start, end);
+    if (width < 0.5) continue;
+    segments.push({
+      id: `${index}_${start.x.toFixed(1)}_${start.y.toFixed(1)}`,
+      x: (start.x + end.x) / 2 - width / 2,
+      y: (start.y + end.y) / 2,
+      width,
+      angle: Math.atan2(end.y - start.y, end.x - start.x),
+    });
+  }
+  return segments;
+}
+
 export function buildSignatureSvgUri(paths: string[], width: number, height: number) {
   const safeWidth = Math.max(1, Math.round(width));
   const safeHeight = Math.max(1, Math.round(height));
@@ -74,6 +91,7 @@ export function SignaturePad({ title = 'Assinar na tela', onSave, onCancel, onSi
   }
 
   const paths = useMemo(() => strokes.map(strokeToPath).filter(Boolean), [strokes]);
+  const segments = useMemo(() => strokes.flatMap(strokeToSegments), [strokes]);
   const hasSignature = paths.length > 0;
 
   const panResponder = useMemo(
@@ -136,11 +154,40 @@ export function SignaturePad({ title = 'Assinar na tela', onSave, onCancel, onSi
         {...panResponder.panHandlers}
       >
         {!hasSignature ? <AppText variant="caption" color={colors.muted} style={styles.hint}>Assine dentro do quadro</AppText> : null}
-        <Svg width="100%" height="100%" viewBox={`0 0 ${size.width} ${size.height}`}>
-          {paths.map((path, index) => (
-            <Path key={`${index}_${path.length}`} d={path} fill="none" stroke={colors.text} strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round" />
-          ))}
-        </Svg>
+        {segments.map((segment) => (
+          <View
+            key={segment.id}
+            style={[
+              styles.segment,
+              {
+                backgroundColor: colors.text,
+                left: segment.x,
+                top: segment.y - strokeWidth / 2,
+                width: segment.width,
+                height: strokeWidth,
+                transform: [{ rotateZ: `${segment.angle}rad` }],
+              },
+            ]}
+          />
+        ))}
+        {strokes.flatMap((stroke, strokeIndex) =>
+          stroke.map((point, pointIndex) => (
+            <View
+              key={`cap_${strokeIndex}_${pointIndex}`}
+              style={[
+                styles.cap,
+                {
+                  backgroundColor: colors.text,
+                  left: point.x - strokeWidth / 2,
+                  top: point.y - strokeWidth / 2,
+                  width: strokeWidth,
+                  height: strokeWidth,
+                  borderRadius: strokeWidth / 2,
+                },
+              ]}
+            />
+          )),
+        )}
       </View>
       <View style={styles.row}>
         <AppButton title="Limpar" variant="secondary" compact onPress={clear} />
@@ -161,5 +208,7 @@ const styles = StyleSheet.create({
     position: 'relative',
   },
   hint: { position: 'absolute', top: spacing.sm, alignSelf: 'center' },
+  segment: { position: 'absolute', borderRadius: strokeWidth / 2 },
+  cap: { position: 'absolute' },
   row: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm },
 });
