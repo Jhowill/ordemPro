@@ -8,6 +8,8 @@
     "userInterfaceStyle": "automatic",
     "assetBundlePatterns": ["**/*"],
     "ios": {
+      "bundleIdentifier": "com.jwmdevcreator.ordempro",
+      "buildNumber": "1",
       "supportsTablet": true,
       "infoPlist": {
         "NSCameraUsageDescription": "Permita tirar fotos de equipamentos, servicos e assinaturas.",
@@ -16,6 +18,8 @@
       }
     },
     "android": {
+      "package": "com.jwmdevcreator.ordempro",
+      "versionCode": 1,
       "permissions": ["CAMERA", "READ_MEDIA_IMAGES", "READ_EXTERNAL_STORAGE"],
       "adaptiveIcon": {
         "backgroundColor": "#1E4FD7"
