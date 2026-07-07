@@ -50,12 +50,12 @@ export default function OrdersScreen() {
   return (
     <ScreenContainer>
       <AppHeader title="Ordens de Servico" subtitle={`${orders.length} registros`} action={<AppButton title="Nova OS" compact onPress={() => router.push('/orders/new')} />} />
-      <SearchInput value={query} onChangeText={setQuery} placeholder="Buscar por numero, cliente ou equipamento..." />
       <View style={styles.filters}>
         {filters.map((item) => (
           <FilterChip key={item.key} label={item.label} active={filter === item.key} onPress={() => setFilter(item.key)} />
         ))}
       </View>
+      <SearchInput value={query} onChangeText={setQuery} placeholder="Buscar por numero, cliente ou equipamento..." />
       {orders.length === 0 ? (
         <EmptyState icon="clipboard-outline" title="Nenhuma OS encontrada" description="Crie uma ordem de servico para iniciar o controle." actionLabel="Nova OS" onAction={() => router.push('/orders/new')} />
       ) : (
