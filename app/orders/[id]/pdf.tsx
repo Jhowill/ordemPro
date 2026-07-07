@@ -2,7 +2,7 @@ import * as Print from 'expo-print';
 import * as Sharing from 'expo-sharing';
 import { useLocalSearchParams } from 'expo-router';
 import { useState } from 'react';
-import { Alert } from 'react-native';
+import { Alert, Platform } from 'react-native';
 
 import { AppButton } from '@/components/ui/AppButton';
 import { AppCard } from '@/components/ui/AppCard';
@@ -10,7 +10,7 @@ import { AppHeader } from '@/components/ui/AppHeader';
 import { AppText } from '@/components/ui/AppText';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { ScreenContainer } from '@/components/ui/ScreenContainer';
-import { buildOrderPdfHtml } from '@/services/pdfTemplate';
+import { buildOrderPdfHtml, PDF_PAGE_MARGINS } from '@/services/pdfTemplate';
 import { useAppData } from '@/services/storage';
 import { ServiceOrderPdf } from '@/types';
 import { formatDate, formatMoney, makeId, nowIso } from '@/utils/formatters';
@@ -34,8 +34,12 @@ export default function OrderPdfScreen() {
   async function generate() {
     try {
       setLoading(true);
-      const html = buildOrderPdfHtml(data, activeOrder);
-      const result = await Print.printToFileAsync({ html, base64: false });
+      const html = buildOrderPdfHtml(data, activeOrder, { useBodyMargins: Platform.OS !== 'ios' });
+      const result = await Print.printToFileAsync({
+        html,
+        base64: false,
+        ...(Platform.OS === 'ios' ? { margins: PDF_PAGE_MARGINS } : {}),
+      });
       const record: ServiceOrderPdf = {
         id: makeId('pdf'),
         createdAt: nowIso(),

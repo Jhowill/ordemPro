@@ -1,6 +1,17 @@
 import { AppData, ServiceOrder } from '@/types';
 import { formatDate, formatMoney, statusLabel } from '@/utils/formatters';
 
+export const PDF_PAGE_MARGINS = {
+  top: 54,
+  right: 44,
+  bottom: 58,
+  left: 44,
+};
+
+type PdfTemplateOptions = {
+  useBodyMargins?: boolean;
+};
+
 function escapeHtml(value: unknown) {
   return String(value ?? '')
     .replace(/&/g, '&amp;')
@@ -14,7 +25,7 @@ function safeColor(value: string) {
   return /^#[0-9a-f]{6}$/i.test(value) ? value : '#1E4FD7';
 }
 
-export function buildOrderPdfHtml(data: AppData, order: ServiceOrder) {
+export function buildOrderPdfHtml(data: AppData, order: ServiceOrder, options: PdfTemplateOptions = {}) {
   const company = data.company;
   const customer = data.customers.find((item) => item.id === order.customerId);
   const equipment = data.equipments.find((item) => item.id === order.equipmentId);
@@ -26,6 +37,9 @@ export function buildOrderPdfHtml(data: AppData, order: ServiceOrder) {
   const customerSignature = data.signatures.find((item) => item.orderId === order.id && item.kind === 'customer');
   const primary = safeColor(data.pdfSettings.primaryColor);
   const technicianName = technician?.name ?? company?.responsibleName ?? 'Responsavel';
+  const bodyMargin = options.useBodyMargins === false
+    ? '0'
+    : `${PDF_PAGE_MARGINS.top}px ${PDF_PAGE_MARGINS.right}px ${PDF_PAGE_MARGINS.bottom}px ${PDF_PAGE_MARGINS.left}px`;
 
   const rows = (target: typeof items) =>
     target
@@ -47,8 +61,8 @@ export function buildOrderPdfHtml(data: AppData, order: ServiceOrder) {
       <meta charset="utf-8" />
       <style>
         * { box-sizing: border-box; }
-        @page { margin: 54px 44px 58px; }
-        body { font-family: Arial, sans-serif; color: #0f172a; margin: 0; font-size: 11px; }
+        @page { margin: 0; }
+        body { font-family: Arial, sans-serif; color: #0f172a; margin: ${bodyMargin}; font-size: 11px; }
         .header { display: grid; grid-template-columns: 1fr 190px; gap: 18px; border-bottom: 2px solid ${primary}; padding-bottom: 14px; margin-bottom: 12px; }
         .brand { display: flex; gap: 12px; align-items: center; }
         .logo { width: 58px; height: 58px; border: 2px solid ${primary}; display: flex; align-items: center; justify-content: center; color: ${primary}; font-weight: 700; }
