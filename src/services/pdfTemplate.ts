@@ -47,9 +47,9 @@ export function buildOrderPdfHtml(data: AppData, order: ServiceOrder) {
       <meta charset="utf-8" />
       <style>
         * { box-sizing: border-box; }
-        @page { margin: 24px; }
-        body { font-family: Arial, sans-serif; color: #0f172a; margin: 28px; font-size: 11px; }
-        .header { display: grid; grid-template-columns: 1fr 190px; gap: 18px; border-bottom: 2px solid ${primary}; padding-bottom: 14px; }
+        @page { margin: 38px 30px 42px; }
+        body { font-family: Arial, sans-serif; color: #0f172a; margin: 0; font-size: 11px; }
+        .header { display: grid; grid-template-columns: 1fr 190px; gap: 18px; border-bottom: 2px solid ${primary}; padding-bottom: 14px; margin-bottom: 12px; }
         .brand { display: flex; gap: 12px; align-items: center; }
         .logo { width: 58px; height: 58px; border: 2px solid ${primary}; display: flex; align-items: center; justify-content: center; color: ${primary}; font-weight: 700; }
         h1, h2, h3, p { margin: 0; }
@@ -78,7 +78,7 @@ export function buildOrderPdfHtml(data: AppData, order: ServiceOrder) {
         .signature-image-wrap { height: 62px; display: flex; align-items: center; justify-content: center; margin-bottom: 5px; }
         .signature-img { max-width: 100%; width: 100%; height: 62px; object-fit: contain; display: block; }
         .signature-line { border-top: 1px solid ${primary}; padding-top: 7px; font-weight: 700; line-height: 1.25; }
-        .footer { border-top: 1px solid #cbd5e1; margin-top: 16px; padding-top: 10px; text-align: center; color: #475569; font-size: 10px; }
+        .footer { border-top: 1px solid #cbd5e1; margin-top: 18px; padding-top: 12px; text-align: center; color: #475569; font-size: 10px; }
         .photo-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
         .photo { width: 100%; height: 92px; object-fit: cover; border: 1px solid #cbd5e1; border-radius: 6px; }
         .photo, .photo-grid, .summary, .footer { page-break-inside: avoid; break-inside: avoid; }
