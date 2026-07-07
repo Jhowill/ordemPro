@@ -8,7 +8,8 @@ import { InputField } from '@/components/ui/InputField';
 import { spacing } from '@/constants/theme';
 import { useThemeColors } from '@/hooks/useThemeColors';
 import { SecuritySettings } from '@/types';
-import { normalizePinInput, verifyPin } from '@/utils/pinSecurity';
+import { normalizePinInput } from '@/utils/pinSecurity';
+import { verifySecurityPin } from '@/utils/securePinStorage';
 
 type Props = {
   security: SecuritySettings;
@@ -21,6 +22,7 @@ export function AppLock({ security, onUnlock }: Props) {
   const [failedAttempts, setFailedAttempts] = useState(0);
   const [lockedUntil, setLockedUntil] = useState<number | null>(null);
   const [now, setNow] = useState(Date.now());
+  const [checking, setChecking] = useState(false);
 
   const secondsLeft = useMemo(() => {
     if (!lockedUntil) return 0;
@@ -33,18 +35,26 @@ export function AppLock({ security, onUnlock }: Props) {
     return () => clearInterval(interval);
   }, [lockedUntil]);
 
-  function unlock() {
+  async function unlock() {
     if (lockedUntil && Date.now() < lockedUntil) {
       Alert.alert('Aguarde', `Tente novamente em ${secondsLeft}s.`);
       return;
     }
 
-    if (verifyPin(pin, security.pinSalt, security.pinHash)) {
-      setPin('');
-      setFailedAttempts(0);
-      setLockedUntil(null);
-      onUnlock();
+    try {
+      setChecking(true);
+      if (await verifySecurityPin(pin, security)) {
+        setPin('');
+        setFailedAttempts(0);
+        setLockedUntil(null);
+        onUnlock();
+        return;
+      }
+    } catch {
+      Alert.alert('Falha ao validar PIN', 'Tente novamente.');
       return;
+    } finally {
+      setChecking(false);
     }
 
     const nextAttempts = failedAttempts + 1;
@@ -78,7 +88,7 @@ export function AppLock({ security, onUnlock }: Props) {
           onSubmitEditing={unlock}
         />
         {secondsLeft ? <AppText muted>Aguarde {secondsLeft}s para nova tentativa.</AppText> : null}
-        <AppButton title="Desbloquear" onPress={unlock} />
+        <AppButton title="Desbloquear" loading={checking} onPress={unlock} />
       </AppCard>
     </View>
   );

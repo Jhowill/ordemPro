@@ -33,6 +33,7 @@
     "android": {
       "package": "com.jwmdevcreator.ordempro",
       "versionCode": 1,
+      "allowBackup": false,
       "permissions": [
         "android.permission.CAMERA",
         "android.permission.READ_MEDIA_IMAGES",
@@ -55,7 +56,8 @@
           "microphonePermission": false
         }
       ],
-      "expo-font"
+      "expo-font",
+      "expo-secure-store"
     ],
     "web": {
       "favicon": "./Icons/02_expo_assets_ready/favicon.png"

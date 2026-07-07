@@ -1,4 +1,4 @@
-import { ReactNode } from 'react';
+import { ReactNode, useRef } from 'react';
 import { ActivityIndicator, Pressable, StyleSheet, View } from 'react-native';
 
 import { radius, spacing } from '@/constants/theme';
@@ -7,7 +7,7 @@ import { AppText } from './AppText';
 
 type Props = {
   title: string;
-  onPress?: () => void;
+  onPress?: () => void | Promise<void>;
   variant?: 'primary' | 'secondary' | 'danger';
   icon?: ReactNode;
   loading?: boolean;
@@ -16,11 +16,19 @@ type Props = {
 
 export function AppButton({ title, onPress, variant = 'primary', icon, loading, compact }: Props) {
   const colors = useThemeColors();
+  const lastPressAt = useRef(0);
   const backgroundColor = variant === 'primary' ? colors.primary : variant === 'danger' ? colors.danger : colors.primarySoft;
   const textColor = variant === 'secondary' ? colors.primary : colors.white;
 
+  function handlePress() {
+    const now = Date.now();
+    if (now - lastPressAt.current < 650) return;
+    lastPressAt.current = now;
+    onPress?.();
+  }
+
   return (
-    <Pressable style={({ pressed }) => [styles.button, compact ? styles.compact : styles.grow, { backgroundColor }, pressed && { opacity: 0.8 }]} onPress={onPress} disabled={loading}>
+    <Pressable style={({ pressed }) => [styles.button, compact ? styles.compact : styles.grow, { backgroundColor }, pressed && { opacity: 0.8 }]} onPress={handlePress} disabled={loading}>
       {loading ? <ActivityIndicator color={textColor} /> : <View style={styles.inner}>{icon}<AppText variant="button" color={textColor}>{title}</AppText></View>}
     </Pressable>
   );

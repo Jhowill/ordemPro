@@ -1,6 +1,6 @@
 import { Stack, router, useSegments } from 'expo-router';
 import { useEffect, useRef, useState } from 'react';
-import { ActivityIndicator, View } from 'react-native';
+import { ActivityIndicator, AppState, AppStateStatus, View } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
@@ -8,6 +8,7 @@ import { StatusBar } from 'expo-status-bar';
 import { AppButton } from '@/components/ui/AppButton';
 import { AppText } from '@/components/ui/AppText';
 import { AppLock } from '@/components/security/AppLock';
+import { AppErrorBoundary } from '@/components/system/AppErrorBoundary';
 import { AppDataProvider, useAppData } from '@/services/storage';
 import { useThemeColors } from '@/hooks/useThemeColors';
 
@@ -16,6 +17,8 @@ function RootNavigator() {
   const segments = useSegments();
   const colors = useThemeColors();
   const didEvaluatePin = useRef(false);
+  const appState = useRef<AppStateStatus>(AppState.currentState);
+  const backgroundedAt = useRef<number | null>(null);
   const [pinUnlocked, setPinUnlocked] = useState(false);
 
   useEffect(() => {
@@ -32,6 +35,31 @@ function RootNavigator() {
       router.replace('/(tabs)');
     }
   }, [data.company?.isOnboardingCompleted, data.security.isPinEnabled, loading, segments]);
+
+  useEffect(() => {
+    if (loading) return undefined;
+    if (!data.security.isPinEnabled) {
+      setPinUnlocked(true);
+      return undefined;
+    }
+
+    const subscription = AppState.addEventListener('change', (nextState) => {
+      const wasActive = appState.current === 'active';
+      const isReturningToActive = appState.current.match(/inactive|background/) && nextState === 'active';
+
+      if (wasActive && nextState.match(/inactive|background/)) {
+        backgroundedAt.current = Date.now();
+      }
+
+      if (isReturningToActive && backgroundedAt.current && Date.now() - backgroundedAt.current > 60000) {
+        setPinUnlocked(false);
+      }
+
+      appState.current = nextState;
+    });
+
+    return () => subscription.remove();
+  }, [data.security.isPinEnabled, loading]);
 
   if (loading) {
     return (
@@ -69,9 +97,11 @@ export default function Layout() {
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
       <SafeAreaProvider>
-        <AppDataProvider>
-          <RootNavigator />
-        </AppDataProvider>
+        <AppErrorBoundary>
+          <AppDataProvider>
+            <RootNavigator />
+          </AppDataProvider>
+        </AppErrorBoundary>
       </SafeAreaProvider>
     </GestureHandlerRootView>
   );

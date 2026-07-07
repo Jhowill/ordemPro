@@ -219,6 +219,7 @@ export type BackupMetadata = {
 
 export type SecuritySettings = {
   isPinEnabled: boolean;
+  pinStorage?: 'secure_store' | 'database';
   pinHash?: string;
   pinSalt?: string;
   updatedAt?: ISODateString;

@@ -11,15 +11,17 @@ import { InputField } from '@/components/ui/InputField';
 import { ScreenContainer } from '@/components/ui/ScreenContainer';
 import { spacing } from '@/constants/theme';
 import { useAppData } from '@/services/storage';
-import { createPinSalt, hashPin, isValidPin, normalizePinInput, verifyPin } from '@/utils/pinSecurity';
+import { isValidPin, normalizePinInput } from '@/utils/pinSecurity';
+import { createSecurePinSettings, deleteSecurePin, verifySecurityPin } from '@/utils/securePinStorage';
 
 export default function SecuritySettingsScreen() {
-  const { data, clearAllData, optimizeStorage, saveSecuritySettings } = useAppData();
+  const { data, clearAllData, optimizeStorage, saveSecuritySettings, verifyDatabaseIntegrity } = useAppData();
   const [currentPin, setCurrentPin] = useState('');
   const [newPin, setNewPin] = useState('');
   const [confirmPin, setConfirmPin] = useState('');
   const [savingPin, setSavingPin] = useState(false);
   const [optimizing, setOptimizing] = useState(false);
+  const [checkingDatabase, setCheckingDatabase] = useState(false);
   const [clearing, setClearing] = useState(false);
 
   const pinEnabled = data.security.isPinEnabled;
@@ -42,8 +44,15 @@ export default function SecuritySettingsScreen() {
     return true;
   }
 
-  function validateCurrentPin() {
-    if (!verifyPin(currentPin, data.security.pinSalt, data.security.pinHash)) {
+  async function validateCurrentPin() {
+    let isValid = false;
+    try {
+      isValid = await verifySecurityPin(currentPin, data.security);
+    } catch {
+      Alert.alert('Falha ao validar PIN', 'Tente novamente.');
+      return false;
+    }
+    if (!isValid) {
       Alert.alert('PIN incorreto', 'Informe o PIN atual para continuar.');
       return false;
     }
@@ -54,12 +63,7 @@ export default function SecuritySettingsScreen() {
     if (!validateNewPin()) return;
     try {
       setSavingPin(true);
-      const pinSalt = createPinSalt();
-      await saveSecuritySettings({
-        isPinEnabled: true,
-        pinSalt,
-        pinHash: hashPin(newPin, pinSalt),
-      });
+      await saveSecuritySettings(await createSecurePinSettings(newPin));
       clearPinFields();
       Alert.alert('PIN ativado', 'O app pedira o PIN ao abrir novamente.');
     } catch (error) {
@@ -70,15 +74,10 @@ export default function SecuritySettingsScreen() {
   }
 
   async function changePin() {
-    if (!validateCurrentPin() || !validateNewPin()) return;
+    if (!(await validateCurrentPin()) || !validateNewPin()) return;
     try {
       setSavingPin(true);
-      const pinSalt = createPinSalt();
-      await saveSecuritySettings({
-        isPinEnabled: true,
-        pinSalt,
-        pinHash: hashPin(newPin, pinSalt),
-      });
+      await saveSecuritySettings(await createSecurePinSettings(newPin));
       clearPinFields();
       Alert.alert('PIN alterado', 'O novo PIN ja esta ativo.');
     } catch (error) {
@@ -89,9 +88,10 @@ export default function SecuritySettingsScreen() {
   }
 
   async function disablePin() {
-    if (!validateCurrentPin()) return;
+    if (!(await validateCurrentPin())) return;
     try {
       setSavingPin(true);
+      await deleteSecurePin();
       await saveSecuritySettings({ isPinEnabled: false });
       clearPinFields();
       Alert.alert('PIN desativado', 'O app nao pedira PIN ao abrir.');
@@ -127,6 +127,21 @@ export default function SecuritySettingsScreen() {
       Alert.alert('Nao foi possivel otimizar', error instanceof Error ? error.message : 'Tente novamente.');
     } finally {
       setOptimizing(false);
+    }
+  }
+
+  async function handleCheckDatabase() {
+    try {
+      setCheckingDatabase(true);
+      const result = await verifyDatabaseIntegrity();
+      Alert.alert(
+        result.ok ? 'Banco local saudavel' : 'Atenção no banco local',
+        result.ok ? 'O SQLite respondeu sem sinais de corrupcao.' : result.details.join('\n'),
+      );
+    } catch (error) {
+      Alert.alert('Falha ao verificar banco', error instanceof Error ? error.message : 'Tente novamente.');
+    } finally {
+      setCheckingDatabase(false);
     }
   }
 
@@ -184,6 +199,11 @@ export default function SecuritySettingsScreen() {
         <AppText variant="subtitle">Otimizar armazenamento</AppText>
         <AppText muted>Remove midias locais sem uso e mantem no maximo os 5 PDFs mais recentes de cada OS.</AppText>
         <AppButton title="Otimizar agora" variant="secondary" loading={optimizing} onPress={handleOptimizeStorage} />
+      </AppCard>
+      <AppCard>
+        <AppText variant="subtitle">Verificar banco local</AppText>
+        <AppText muted>Confere a integridade do SQLite deste aparelho antes que uma falha vire problema de abertura.</AppText>
+        <AppButton title="Verificar SQLite" variant="secondary" loading={checkingDatabase} onPress={handleCheckDatabase} />
       </AppCard>
       <AppCard>
         <AppText variant="subtitle">Limpar dados do app</AppText>

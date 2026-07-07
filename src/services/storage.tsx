@@ -2,13 +2,28 @@ import { createContext, ReactNode, useCallback, useContext, useEffect, useMemo, 
 
 import { createEmptyAppData, initialData } from '@/data/seed';
 import { normalizeAppData } from '@/data/normalizeAppData';
-import { loadAppData, replaceAppData } from '@/database/appDatabase';
+import { checkDatabaseIntegrity, loadAppData, replaceAppData } from '@/database/appDatabase';
 import { AppData, CatalogPart, CatalogService, CompanyProfile, Customer, DefaultTerms, Equipment, Payment, PdfSettings, PhotoAttachment, SecuritySettings, ServiceOrder, ServiceOrderItem, ServiceOrderPdf, ServiceOrderStatusHistory, SignatureRecord, TechnicianProfile } from '@/types';
 import { calculateOrderTotals } from '@/services/calculations';
 import { cleanupOrphanMedia, clearStoredMedia, deleteLocalFile } from '@/services/media';
 import { makeId, nowIso } from '@/utils/formatters';
 
 const PDF_HISTORY_LIMIT = 5;
+const MAX_BACKUP_JSON_BYTES = 8 * 1024 * 1024;
+const BACKUP_ARRAY_LIMITS: Partial<Record<keyof AppData, number>> = {
+  customers: 20000,
+  equipments: 30000,
+  technicians: 1000,
+  orders: 50000,
+  items: 200000,
+  payments: 100000,
+  photos: 100000,
+  signatures: 100000,
+  pdfs: 100000,
+  statusHistory: 200000,
+  services: 10000,
+  parts: 10000,
+};
 
 type AppDataContextValue = {
   data: AppData;
@@ -54,6 +69,7 @@ type AppDataContextValue = {
   importBackup: (json: string) => Promise<void>;
   saveSecuritySettings: (settings: SecuritySettings) => Promise<void>;
   optimizeStorage: () => Promise<{ removedFiles: number; removedPdfRecords: number; scannedFiles: number }>;
+  verifyDatabaseIntegrity: () => Promise<{ ok: boolean; details: string[] }>;
   resetDemo: () => Promise<void>;
   clearAllData: () => Promise<void>;
 };
@@ -82,6 +98,30 @@ function recalculateOrder(order: ServiceOrder, items: ServiceOrderItem[], paymen
     paidCents: totals.paidCents,
     pendingCents: totals.pendingCents,
   };
+}
+
+function validateBackupPayload(json: string) {
+  if (!json.trim()) throw new Error('Backup vazio.');
+  if (json.length > MAX_BACKUP_JSON_BYTES) throw new Error('Backup muito grande para importar com seguranca.');
+
+  let parsed: { app?: unknown; backupVersion?: unknown; data?: unknown };
+  try {
+    parsed = JSON.parse(json) as { app?: unknown; backupVersion?: unknown; data?: unknown };
+  } catch {
+    throw new Error('JSON de backup invalido.');
+  }
+  if (parsed.app !== 'OrdemPro' || parsed.backupVersion !== 1) throw new Error('Backup invalido.');
+  if (!parsed.data || typeof parsed.data !== 'object' || Array.isArray(parsed.data)) throw new Error('Dados do backup ausentes.');
+
+  const data = parsed.data as Partial<AppData>;
+  for (const [key, limit] of Object.entries(BACKUP_ARRAY_LIMITS) as [keyof AppData, number][]) {
+    const value = data[key];
+    if (value === undefined) continue;
+    if (!Array.isArray(value)) throw new Error(`Campo invalido no backup: ${String(key)}.`);
+    if (value.length > limit) throw new Error(`Backup possui itens demais em ${String(key)}.`);
+  }
+
+  return data;
 }
 
 export function AppDataProvider({ children }: { children: ReactNode }) {
@@ -629,10 +669,8 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
 
   const importBackup = useCallback(
     async (json: string) => {
-      const parsed = JSON.parse(json) as { app: string; backupVersion: number; data: AppData };
-      if (parsed.app !== 'OrdemPro' || parsed.backupVersion !== 1) throw new Error('Backup invalido.');
-      if (!parsed.data || typeof parsed.data !== 'object') throw new Error('Dados do backup ausentes.');
-      await commit(() => normalizeAppData(parsed.data, 'empty'));
+      const backupData = validateBackupPayload(json);
+      await commit(() => normalizeAppData(backupData, 'empty'));
     },
     [commit],
   );
@@ -687,6 +725,11 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
     [commit],
   );
 
+  const verifyDatabaseIntegrity = useCallback<AppDataContextValue['verifyDatabaseIntegrity']>(
+    async () => checkDatabaseIntegrity(),
+    [],
+  );
+
   const resetDemo = useCallback(async () => {
     const currentPdfs = dataRef.current.pdfs;
     dataRef.current = initialData;
@@ -739,10 +782,11 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
       importBackup,
       saveSecuritySettings,
       optimizeStorage,
+      verifyDatabaseIntegrity,
       resetDemo,
       clearAllData,
     }),
-    [addCatalogPart, addCatalogService, addCustomer, addEquipment, addOrderPhoto, addPayment, addSignature, clearAllData, createOrder, data, exportBackup, importBackup, loadError, loading, optimizeStorage, removeCatalogPart, removeCatalogService, removeOrderPhoto, removePayment, removeTechnician, replaceOrderItems, resetDemo, saveCatalogPart, saveCatalogService, saveCompany, savePdfSettings, saveSecuritySettings, saveTechnician, saveTerms, updateOrder, updateOrderPhoto, updateOrderStatus, updatePdfRecord],
+    [addCatalogPart, addCatalogService, addCustomer, addEquipment, addOrderPhoto, addPayment, addSignature, clearAllData, createOrder, data, exportBackup, importBackup, loadError, loading, optimizeStorage, removeCatalogPart, removeCatalogService, removeOrderPhoto, removePayment, removeTechnician, replaceOrderItems, resetDemo, saveCatalogPart, saveCatalogService, saveCompany, savePdfSettings, saveSecuritySettings, saveTechnician, saveTerms, updateOrder, updateOrderPhoto, updateOrderStatus, updatePdfRecord, verifyDatabaseIntegrity],
   );
 
   return <AppDataContext.Provider value={value}>{children}</AppDataContext.Provider>;

@@ -16,8 +16,10 @@ function normalizeSecurity(value: unknown, fallback: SecuritySettings): Security
   if (!value || typeof value !== 'object') return fallback;
   const source = value as Partial<SecuritySettings>;
   const hasPin = Boolean(source.pinHash && source.pinSalt);
+  const usesSecureStore = source.pinStorage === 'secure_store';
   return {
-    isPinEnabled: Boolean(source.isPinEnabled && hasPin),
+    isPinEnabled: Boolean(source.isPinEnabled && (usesSecureStore || hasPin)),
+    pinStorage: usesSecureStore ? 'secure_store' : hasPin ? 'database' : undefined,
     pinHash: hasPin ? source.pinHash : undefined,
     pinSalt: hasPin ? source.pinSalt : undefined,
     updatedAt: source.updatedAt ?? fallback.updatedAt,

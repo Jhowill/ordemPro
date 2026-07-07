@@ -34,8 +34,10 @@ function parseSecuritySettings(value?: string | null): SecuritySettings {
   try {
     const parsed = JSON.parse(value) as Partial<SecuritySettings>;
     const hasPin = Boolean(parsed.pinHash && parsed.pinSalt);
+    const usesSecureStore = parsed.pinStorage === 'secure_store';
     return {
-      isPinEnabled: Boolean(parsed.isPinEnabled && hasPin),
+      isPinEnabled: Boolean(parsed.isPinEnabled && (usesSecureStore || hasPin)),
+      pinStorage: usesSecureStore ? 'secure_store' : hasPin ? 'database' : undefined,
       pinHash: hasPin ? parsed.pinHash : undefined,
       pinSalt: hasPin ? parsed.pinSalt : undefined,
       updatedAt: parsed.updatedAt ?? initialData.security.updatedAt,
@@ -74,6 +76,17 @@ export async function getDatabase() {
   const db = await databasePromise;
   await runMigrations(db);
   return db;
+}
+
+export async function checkDatabaseIntegrity() {
+  if (Platform.OS === 'web') return { ok: true, details: ['Web usa AsyncStorage.'] };
+  const db = await getDatabase();
+  const rows = await db.getAllAsync<{ integrity_check: string }>('PRAGMA integrity_check');
+  const details = rows.map((row) => String(row.integrity_check));
+  return {
+    ok: details.length > 0 && details.every((detail) => detail.toLowerCase() === 'ok'),
+    details: details.length ? details : ['Sem resposta do SQLite.'],
+  };
 }
 
 async function openDatabaseAsync(name: string) {
