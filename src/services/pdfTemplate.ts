@@ -1,6 +1,19 @@
 import { AppData, ServiceOrder } from '@/types';
 import { formatDate, formatMoney, statusLabel } from '@/utils/formatters';
 
+function escapeHtml(value: unknown) {
+  return String(value ?? '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
+function safeColor(value: string) {
+  return /^#[0-9a-f]{6}$/i.test(value) ? value : '#1E4FD7';
+}
+
 export function buildOrderPdfHtml(data: AppData, order: ServiceOrder) {
   const company = data.company;
   const customer = data.customers.find((item) => item.id === order.customerId);
@@ -11,7 +24,7 @@ export function buildOrderPdfHtml(data: AppData, order: ServiceOrder) {
   const parts = items.filter((item) => item.type === 'part');
   const photos = data.photos.filter((item) => item.orderId === order.id && item.includeInPdf);
   const customerSignature = data.signatures.find((item) => item.orderId === order.id && item.kind === 'customer');
-  const primary = data.pdfSettings.primaryColor;
+  const primary = safeColor(data.pdfSettings.primaryColor);
   const technicianName = technician?.name ?? company?.responsibleName ?? 'Responsavel';
 
   const rows = (target: typeof items) =>
@@ -19,7 +32,7 @@ export function buildOrderPdfHtml(data: AppData, order: ServiceOrder) {
       .map(
         (item) => `
         <tr>
-          <td>${item.description}</td>
+          <td>${escapeHtml(item.description)}</td>
           <td class="center">${item.quantity}</td>
           <td class="right">${formatMoney(item.unitPriceCents)}</td>
           <td class="right">${formatMoney(item.totalCents)}</td>
@@ -67,49 +80,49 @@ export function buildOrderPdfHtml(data: AppData, order: ServiceOrder) {
         <div class="brand">
           ${
             company?.logoUri
-              ? `<img class="logo" src="${company.logoUri}" />`
+              ? `<img class="logo" src="${escapeHtml(company.logoUri)}" />`
               : '<div class="logo">OP</div>'
           }
           <div>
-            <h1>${company?.name ?? 'OrdemPro'}</h1>
-            <p>${company?.document ?? ''}</p>
-            <p>${company?.addressLine ?? ''} ${company?.city ? `- ${company.city}/${company.state}` : ''}</p>
-            <p>Tel: ${company?.phone ?? '-'} | WhatsApp: ${company?.whatsapp ?? '-'}</p>
-            <p>${company?.email ?? ''}</p>
+            <h1>${escapeHtml(company?.name ?? 'OrdemPro')}</h1>
+            <p>${escapeHtml(company?.document ?? '')}</p>
+            <p>${escapeHtml(company?.addressLine ?? '')} ${company?.city ? `- ${escapeHtml(company.city)}/${escapeHtml(company.state ?? '')}` : ''}</p>
+            <p>Tel: ${escapeHtml(company?.phone ?? '-')} | WhatsApp: ${escapeHtml(company?.whatsapp ?? '-')}</p>
+            <p>${escapeHtml(company?.email ?? '')}</p>
           </div>
         </div>
         <div class="order-box">
           ORDEM DE SERVICO<br />Nº ${order.shortCode.replace('OS-', '')}<br />
-          <span style="font-size: 11px; font-weight: 400;">${statusLabel(order.status)}</span>
+          <span style="font-size: 11px; font-weight: 400;">${escapeHtml(statusLabel(order.status))}</span>
         </div>
       </section>
 
       <section class="grid">
         <div>
           <h2>DADOS DO CLIENTE</h2>
-          <p><span class="label">Nome:</span> ${customer?.name ?? '-'}</p>
-          <p><span class="label">Telefone:</span> ${customer?.phone ?? customer?.whatsapp ?? '-'}</p>
-          <p><span class="label">E-mail:</span> ${customer?.email ?? '-'}</p>
-          <p><span class="label">Endereco:</span> ${customer?.city ? `${customer.city}/${customer.state}` : '-'}</p>
+          <p><span class="label">Nome:</span> ${escapeHtml(customer?.name ?? '-')}</p>
+          <p><span class="label">Telefone:</span> ${escapeHtml(customer?.phone ?? customer?.whatsapp ?? '-')}</p>
+          <p><span class="label">E-mail:</span> ${escapeHtml(customer?.email ?? '-')}</p>
+          <p><span class="label">Endereco:</span> ${escapeHtml(customer?.city ? `${customer.city}/${customer.state ?? ''}` : '-')}</p>
         </div>
         <div>
           <h2>DADOS DO EQUIPAMENTO</h2>
-          <p><span class="label">Tipo:</span> ${equipment?.type ?? (order.isServiceWithoutEquipment ? 'Servico sem equipamento' : '-')}</p>
-          <p><span class="label">Marca:</span> ${equipment?.brand ?? '-'}</p>
-          <p><span class="label">Modelo:</span> ${equipment?.model ?? '-'}</p>
-          <p><span class="label">Serie:</span> ${equipment?.serialNumber ?? '-'}</p>
-          <p><span class="label">Tecnico:</span> ${technicianName}</p>
+          <p><span class="label">Tipo:</span> ${escapeHtml(equipment?.type ?? (order.isServiceWithoutEquipment ? 'Servico sem equipamento' : '-'))}</p>
+          <p><span class="label">Marca:</span> ${escapeHtml(equipment?.brand ?? '-')}</p>
+          <p><span class="label">Modelo:</span> ${escapeHtml(equipment?.model ?? '-')}</p>
+          <p><span class="label">Serie:</span> ${escapeHtml(equipment?.serialNumber ?? '-')}</p>
+          <p><span class="label">Tecnico:</span> ${escapeHtml(technicianName)}</p>
         </div>
       </section>
 
       <h2>DEFEITO RELATADO</h2>
-      <p>${order.reportedIssue}</p>
+      <p>${escapeHtml(order.reportedIssue)}</p>
 
       <h2>DIAGNOSTICO</h2>
-      <p>${order.diagnosis ?? '-'}</p>
+      <p>${escapeHtml(order.diagnosis ?? '-')}</p>
 
       <h2>SERVICO EXECUTADO</h2>
-      <p>${order.performedService ?? '-'}</p>
+      <p>${escapeHtml(order.performedService ?? '-')}</p>
 
       <h2>SERVICOS</h2>
       <table><thead><tr><th>Descricao</th><th>Qtd</th><th>Valor Unit.</th><th>Total</th></tr></thead><tbody>${rows(services) || '<tr><td colspan="4">Nenhum servico informado.</td></tr>'}</tbody></table>
@@ -119,7 +132,7 @@ export function buildOrderPdfHtml(data: AppData, order: ServiceOrder) {
 
       ${
         data.pdfSettings.showPhotos && photos.length
-          ? `<h2>FOTOS DO SERVICO</h2><div class="photo-grid">${photos.map((photo) => `<img class="photo" src="${photo.localUri}" />`).join('')}</div>`
+          ? `<h2>FOTOS DO SERVICO</h2><div class="photo-grid">${photos.map((photo) => `<img class="photo" src="${escapeHtml(photo.localUri)}" />`).join('')}</div>`
           : ''
       }
 
@@ -140,9 +153,9 @@ export function buildOrderPdfHtml(data: AppData, order: ServiceOrder) {
         <div>
           <h2>TERMOS E CONDICOES</h2>
           <div class="terms">
-            <p>${data.terms.warrantyText}</p>
-            <p>${data.terms.serviceAuthorizationText}</p>
-            <p>${data.terms.dataResponsibilityText}</p>
+            <p>${escapeHtml(data.terms.warrantyText)}</p>
+            <p>${escapeHtml(data.terms.serviceAuthorizationText)}</p>
+            <p>${escapeHtml(data.terms.dataResponsibilityText)}</p>
           </div>
         </div>
         ${
@@ -151,12 +164,12 @@ export function buildOrderPdfHtml(data: AppData, order: ServiceOrder) {
               <h2>ASSINATURAS</h2>
               <div class="signatures">
                 <div class="signature">
-                  <div class="signature-image-wrap">${customerSignature?.localUri ? `<img class="signature-img" src="${customerSignature.localUri}" />` : ''}</div>
-                  <div class="signature-line">${customerSignature?.signerName ?? customer?.name ?? 'Cliente'}<br />Cliente</div>
+                  <div class="signature-image-wrap">${customerSignature?.localUri ? `<img class="signature-img" src="${escapeHtml(customerSignature.localUri)}" />` : ''}</div>
+                  <div class="signature-line">${escapeHtml(customerSignature?.signerName ?? customer?.name ?? 'Cliente')}<br />Cliente</div>
                 </div>
                 <div class="signature">
-                  <div class="signature-image-wrap">${technician?.signatureUri ? `<img class="signature-img" src="${technician.signatureUri}" />` : ''}</div>
-                  <div class="signature-line">${technicianName}<br />Tecnico/Responsavel</div>
+                  <div class="signature-image-wrap">${technician?.signatureUri ? `<img class="signature-img" src="${escapeHtml(technician.signatureUri)}" />` : ''}</div>
+                  <div class="signature-line">${escapeHtml(technicianName)}<br />Tecnico/Responsavel</div>
                 </div>
               </div>
             </div>
@@ -166,7 +179,7 @@ export function buildOrderPdfHtml(data: AppData, order: ServiceOrder) {
       </section>
 
       <div class="footer">
-        ${data.pdfSettings.footerText ?? 'Documento gerado pelo OrdemPro.'} - ${formatDate(order.openedAt)}
+        ${escapeHtml(data.pdfSettings.footerText ?? 'Documento gerado pelo OrdemPro.')} - ${escapeHtml(formatDate(order.openedAt))}
       </div>
     </body>
   </html>`;

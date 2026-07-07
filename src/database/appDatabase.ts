@@ -3,6 +3,7 @@ import { Platform } from 'react-native';
 import type { SQLiteDatabase } from 'expo-sqlite';
 
 import { initialData } from '@/data/seed';
+import { normalizeAppData } from '@/data/normalizeAppData';
 import { createSchemaSql, CURRENT_SCHEMA_VERSION } from '@/database/schema';
 import { AppData, CatalogPart, CatalogService, CompanyProfile, Customer, DefaultTerms, Equipment, Payment, PdfSettings, PhotoAttachment, ServiceOrder, ServiceOrderItem, ServiceOrderPdf, ServiceOrderStatusHistory, SignatureRecord, TechnicianProfile } from '@/types';
 import { nowIso } from '@/utils/formatters';
@@ -100,7 +101,12 @@ export async function loadAppData(): Promise<AppData> {
       await AsyncStorage.setItem(WEB_STORAGE_KEY, JSON.stringify(initialData));
       return initialData;
     }
-    return { ...initialData, ...JSON.parse(stored) } as AppData;
+    try {
+      return normalizeAppData(JSON.parse(stored) as Partial<AppData>, 'demo');
+    } catch {
+      await AsyncStorage.setItem(WEB_STORAGE_KEY, JSON.stringify(initialData));
+      return initialData;
+    }
   }
 
   const db = await getDatabase();
@@ -151,8 +157,9 @@ export async function loadAppData(): Promise<AppData> {
 }
 
 export async function replaceAppData(data: AppData) {
+  const normalizedData = normalizeAppData(data);
   if (Platform.OS === 'web') {
-    await AsyncStorage.setItem(WEB_STORAGE_KEY, JSON.stringify(data));
+    await AsyncStorage.setItem(WEB_STORAGE_KEY, JSON.stringify(normalizedData));
     return;
   }
 
@@ -162,25 +169,25 @@ export async function replaceAppData(data: AppData) {
   await migrateExistingDatabase(db);
   await db.withTransactionAsync(async () => {
     await clearWritableTables(db);
-    if (data.company) await insertCompany(db, data.company);
-    await insertPdfSettings(db, data.pdfSettings);
-    await insertTerms(db, data.terms);
-    for (const customer of data.customers) await insertCustomer(db, customer);
-    for (const equipment of data.equipments) await insertEquipment(db, equipment);
-    for (const technician of data.technicians) await insertTechnician(db, technician);
-    for (const service of data.services) await insertCatalogService(db, service);
-    for (const part of data.parts) await insertCatalogPart(db, part);
-    for (const order of data.orders) await insertOrder(db, order);
-    for (const item of data.items) await insertItem(db, item);
-    for (const payment of data.payments) await insertPayment(db, payment);
-    for (const photo of data.photos) await insertPhoto(db, photo);
-    for (const signature of data.signatures) await insertSignature(db, signature);
-    for (const pdf of data.pdfs) await insertPdfRecord(db, pdf);
-    for (const history of data.statusHistory) await insertStatusHistory(db, history);
-    await insertBackup(db, data.backup.lastBackupAt ?? null, data.backup.lastBackupJson ?? null);
+    if (normalizedData.company) await insertCompany(db, normalizedData.company);
+    await insertPdfSettings(db, normalizedData.pdfSettings);
+    await insertTerms(db, normalizedData.terms);
+    for (const customer of normalizedData.customers) await insertCustomer(db, customer);
+    for (const equipment of normalizedData.equipments) await insertEquipment(db, equipment);
+    for (const technician of normalizedData.technicians) await insertTechnician(db, technician);
+    for (const service of normalizedData.services) await insertCatalogService(db, service);
+    for (const part of normalizedData.parts) await insertCatalogPart(db, part);
+    for (const order of normalizedData.orders) await insertOrder(db, order);
+    for (const item of normalizedData.items) await insertItem(db, item);
+    for (const payment of normalizedData.payments) await insertPayment(db, payment);
+    for (const photo of normalizedData.photos) await insertPhoto(db, photo);
+    for (const signature of normalizedData.signatures) await insertSignature(db, signature);
+    for (const pdf of normalizedData.pdfs) await insertPdfRecord(db, pdf);
+    for (const history of normalizedData.statusHistory) await insertStatusHistory(db, history);
+    await insertBackup(db, normalizedData.backup.lastBackupAt ?? null, normalizedData.backup.lastBackupJson ?? null);
     await setMeta(db, 'schema_version', String(CURRENT_SCHEMA_VERSION));
-    await setMeta(db, 'last_order_number', String(data.lastOrderNumber));
-    await setMeta(db, 'theme_mode', data.themeMode);
+    await setMeta(db, 'last_order_number', String(normalizedData.lastOrderNumber));
+    await setMeta(db, 'theme_mode', normalizedData.themeMode);
   });
 }
 

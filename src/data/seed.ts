@@ -3,6 +3,50 @@ import { makeId, nowIso } from '@/utils/formatters';
 
 const createdAt = nowIso();
 
+export function createEmptyAppData(): AppData {
+  const date = nowIso();
+  return {
+    company: null,
+    pdfSettings: {
+      id: makeId('pdf_settings'),
+      createdAt: date,
+      updatedAt: date,
+      primaryColor: '#1E4FD7',
+      documentModel: 'classic',
+      showPhotos: true,
+      showSignatures: true,
+      showValues: true,
+      showAppBranding: true,
+      footerText: 'Documento gerado pelo OrdemPro.',
+    },
+    terms: {
+      id: makeId('terms'),
+      createdAt: date,
+      updatedAt: date,
+      warrantyText: 'Garantia de 90 dias para servicos e pecas aplicadas, conforme descrito na OS.',
+      serviceAuthorizationText: 'Autorizo a execucao do servico descrito nesta ordem de servico.',
+      withdrawalText: 'O equipamento deve ser retirado no prazo combinado apos aviso de conclusao.',
+      dataResponsibilityText: 'Nao nos responsabilizamos por perda de dados. Recomenda-se backup previo.',
+      unclaimedEquipmentText: 'Equipamentos nao retirados em ate 30 dias podem ser considerados abandonados.',
+    },
+    customers: [],
+    equipments: [],
+    technicians: [],
+    orders: [],
+    items: [],
+    payments: [],
+    photos: [],
+    signatures: [],
+    pdfs: [],
+    statusHistory: [],
+    services: [],
+    parts: [],
+    backup: {},
+    themeMode: 'system',
+    lastOrderNumber: 0,
+  };
+}
+
 export const initialData: AppData = {
   company: null,
   pdfSettings: {

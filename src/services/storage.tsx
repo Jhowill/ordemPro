@@ -1,9 +1,11 @@
 import { createContext, ReactNode, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
 
-import { initialData } from '@/data/seed';
+import { createEmptyAppData, initialData } from '@/data/seed';
+import { normalizeAppData } from '@/data/normalizeAppData';
 import { loadAppData, replaceAppData } from '@/database/appDatabase';
 import { AppData, CatalogPart, CatalogService, CompanyProfile, Customer, DefaultTerms, Equipment, Payment, PdfSettings, PhotoAttachment, ServiceOrder, ServiceOrderItem, ServiceOrderPdf, ServiceOrderStatusHistory, SignatureRecord, TechnicianProfile } from '@/types';
 import { calculateOrderTotals } from '@/services/calculations';
+import { clearStoredMedia } from '@/services/media';
 import { makeId, nowIso } from '@/utils/formatters';
 
 type AppDataContextValue = {
@@ -44,6 +46,7 @@ type AppDataContextValue = {
   exportBackup: () => Promise<string>;
   importBackup: (json: string) => Promise<void>;
   resetDemo: () => Promise<void>;
+  clearAllData: () => Promise<void>;
 };
 
 const AppDataContext = createContext<AppDataContextValue | null>(null);
@@ -512,16 +515,8 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
     async (json: string) => {
       const parsed = JSON.parse(json) as { app: string; backupVersion: number; data: AppData };
       if (parsed.app !== 'OrdemPro' || parsed.backupVersion !== 1) throw new Error('Backup invalido.');
-      await commit(() => ({
-        ...initialData,
-        ...parsed.data,
-        technicians: parsed.data.technicians ?? [],
-        payments: parsed.data.payments ?? [],
-        photos: parsed.data.photos ?? [],
-        signatures: parsed.data.signatures ?? [],
-        pdfs: parsed.data.pdfs ?? [],
-        statusHistory: parsed.data.statusHistory ?? [],
-      }));
+      if (!parsed.data || typeof parsed.data !== 'object') throw new Error('Dados do backup ausentes.');
+      await commit(() => normalizeAppData(parsed.data, 'empty'));
     },
     [commit],
   );
@@ -530,6 +525,14 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
     dataRef.current = initialData;
     setData(initialData);
     await replaceAppData(initialData);
+  }, []);
+
+  const clearAllData = useCallback(async () => {
+    const emptyData = createEmptyAppData();
+    await replaceAppData(emptyData);
+    await clearStoredMedia();
+    dataRef.current = emptyData;
+    setData(emptyData);
   }, []);
 
   const value = useMemo(
@@ -559,8 +562,9 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
       exportBackup,
       importBackup,
       resetDemo,
+      clearAllData,
     }),
-    [addCatalogPart, addCatalogService, addCustomer, addEquipment, addOrderPhoto, addPayment, addSignature, createOrder, data, exportBackup, importBackup, loadError, loading, removeOrderPhoto, removePayment, replaceOrderItems, resetDemo, saveCompany, savePdfSettings, saveTechnician, saveTerms, updateOrder, updateOrderPhoto, updateOrderStatus, updatePdfRecord],
+    [addCatalogPart, addCatalogService, addCustomer, addEquipment, addOrderPhoto, addPayment, addSignature, clearAllData, createOrder, data, exportBackup, importBackup, loadError, loading, removeOrderPhoto, removePayment, replaceOrderItems, resetDemo, saveCompany, savePdfSettings, saveTechnician, saveTerms, updateOrder, updateOrderPhoto, updateOrderStatus, updatePdfRecord],
   );
 
   return <AppDataContext.Provider value={value}>{children}</AppDataContext.Provider>;

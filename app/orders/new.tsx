@@ -41,6 +41,7 @@ export default function NewOrderScreen() {
   const [customerSignatureUri, setCustomerSignatureUri] = useState('');
   const [showSignaturePad, setShowSignaturePad] = useState(false);
   const [isSigning, setIsSigning] = useState(false);
+  const [saving, setSaving] = useState(false);
 
   function addItem(type: OrderItemType) {
     if (!item.description.trim()) return;
@@ -151,6 +152,7 @@ export default function NewOrderScreen() {
   }
 
   async function save() {
+    if (saving) return;
     if (!customerId) {
       Alert.alert('Selecione um cliente.');
       setStep(0);
@@ -166,20 +168,27 @@ export default function NewOrderScreen() {
       setStep(2);
       return;
     }
-    const order = await createOrder({ customerId, equipmentId, technicianId, isServiceWithoutEquipment: withoutEquipment, reportedIssue, diagnosis, performedService, items });
-    for (const photo of photos) {
-      await addOrderPhoto(order.id, { localUri: photo.localUri, caption: photo.caption, includeInPdf: photo.includeInPdf });
+    try {
+      setSaving(true);
+      const order = await createOrder({ customerId, equipmentId, technicianId, isServiceWithoutEquipment: withoutEquipment, reportedIssue, diagnosis, performedService, items });
+      for (const photo of photos) {
+        await addOrderPhoto(order.id, { localUri: photo.localUri, caption: photo.caption, includeInPdf: photo.includeInPdf });
+      }
+      if (customerSignatureUri) {
+        const customer = data.customers.find((item) => item.id === customerId);
+        await addSignature(order.id, {
+          kind: 'customer',
+          localUri: customerSignatureUri,
+          signerName: customer?.name ?? (customerForm.name || 'Cliente'),
+          signerDocument: customer?.document || customerForm.document,
+        });
+      }
+      router.replace(`/orders/${order.id}`);
+    } catch (error) {
+      Alert.alert('Nao foi possivel salvar a OS', error instanceof Error ? error.message : 'Verifique os dados e tente novamente.');
+    } finally {
+      setSaving(false);
     }
-    if (customerSignatureUri) {
-      const customer = data.customers.find((item) => item.id === customerId);
-      await addSignature(order.id, {
-        kind: 'customer',
-        localUri: customerSignatureUri,
-        signerName: customer?.name ?? (customerForm.name || 'Cliente'),
-        signerDocument: customer?.document || customerForm.document,
-      });
-    }
-    router.replace(`/orders/${order.id}`);
   }
 
   const total = items.reduce((sum, draft) => sum + draft.quantity * draft.unitPriceCents - draft.discountCents, 0);
@@ -190,7 +199,7 @@ export default function NewOrderScreen() {
       footer={
         <View style={styles.footer}>
           {step > 0 ? <AppButton title="Voltar" variant="secondary" onPress={() => setStep((value) => value - 1)} /> : null}
-          <AppButton title={step === 4 ? 'Salvar OS' : 'Avancar'} onPress={() => (step === 4 ? save() : setStep((value) => value + 1))} />
+          <AppButton title={step === 4 ? 'Salvar OS' : 'Avancar'} loading={saving} onPress={() => (step === 4 ? save() : setStep((value) => value + 1))} />
         </View>
       }
     >

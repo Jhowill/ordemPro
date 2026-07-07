@@ -54,3 +54,12 @@ export async function pickAndStoreImage(folder: MediaFolder, source: ImageSource
 
   return { localUri: destination, width: resized.width, height: resized.height };
 }
+
+export async function clearStoredMedia() {
+  if (Platform.OS === 'web' || !FileSystem.documentDirectory) return;
+  try {
+    await FileSystem.deleteAsync(mediaRoot, { idempotent: true });
+  } catch (error) {
+    console.warn('Nao foi possivel limpar midias locais do OrdemPro:', error);
+  }
+}
