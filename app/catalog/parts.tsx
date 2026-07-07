@@ -7,6 +7,7 @@ import { AppCard } from '@/components/ui/AppCard';
 import { AppHeader } from '@/components/ui/AppHeader';
 import { AppText } from '@/components/ui/AppText';
 import { InputField } from '@/components/ui/InputField';
+import { PaginatedList } from '@/components/ui/PaginatedList';
 import { ScreenContainer } from '@/components/ui/ScreenContainer';
 import { SectionTitle } from '@/components/ui/SectionTitle';
 import { spacing } from '@/constants/theme';
@@ -89,25 +90,29 @@ export default function PartsCatalogScreen() {
       ) : null}
 
       <SectionTitle title="Pecas cadastradas" description={`${data.parts.length} item${data.parts.length === 1 ? '' : 's'}`} />
-      {data.parts.map((part) => (
-        <AppCard key={part.id}>
-          <View style={styles.itemRow}>
-            <View style={styles.itemInfo}>
-              <AppText variant="subtitle">{part.name}</AppText>
-              <AppText muted>{part.category ?? 'Geral'} - {formatMoney(part.salePriceCents)}</AppText>
+      <PaginatedList
+        items={data.parts}
+        keyExtractor={(part) => part.id}
+        empty={<AppText muted>Nenhuma peca cadastrada.</AppText>}
+        renderItem={(part) => (
+          <AppCard key={part.id}>
+            <View style={styles.itemRow}>
+              <View style={styles.itemInfo}>
+                <AppText variant="subtitle">{part.name}</AppText>
+                <AppText muted>{part.category ?? 'Geral'} - {formatMoney(part.salePriceCents)}</AppText>
+              </View>
+              <View style={styles.actions}>
+                <Pressable onPress={() => openEdit(part)} style={[styles.iconButton, { backgroundColor: colors.primarySoft }]}>
+                  <Ionicons name="create-outline" size={20} color={colors.primary} />
+                </Pressable>
+                <Pressable onPress={() => confirmRemove(part)} style={[styles.iconButton, { backgroundColor: colors.dangerSoft }]}>
+                  <Ionicons name="trash-outline" size={20} color={colors.danger} />
+                </Pressable>
+              </View>
             </View>
-            <View style={styles.actions}>
-              <Pressable onPress={() => openEdit(part)} style={[styles.iconButton, { backgroundColor: colors.primarySoft }]}>
-                <Ionicons name="create-outline" size={20} color={colors.primary} />
-              </Pressable>
-              <Pressable onPress={() => confirmRemove(part)} style={[styles.iconButton, { backgroundColor: colors.dangerSoft }]}>
-                <Ionicons name="trash-outline" size={20} color={colors.danger} />
-              </Pressable>
-            </View>
-          </View>
-        </AppCard>
-      ))}
-      {!data.parts.length ? <AppText muted>Nenhuma peca cadastrada.</AppText> : null}
+          </AppCard>
+        )}
+      />
     </ScreenContainer>
   );
 }

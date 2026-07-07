@@ -8,6 +8,7 @@ import { AppHeader } from '@/components/ui/AppHeader';
 import { AppText } from '@/components/ui/AppText';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { InputField } from '@/components/ui/InputField';
+import { PaginatedList } from '@/components/ui/PaginatedList';
 import { ScreenContainer } from '@/components/ui/ScreenContainer';
 import { SectionTitle } from '@/components/ui/SectionTitle';
 import { spacing } from '@/constants/theme';
@@ -151,12 +152,16 @@ export default function EditOrderScreen() {
 
       <AppCard>
         <SectionTitle title="Tecnico" />
-        {data.technicians.map((technician) => (
-          <Pressable key={technician.id} onPress={() => setTechnicianId(technician.id)} style={styles.option}>
-            <AppText variant="subtitle" color={technicianId === technician.id ? colors.primary : undefined}>{technician.name}</AppText>
-            <AppText muted>{technician.signatureUri ? 'Assinatura pronta para PDF' : 'Sem assinatura no perfil'}</AppText>
-          </Pressable>
-        ))}
+        <PaginatedList
+          items={data.technicians}
+          keyExtractor={(technician) => technician.id}
+          renderItem={(technician) => (
+            <Pressable key={technician.id} onPress={() => setTechnicianId(technician.id)} style={styles.option}>
+              <AppText variant="subtitle" color={technicianId === technician.id ? colors.primary : undefined}>{technician.name}</AppText>
+              <AppText muted>{technician.signatureUri ? 'Assinatura pronta para PDF' : 'Sem assinatura no perfil'}</AppText>
+            </Pressable>
+          )}
+        />
         <AppButton title="Gerenciar tecnico" variant="secondary" compact onPress={() => router.push('/settings/technician')} />
       </AppCard>
 
@@ -182,25 +187,35 @@ export default function EditOrderScreen() {
       <AppCard>
         <SectionTitle title="Pecas e servicos" description={`Total dos itens: ${formatMoney(itemsTotal)}`} />
         <SectionTitle title="Catalogo de servicos" />
-        {data.services.map((service) => (
-          <View key={service.id} style={styles.itemRow}>
-            <View style={styles.itemInfo}>
-              <AppText variant="subtitle">{service.name}</AppText>
-              <AppText muted>{service.category ?? 'Servico'} - {formatMoney(service.defaultPriceCents)}</AppText>
+        <PaginatedList
+          items={data.services}
+          keyExtractor={(service) => service.id}
+          empty={<AppText muted>Nenhum servico cadastrado no catalogo.</AppText>}
+          renderItem={(service) => (
+            <View key={service.id} style={styles.itemRow}>
+              <View style={styles.itemInfo}>
+                <AppText variant="subtitle">{service.name}</AppText>
+                <AppText muted>{service.category ?? 'Servico'} - {formatMoney(service.defaultPriceCents)}</AppText>
+              </View>
+              <AppButton title="Adicionar" variant="secondary" compact onPress={() => addCatalogService(service)} />
             </View>
-            <AppButton title="Adicionar" variant="secondary" compact onPress={() => addCatalogService(service)} />
-          </View>
-        ))}
+          )}
+        />
         <SectionTitle title="Catalogo de pecas" />
-        {data.parts.map((part) => (
-          <View key={part.id} style={styles.itemRow}>
-            <View style={styles.itemInfo}>
-              <AppText variant="subtitle">{part.name}</AppText>
-              <AppText muted>{part.category ?? 'Peca'} - {formatMoney(part.salePriceCents)}</AppText>
+        <PaginatedList
+          items={data.parts}
+          keyExtractor={(part) => part.id}
+          empty={<AppText muted>Nenhuma peca cadastrada no catalogo.</AppText>}
+          renderItem={(part) => (
+            <View key={part.id} style={styles.itemRow}>
+              <View style={styles.itemInfo}>
+                <AppText variant="subtitle">{part.name}</AppText>
+                <AppText muted>{part.category ?? 'Peca'} - {formatMoney(part.salePriceCents)}</AppText>
+              </View>
+              <AppButton title="Adicionar" variant="secondary" compact onPress={() => addCatalogPart(part)} />
             </View>
-            <AppButton title="Adicionar" variant="secondary" compact onPress={() => addCatalogPart(part)} />
-          </View>
-        ))}
+          )}
+        />
         <SectionTitle title="Item manual" />
         <InputField label="Descricao" value={manualItem.description} onChangeText={(value) => setManualItem((current) => ({ ...current, description: value }))} />
         <InputField label="Valor" value={manualItem.price} onChangeText={(value) => setManualItem((current) => ({ ...current, price: formatMoneyInput(value) }))} keyboardType="numeric" />
@@ -209,22 +224,27 @@ export default function EditOrderScreen() {
           <AppButton title="Peca" variant="secondary" compact onPress={() => addManualItem('part')} />
         </View>
         <SectionTitle title="Itens da OS" />
-        {items.map((item) => (
-          <View key={item.id} style={styles.itemBlock}>
-            <View style={styles.itemRow}>
-              <View style={styles.itemInfo}>
-                <AppText variant="subtitle">{item.description}</AppText>
-                <AppText muted>{item.type === 'service' ? 'Servico' : 'Peca'} - Total {formatMoney(Math.max(0, (item.quantity ?? 0) * item.unitPriceCents - item.discountCents))}</AppText>
+        <PaginatedList
+          items={items}
+          keyExtractor={(item) => item.id}
+          empty={<AppText muted>Nenhum item selecionado ainda.</AppText>}
+          renderItem={(item) => (
+            <View key={item.id} style={styles.itemBlock}>
+              <View style={styles.itemRow}>
+                <View style={styles.itemInfo}>
+                  <AppText variant="subtitle">{item.description}</AppText>
+                  <AppText muted>{item.type === 'service' ? 'Servico' : 'Peca'} - Total {formatMoney(Math.max(0, (item.quantity ?? 0) * item.unitPriceCents - item.discountCents))}</AppText>
+                </View>
+                <AppButton title="Retirar" variant="danger" compact onPress={() => removeItem(item.id)} />
               </View>
-              <AppButton title="Retirar" variant="danger" compact onPress={() => removeItem(item.id)} />
+              <View style={styles.compactFields}>
+                <InputField label="Qtd" value={item.quantity === null ? '' : String(item.quantity)} onChangeText={(value) => updateItemQuantity(item.id, value)} keyboardType="numeric" style={styles.compactInput} />
+                <InputField label="Valor" value={formatMoney(item.unitPriceCents)} onChangeText={(value) => updateItem(item.id, { unitPriceCents: moneyFromText(value) })} keyboardType="numeric" style={styles.compactInput} />
+                <InputField label="Desc." value={formatMoney(item.discountCents)} onChangeText={(value) => updateItem(item.id, { discountCents: moneyFromText(value) })} keyboardType="numeric" style={styles.compactInput} />
+              </View>
             </View>
-            <View style={styles.compactFields}>
-              <InputField label="Qtd" value={item.quantity === null ? '' : String(item.quantity)} onChangeText={(value) => updateItemQuantity(item.id, value)} keyboardType="numeric" style={styles.compactInput} />
-              <InputField label="Valor" value={formatMoney(item.unitPriceCents)} onChangeText={(value) => updateItem(item.id, { unitPriceCents: moneyFromText(value) })} keyboardType="numeric" style={styles.compactInput} />
-              <InputField label="Desc." value={formatMoney(item.discountCents)} onChangeText={(value) => updateItem(item.id, { discountCents: moneyFromText(value) })} keyboardType="numeric" style={styles.compactInput} />
-            </View>
-          </View>
-        ))}
+          )}
+        />
       </AppCard>
 
       <AppCard>

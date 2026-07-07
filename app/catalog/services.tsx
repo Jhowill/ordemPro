@@ -7,6 +7,7 @@ import { AppCard } from '@/components/ui/AppCard';
 import { AppHeader } from '@/components/ui/AppHeader';
 import { AppText } from '@/components/ui/AppText';
 import { InputField } from '@/components/ui/InputField';
+import { PaginatedList } from '@/components/ui/PaginatedList';
 import { ScreenContainer } from '@/components/ui/ScreenContainer';
 import { SectionTitle } from '@/components/ui/SectionTitle';
 import { spacing } from '@/constants/theme';
@@ -89,25 +90,29 @@ export default function ServicesCatalogScreen() {
       ) : null}
 
       <SectionTitle title="Servicos cadastrados" description={`${data.services.length} item${data.services.length === 1 ? '' : 's'}`} />
-      {data.services.map((service) => (
-        <AppCard key={service.id}>
-          <View style={styles.itemRow}>
-            <View style={styles.itemInfo}>
-              <AppText variant="subtitle">{service.name}</AppText>
-              <AppText muted>{service.category ?? 'Geral'} - {formatMoney(service.defaultPriceCents)}</AppText>
+      <PaginatedList
+        items={data.services}
+        keyExtractor={(service) => service.id}
+        empty={<AppText muted>Nenhum servico cadastrado.</AppText>}
+        renderItem={(service) => (
+          <AppCard key={service.id}>
+            <View style={styles.itemRow}>
+              <View style={styles.itemInfo}>
+                <AppText variant="subtitle">{service.name}</AppText>
+                <AppText muted>{service.category ?? 'Geral'} - {formatMoney(service.defaultPriceCents)}</AppText>
+              </View>
+              <View style={styles.actions}>
+                <Pressable onPress={() => openEdit(service)} style={[styles.iconButton, { backgroundColor: colors.primarySoft }]}>
+                  <Ionicons name="create-outline" size={20} color={colors.primary} />
+                </Pressable>
+                <Pressable onPress={() => confirmRemove(service)} style={[styles.iconButton, { backgroundColor: colors.dangerSoft }]}>
+                  <Ionicons name="trash-outline" size={20} color={colors.danger} />
+                </Pressable>
+              </View>
             </View>
-            <View style={styles.actions}>
-              <Pressable onPress={() => openEdit(service)} style={[styles.iconButton, { backgroundColor: colors.primarySoft }]}>
-                <Ionicons name="create-outline" size={20} color={colors.primary} />
-              </Pressable>
-              <Pressable onPress={() => confirmRemove(service)} style={[styles.iconButton, { backgroundColor: colors.dangerSoft }]}>
-                <Ionicons name="trash-outline" size={20} color={colors.danger} />
-              </Pressable>
-            </View>
-          </View>
-        </AppCard>
-      ))}
-      {!data.services.length ? <AppText muted>Nenhum servico cadastrado.</AppText> : null}
+          </AppCard>
+        )}
+      />
     </ScreenContainer>
   );
 }

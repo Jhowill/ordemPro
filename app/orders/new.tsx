@@ -7,12 +7,13 @@ import { AppCard } from '@/components/ui/AppCard';
 import { AppHeader } from '@/components/ui/AppHeader';
 import { AppText } from '@/components/ui/AppText';
 import { InputField } from '@/components/ui/InputField';
+import { PaginatedList } from '@/components/ui/PaginatedList';
 import { ScreenContainer } from '@/components/ui/ScreenContainer';
 import { SectionTitle } from '@/components/ui/SectionTitle';
 import { SignaturePad } from '@/components/ui/SignaturePad';
 import { spacing } from '@/constants/theme';
 import { useThemeColors } from '@/hooks/useThemeColors';
-import { pickAndStoreImage } from '@/services/media';
+import { deleteLocalFile, pickAndStoreImage } from '@/services/media';
 import { useAppData } from '@/services/storage';
 import { CatalogPart, CatalogService, OrderItemType } from '@/types';
 import { formatCpfCnpjInput, formatMoney, formatMoneyInput, formatPhoneInput, makeId, moneyFromText } from '@/utils/formatters';
@@ -79,6 +80,12 @@ export default function NewOrderScreen() {
 
   function removeItem(id: string) {
     setItems((current) => current.filter((draft) => draft.id !== id));
+  }
+
+  async function removeDraftPhoto(photoId: string) {
+    const photo = photos.find((item) => item.id === photoId);
+    setPhotos((current) => current.filter((item) => item.id !== photoId));
+    await deleteLocalFile(photo?.localUri);
   }
 
   function updateItem(id: string, input: Partial<Pick<DraftItem, 'quantity' | 'unitPriceCents' | 'discountCents'>>) {
@@ -221,18 +228,23 @@ export default function NewOrderScreen() {
       {step === 0 ? (
         <>
           <SectionTitle title="Cliente" description="Selecione um cliente existente" />
-          {data.customers.map((customer) => (
-            <Pressable key={customer.id} onPress={() => {
-              setCustomerId(customer.id);
-              setEquipmentId(null);
-              setWithoutEquipment(false);
-            }}>
-              <AppCard>
-                <AppText variant="subtitle" color={customerId === customer.id ? colors.primary : undefined}>{customer.name}</AppText>
-                <AppText muted>{customer.phone || customer.whatsapp}</AppText>
-              </AppCard>
-            </Pressable>
-          ))}
+          <PaginatedList
+            items={data.customers}
+            keyExtractor={(customer) => customer.id}
+            empty={<AppText muted>Nenhum cliente cadastrado.</AppText>}
+            renderItem={(customer) => (
+              <Pressable key={customer.id} onPress={() => {
+                setCustomerId(customer.id);
+                setEquipmentId(null);
+                setWithoutEquipment(false);
+              }}>
+                <AppCard>
+                  <AppText variant="subtitle" color={customerId === customer.id ? colors.primary : undefined}>{customer.name}</AppText>
+                  <AppText muted>{customer.phone || customer.whatsapp}</AppText>
+                </AppCard>
+              </Pressable>
+            )}
+          />
           <AppButton title={showNewCustomer ? 'Fechar novo cliente' : 'Adicionar cliente'} variant="secondary" onPress={() => setShowNewCustomer((value) => !value)} />
           {showNewCustomer ? (
             <AppCard>
@@ -275,14 +287,21 @@ export default function NewOrderScreen() {
               <AppButton title="Salvar e selecionar" onPress={createEquipmentInOrder} />
             </AppCard>
           ) : null}
-          {!withoutEquipment ? data.equipments.filter((equipment) => equipment.customerId === customerId).map((equipment) => (
-            <Pressable key={equipment.id} onPress={() => setEquipmentId(equipment.id)}>
-              <AppCard>
-                <AppText variant="subtitle" color={equipmentId === equipment.id ? colors.primary : undefined}>{equipment.type ?? equipment.category} {equipment.brand ?? ''} {equipment.model ?? ''}</AppText>
-                <AppText muted>{equipment.serialNumber ?? 'Sem serie'}</AppText>
-              </AppCard>
-            </Pressable>
-          )) : null}
+          {!withoutEquipment ? (
+            <PaginatedList
+              items={data.equipments.filter((equipment) => equipment.customerId === customerId)}
+              keyExtractor={(equipment) => equipment.id}
+              empty={<AppText muted>Nenhum equipamento cadastrado para este cliente.</AppText>}
+              renderItem={(equipment) => (
+                <Pressable key={equipment.id} onPress={() => setEquipmentId(equipment.id)}>
+                  <AppCard>
+                    <AppText variant="subtitle" color={equipmentId === equipment.id ? colors.primary : undefined}>{equipment.type ?? equipment.category} {equipment.brand ?? ''} {equipment.model ?? ''}</AppText>
+                    <AppText muted>{equipment.serialNumber ?? 'Sem serie'}</AppText>
+                  </AppCard>
+                </Pressable>
+              )}
+            />
+          ) : null}
         </>
       ) : null}
 
@@ -290,14 +309,18 @@ export default function NewOrderScreen() {
         <>
           <SectionTitle title="Problema" description="Descreva o motivo da abertura" />
           <SectionTitle title="Tecnico responsavel" />
-          {data.technicians.map((technician) => (
-            <Pressable key={technician.id} onPress={() => setTechnicianId(technician.id)}>
-              <AppCard>
-                <AppText variant="subtitle" color={technicianId === technician.id ? colors.primary : undefined}>{technician.name}</AppText>
-                <AppText muted>{technician.signatureUri ? 'Assinatura salva para PDF' : 'Sem assinatura cadastrada'}</AppText>
-              </AppCard>
-            </Pressable>
-          ))}
+          <PaginatedList
+            items={data.technicians}
+            keyExtractor={(technician) => technician.id}
+            renderItem={(technician) => (
+              <Pressable key={technician.id} onPress={() => setTechnicianId(technician.id)}>
+                <AppCard>
+                  <AppText variant="subtitle" color={technicianId === technician.id ? colors.primary : undefined}>{technician.name}</AppText>
+                  <AppText muted>{technician.signatureUri ? 'Assinatura salva para PDF' : 'Sem assinatura cadastrada'}</AppText>
+                </AppCard>
+              </Pressable>
+            )}
+          />
           {!data.technicians.length ? <AppButton title="Cadastrar tecnico" variant="secondary" onPress={() => router.push('/settings/technician')} /> : null}
           <InputField label="Defeito relatado ou servico solicitado" value={reportedIssue} onChangeText={setReportedIssue} multiline style={styles.textArea} />
           <InputField label="Diagnostico tecnico" value={diagnosis} onChangeText={setDiagnosis} multiline style={styles.textArea} />
@@ -309,30 +332,40 @@ export default function NewOrderScreen() {
         <>
           <SectionTitle title="Pecas e servicos" description="Adicione itens cobrados ou descritivos" />
           <SectionTitle title="Catalogo de servicos" />
-          {data.services.length ? data.services.map((service) => (
-            <AppCard key={service.id}>
-              <View style={styles.itemRow}>
-                <View style={styles.itemInfo}>
-                  <AppText variant="subtitle">{service.name}</AppText>
-                  <AppText muted>{service.category ?? 'Servico'} - {formatMoney(service.defaultPriceCents)}</AppText>
+          <PaginatedList
+            items={data.services}
+            keyExtractor={(service) => service.id}
+            empty={<AppText muted>Nenhum servico cadastrado no catalogo.</AppText>}
+            renderItem={(service) => (
+              <AppCard key={service.id}>
+                <View style={styles.itemRow}>
+                  <View style={styles.itemInfo}>
+                    <AppText variant="subtitle">{service.name}</AppText>
+                    <AppText muted>{service.category ?? 'Servico'} - {formatMoney(service.defaultPriceCents)}</AppText>
+                  </View>
+                  <AppButton title="Adicionar" variant="secondary" compact onPress={() => addCatalogService(service)} />
                 </View>
-                <AppButton title="Adicionar" variant="secondary" compact onPress={() => addCatalogService(service)} />
-              </View>
-            </AppCard>
-          )) : <AppText muted>Nenhum servico cadastrado no catalogo.</AppText>}
+              </AppCard>
+            )}
+          />
 
           <SectionTitle title="Catalogo de pecas" />
-          {data.parts.length ? data.parts.map((part) => (
-            <AppCard key={part.id}>
-              <View style={styles.itemRow}>
-                <View style={styles.itemInfo}>
-                  <AppText variant="subtitle">{part.name}</AppText>
-                  <AppText muted>{part.category ?? 'Peca'} - {formatMoney(part.salePriceCents)}</AppText>
+          <PaginatedList
+            items={data.parts}
+            keyExtractor={(part) => part.id}
+            empty={<AppText muted>Nenhuma peca cadastrada no catalogo.</AppText>}
+            renderItem={(part) => (
+              <AppCard key={part.id}>
+                <View style={styles.itemRow}>
+                  <View style={styles.itemInfo}>
+                    <AppText variant="subtitle">{part.name}</AppText>
+                    <AppText muted>{part.category ?? 'Peca'} - {formatMoney(part.salePriceCents)}</AppText>
+                  </View>
+                  <AppButton title="Adicionar" variant="secondary" compact onPress={() => addCatalogPart(part)} />
                 </View>
-                <AppButton title="Adicionar" variant="secondary" compact onPress={() => addCatalogPart(part)} />
-              </View>
-            </AppCard>
-          )) : <AppText muted>Nenhuma peca cadastrada no catalogo.</AppText>}
+              </AppCard>
+            )}
+          />
 
           <SectionTitle title="Item manual" />
           <InputField label="Descricao do item" value={item.description} onChangeText={(value) => setItem((current) => ({ ...current, description: value }))} />
@@ -386,7 +419,7 @@ export default function NewOrderScreen() {
                 {photos.map((photo) => (
                   <View key={photo.id} style={styles.photoItem}>
                     <Image source={{ uri: photo.localUri }} style={styles.photo} />
-                    <AppButton title="Retirar" variant="danger" compact onPress={() => setPhotos((current) => current.filter((item) => item.id !== photo.id))} />
+                    <AppButton title="Retirar" variant="danger" compact onPress={() => removeDraftPhoto(photo.id)} />
                   </View>
                 ))}
               </View>

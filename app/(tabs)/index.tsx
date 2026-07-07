@@ -7,6 +7,7 @@ import { AppButton } from '@/components/ui/AppButton';
 import { AppCard } from '@/components/ui/AppCard';
 import { AppHeader } from '@/components/ui/AppHeader';
 import { AppText } from '@/components/ui/AppText';
+import { PaginatedList } from '@/components/ui/PaginatedList';
 import { ScreenContainer } from '@/components/ui/ScreenContainer';
 import { SearchInput } from '@/components/ui/SearchInput';
 import { StatusBadge } from '@/components/ui/StatusBadge';
@@ -64,21 +65,26 @@ export default function HomeScreen() {
       </View>
 
       <AppText variant="subtitle" style={styles.section}>Ultimas OS</AppText>
-      {filtered.map((order) => {
-        const customer = data.customers.find((item) => item.id === order.customerId);
-        return (
-          <AppCard key={order.id} onPress={() => router.push(`/orders/${order.id}`)}>
-            <View style={styles.row}>
-              <View style={{ flex: 1 }}>
-                <AppText variant="subtitle">{order.shortCode}</AppText>
-                <AppText muted>{customer?.name ?? 'Cliente nao encontrado'}</AppText>
-                <AppText variant="small" muted>{formatDate(order.openedAt)} - {formatMoney(order.totalCents)}</AppText>
+      <PaginatedList
+        items={filtered}
+        keyExtractor={(order) => order.id}
+        empty={<AppText muted>Nenhuma OS encontrada.</AppText>}
+        renderItem={(order) => {
+          const customer = data.customers.find((item) => item.id === order.customerId);
+          return (
+            <AppCard key={order.id} onPress={() => router.push(`/orders/${order.id}`)}>
+              <View style={styles.row}>
+                <View style={{ flex: 1 }}>
+                  <AppText variant="subtitle">{order.shortCode}</AppText>
+                  <AppText muted>{customer?.name ?? 'Cliente nao encontrado'}</AppText>
+                  <AppText variant="small" muted>{formatDate(order.openedAt)} - {formatMoney(order.totalCents)}</AppText>
+                </View>
+                <StatusBadge status={order.status} />
               </View>
-              <StatusBadge status={order.status} />
-            </View>
-          </AppCard>
-        );
-      })}
+            </AppCard>
+          );
+        }}
+      />
 
       {data.backup.lastBackupAt ? null : (
         <AppCard onPress={() => router.push('/settings/backup')}>

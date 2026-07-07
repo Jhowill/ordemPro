@@ -8,6 +8,7 @@ import { AppHeader } from '@/components/ui/AppHeader';
 import { AppText } from '@/components/ui/AppText';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { InputField } from '@/components/ui/InputField';
+import { PaginatedList } from '@/components/ui/PaginatedList';
 import { ScreenContainer } from '@/components/ui/ScreenContainer';
 import { SectionTitle } from '@/components/ui/SectionTitle';
 import { SignaturePad } from '@/components/ui/SignaturePad';
@@ -195,12 +196,17 @@ export default function OrderDetailScreen() {
 
       <AppCard>
         <SectionTitle title="Pecas e servicos" />
-        {items.map((item) => (
-          <View key={item.id} style={styles.item}>
-            <AppText style={{ flex: 1 }}>{item.description}</AppText>
-            <AppText>{formatMoney(item.totalCents)}</AppText>
-          </View>
-        ))}
+        <PaginatedList
+          items={items}
+          keyExtractor={(item) => item.id}
+          empty={<AppText muted>Nenhum item adicionado.</AppText>}
+          renderItem={(item) => (
+            <View key={item.id} style={styles.item}>
+              <AppText style={{ flex: 1 }}>{item.description}</AppText>
+              <AppText>{formatMoney(item.totalCents)}</AppText>
+            </View>
+          )}
+        />
       </AppCard>
 
       <AppCard>
@@ -275,32 +281,39 @@ export default function OrderDetailScreen() {
         <View style={styles.item}><AppText variant="subtitle">Total</AppText><AppText variant="subtitle">{formatMoney(activeOrder.totalCents)}</AppText></View>
         <View style={styles.item}><AppText>Pago</AppText><AppText>{formatMoney(activeOrder.paidCents)}</AppText></View>
         <View style={styles.item}><AppText>Pendente</AppText><AppText>{formatMoney(activeOrder.pendingCents)}</AppText></View>
-        {payments.map((payment) => (
-          <View key={payment.id} style={styles.paymentRow}>
-            <View style={styles.itemInfo}>
-              <AppText muted>Pagamento</AppText>
-              <AppText muted>{formatMoney(payment.amountCents)}</AppText>
+        <PaginatedList
+          items={payments}
+          keyExtractor={(payment) => payment.id}
+          renderItem={(payment) => (
+            <View key={payment.id} style={styles.paymentRow}>
+              <View style={styles.itemInfo}>
+                <AppText muted>Pagamento</AppText>
+                <AppText muted>{formatMoney(payment.amountCents)}</AppText>
+              </View>
+              <AppButton title="Remover" variant="danger" compact onPress={() => confirmRemovePayment(payment.id)} />
             </View>
-            <AppButton title="Remover" variant="danger" compact onPress={() => confirmRemovePayment(payment.id)} />
-          </View>
-        ))}
+          )}
+        />
       </AppCard>
 
       <AppCard>
         <SectionTitle title="Historico de status" description="Registro local salvo no SQLite" />
-        {statusHistory.length ? statusHistory.map((history) => (
-          <View key={history.id} style={styles.timelineItem}>
-            <AppText variant="subtitle">{statusLabel(history.toStatus)}</AppText>
-            <AppText muted>
-              {history.fromStatus ? `${statusLabel(history.fromStatus)} -> ` : ''}
-              {formatDate(history.changedAt)}
-            </AppText>
-            {history.notes ? <AppText muted>{history.notes}</AppText> : null}
-            {history.reason ? <AppText muted>Motivo: {history.reason}</AppText> : null}
-          </View>
-        )) : (
-          <AppText muted>Nenhuma alteracao registrada ainda.</AppText>
-        )}
+        <PaginatedList
+          items={statusHistory}
+          keyExtractor={(history) => history.id}
+          empty={<AppText muted>Nenhuma alteracao registrada ainda.</AppText>}
+          renderItem={(history) => (
+            <View key={history.id} style={styles.timelineItem}>
+              <AppText variant="subtitle">{statusLabel(history.toStatus)}</AppText>
+              <AppText muted>
+                {history.fromStatus ? `${statusLabel(history.fromStatus)} -> ` : ''}
+                {formatDate(history.changedAt)}
+              </AppText>
+              {history.notes ? <AppText muted>{history.notes}</AppText> : null}
+              {history.reason ? <AppText muted>Motivo: {history.reason}</AppText> : null}
+            </View>
+          )}
+        />
       </AppCard>
 
     </ScreenContainer>

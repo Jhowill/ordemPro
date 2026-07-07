@@ -7,6 +7,7 @@ import { AppCard } from '@/components/ui/AppCard';
 import { AppHeader } from '@/components/ui/AppHeader';
 import { AppText } from '@/components/ui/AppText';
 import { EmptyState } from '@/components/ui/EmptyState';
+import { PaginatedList } from '@/components/ui/PaginatedList';
 import { ScreenContainer } from '@/components/ui/ScreenContainer';
 import { SearchInput } from '@/components/ui/SearchInput';
 import { StatusBadge } from '@/components/ui/StatusBadge';
@@ -56,10 +57,11 @@ export default function OrdersScreen() {
         ))}
       </View>
       <SearchInput value={query} onChangeText={setQuery} placeholder="Buscar por numero, cliente ou equipamento..." />
-      {orders.length === 0 ? (
-        <EmptyState icon="clipboard-outline" title="Nenhuma OS encontrada" description="Crie uma ordem de servico para iniciar o controle." actionLabel="Nova OS" onAction={() => router.push('/orders/new')} />
-      ) : (
-        orders.map((order) => {
+      <PaginatedList
+        items={orders}
+        keyExtractor={(order) => order.id}
+        empty={<EmptyState icon="clipboard-outline" title="Nenhuma OS encontrada" description="Crie uma ordem de servico para iniciar o controle." actionLabel="Nova OS" onAction={() => router.push('/orders/new')} />}
+        renderItem={(order) => {
           const customer = data.customers.find((item) => item.id === order.customerId);
           const equipment = data.equipments.find((item) => item.id === order.equipmentId);
           return (
@@ -75,8 +77,8 @@ export default function OrdersScreen() {
               </View>
             </AppCard>
           );
-        })
-      )}
+        }}
+      />
     </ScreenContainer>
   );
 }

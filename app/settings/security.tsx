@@ -14,11 +14,12 @@ import { useAppData } from '@/services/storage';
 import { createPinSalt, hashPin, isValidPin, normalizePinInput, verifyPin } from '@/utils/pinSecurity';
 
 export default function SecuritySettingsScreen() {
-  const { data, clearAllData, saveSecuritySettings } = useAppData();
+  const { data, clearAllData, optimizeStorage, saveSecuritySettings } = useAppData();
   const [currentPin, setCurrentPin] = useState('');
   const [newPin, setNewPin] = useState('');
   const [confirmPin, setConfirmPin] = useState('');
   const [savingPin, setSavingPin] = useState(false);
+  const [optimizing, setOptimizing] = useState(false);
   const [clearing, setClearing] = useState(false);
 
   const pinEnabled = data.security.isPinEnabled;
@@ -114,6 +115,21 @@ export default function SecuritySettingsScreen() {
     }
   }
 
+  async function handleOptimizeStorage() {
+    try {
+      setOptimizing(true);
+      const result = await optimizeStorage();
+      Alert.alert(
+        'Armazenamento otimizado',
+        `${result.removedFiles} arquivo(s) local(is) removido(s).\n${result.removedPdfRecords} registro(s) antigo(s) de PDF removido(s).\n${result.scannedFiles} arquivo(s) de midia verificado(s).`,
+      );
+    } catch (error) {
+      Alert.alert('Nao foi possivel otimizar', error instanceof Error ? error.message : 'Tente novamente.');
+    } finally {
+      setOptimizing(false);
+    }
+  }
+
   return (
     <ScreenContainer>
       <AppHeader title="Seguranca" subtitle="PIN local e privacidade" back />
@@ -163,6 +179,11 @@ export default function SecuritySettingsScreen() {
       <AppCard>
         <AppText variant="subtitle">Privacidade</AppText>
         <AppText muted>Os dados ficam no aparelho. Compartilhamento e backup acontecem somente por acao do usuario.</AppText>
+      </AppCard>
+      <AppCard>
+        <AppText variant="subtitle">Otimizar armazenamento</AppText>
+        <AppText muted>Remove midias locais sem uso e mantem no maximo os 5 PDFs mais recentes de cada OS.</AppText>
+        <AppButton title="Otimizar agora" variant="secondary" loading={optimizing} onPress={handleOptimizeStorage} />
       </AppCard>
       <AppCard>
         <AppText variant="subtitle">Limpar dados do app</AppText>

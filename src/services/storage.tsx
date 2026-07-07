@@ -5,8 +5,10 @@ import { normalizeAppData } from '@/data/normalizeAppData';
 import { loadAppData, replaceAppData } from '@/database/appDatabase';
 import { AppData, CatalogPart, CatalogService, CompanyProfile, Customer, DefaultTerms, Equipment, Payment, PdfSettings, PhotoAttachment, SecuritySettings, ServiceOrder, ServiceOrderItem, ServiceOrderPdf, ServiceOrderStatusHistory, SignatureRecord, TechnicianProfile } from '@/types';
 import { calculateOrderTotals } from '@/services/calculations';
-import { clearStoredMedia } from '@/services/media';
+import { cleanupOrphanMedia, clearStoredMedia, deleteLocalFile } from '@/services/media';
 import { makeId, nowIso } from '@/utils/formatters';
+
+const PDF_HISTORY_LIMIT = 5;
 
 type AppDataContextValue = {
   data: AppData;
@@ -51,6 +53,7 @@ type AppDataContextValue = {
   exportBackup: () => Promise<string>;
   importBackup: (json: string) => Promise<void>;
   saveSecuritySettings: (settings: SecuritySettings) => Promise<void>;
+  optimizeStorage: () => Promise<{ removedFiles: number; removedPdfRecords: number; scannedFiles: number }>;
   resetDemo: () => Promise<void>;
   clearAllData: () => Promise<void>;
 };
@@ -489,14 +492,17 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
   const removeOrderPhoto = useCallback<AppDataContextValue['removeOrderPhoto']>(
     async (photoId) => {
       const date = nowIso();
+      let localUri: string | undefined;
       await commit((current) => {
         const photo = current.photos.find((item) => item.id === photoId);
+        localUri = photo?.localUri;
         return {
           ...current,
           photos: current.photos.filter((item) => item.id !== photoId),
           orders: photo?.orderId ? current.orders.map((order) => (order.id === photo.orderId ? { ...order, updatedAt: date, isPdfOutdated: true } : order)) : current.orders,
         };
       });
+      await deleteLocalFile(localUri);
     },
     [commit],
   );
@@ -587,18 +593,37 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
 
   const updatePdfRecord = useCallback<AppDataContextValue['updatePdfRecord']>(
     async (pdf) => {
+      let stalePdfs: ServiceOrderPdf[] = [];
       await commit((current) => ({
         ...current,
-        pdfs: [pdf, ...current.pdfs.filter((item) => item.id !== pdf.id)],
+        pdfs: (() => {
+          const nextPdfs = [pdf, ...current.pdfs.filter((item) => item.id !== pdf.id)];
+          const orderPdfs = nextPdfs
+            .filter((item) => item.orderId === pdf.orderId)
+            .sort((left, right) => Date.parse(right.generatedAt) - Date.parse(left.generatedAt));
+          stalePdfs = orderPdfs.slice(PDF_HISTORY_LIMIT);
+          const staleIds = new Set(stalePdfs.map((item) => item.id));
+          return nextPdfs.filter((item) => !staleIds.has(item.id));
+        })(),
         orders: current.orders.map((order) => (order.id === pdf.orderId ? { ...order, isPdfOutdated: false, updatedAt: nowIso() } : order)),
       }));
+      await Promise.all(stalePdfs.map((item) => deleteLocalFile(item.localUri)));
     },
     [commit],
   );
 
   const exportBackup = useCallback(async () => {
-    const json = JSON.stringify({ app: 'OrdemPro', backupVersion: 1, exportedAt: nowIso(), data }, null, 2);
-    await commit((current) => ({ ...current, backup: { lastBackupAt: nowIso(), lastBackupJson: json } }));
+    const exportedAt = nowIso();
+    const exportData: AppData = {
+      ...data,
+      backup: {
+        lastBackupAt: data.backup.lastBackupAt ?? null,
+        lastBackupJson: null,
+      },
+      pdfs: [],
+    };
+    const json = JSON.stringify({ app: 'OrdemPro', backupVersion: 1, exportedAt, data: exportData }, null, 2);
+    await commit((current) => ({ ...current, backup: { lastBackupAt: exportedAt, lastBackupJson: null } }));
     return json;
   }, [commit, data]);
 
@@ -619,16 +644,64 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
     [commit],
   );
 
+  const optimizeStorage = useCallback<AppDataContextValue['optimizeStorage']>(
+    async () => {
+      let stalePdfs: ServiceOrderPdf[] = [];
+      await commit((current) => {
+        const grouped = new Map<string, ServiceOrderPdf[]>();
+        for (const pdf of current.pdfs) {
+          grouped.set(pdf.orderId, [...(grouped.get(pdf.orderId) ?? []), pdf]);
+        }
+
+        const keepPdfIds = new Set<string>();
+        for (const pdfs of grouped.values()) {
+          const ordered = [...pdfs].sort((left, right) => Date.parse(right.generatedAt) - Date.parse(left.generatedAt));
+          ordered.slice(0, PDF_HISTORY_LIMIT).forEach((pdf) => keepPdfIds.add(pdf.id));
+          stalePdfs = [...stalePdfs, ...ordered.slice(PDF_HISTORY_LIMIT)];
+        }
+
+        if (!stalePdfs.length) return current;
+        return {
+          ...current,
+          pdfs: current.pdfs.filter((pdf) => keepPdfIds.has(pdf.id)),
+        };
+      });
+
+      const current = dataRef.current;
+      const usedMediaUris = [
+        current.company?.logoUri,
+        ...current.photos.map((photo) => photo.localUri),
+        ...current.signatures.map((signature) => signature.localUri),
+        ...current.technicians.map((technician) => technician.signatureUri),
+      ].filter(Boolean) as string[];
+
+      const deletedPdfs = await Promise.all(stalePdfs.map((pdf) => deleteLocalFile(pdf.localUri)));
+      const mediaCleanup = await cleanupOrphanMedia(usedMediaUris);
+
+      return {
+        removedFiles: deletedPdfs.filter(Boolean).length + mediaCleanup.removed,
+        removedPdfRecords: stalePdfs.length,
+        scannedFiles: mediaCleanup.scanned,
+      };
+    },
+    [commit],
+  );
+
   const resetDemo = useCallback(async () => {
+    const currentPdfs = dataRef.current.pdfs;
     dataRef.current = initialData;
     setData(initialData);
     await replaceAppData(initialData);
+    await clearStoredMedia();
+    await Promise.all(currentPdfs.map((pdf) => deleteLocalFile(pdf.localUri)));
   }, []);
 
   const clearAllData = useCallback(async () => {
+    const currentPdfs = dataRef.current.pdfs;
     const emptyData = createEmptyAppData();
     await replaceAppData(emptyData);
     await clearStoredMedia();
+    await Promise.all(currentPdfs.map((pdf) => deleteLocalFile(pdf.localUri)));
     dataRef.current = emptyData;
     setData(emptyData);
   }, []);
@@ -665,10 +738,11 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
       exportBackup,
       importBackup,
       saveSecuritySettings,
+      optimizeStorage,
       resetDemo,
       clearAllData,
     }),
-    [addCatalogPart, addCatalogService, addCustomer, addEquipment, addOrderPhoto, addPayment, addSignature, clearAllData, createOrder, data, exportBackup, importBackup, loadError, loading, removeCatalogPart, removeCatalogService, removeOrderPhoto, removePayment, removeTechnician, replaceOrderItems, resetDemo, saveCatalogPart, saveCatalogService, saveCompany, savePdfSettings, saveSecuritySettings, saveTechnician, saveTerms, updateOrder, updateOrderPhoto, updateOrderStatus, updatePdfRecord],
+    [addCatalogPart, addCatalogService, addCustomer, addEquipment, addOrderPhoto, addPayment, addSignature, clearAllData, createOrder, data, exportBackup, importBackup, loadError, loading, optimizeStorage, removeCatalogPart, removeCatalogService, removeOrderPhoto, removePayment, removeTechnician, replaceOrderItems, resetDemo, saveCatalogPart, saveCatalogService, saveCompany, savePdfSettings, saveSecuritySettings, saveTechnician, saveTerms, updateOrder, updateOrderPhoto, updateOrderStatus, updatePdfRecord],
   );
 
   return <AppDataContext.Provider value={value}>{children}</AppDataContext.Provider>;

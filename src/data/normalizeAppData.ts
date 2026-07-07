@@ -49,7 +49,10 @@ export function normalizeAppData(input?: Partial<AppData> | null, fallback: 'emp
     statusHistory: arrayOrEmpty(source.statusHistory),
     services: arrayOrEmpty(source.services),
     parts: arrayOrEmpty(source.parts),
-    backup: source.backup ?? base.backup,
+    backup: {
+      lastBackupAt: source.backup?.lastBackupAt ?? base.backup.lastBackupAt ?? null,
+      lastBackupJson: null,
+    },
     security: normalizeSecurity(source.security, base.security),
     themeMode,
     lastOrderNumber: Math.max(safeNumber(source.lastOrderNumber), highestOrderNumber),

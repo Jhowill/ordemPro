@@ -99,6 +99,7 @@ async function migrateExistingDatabase(db: SQLiteDatabase) {
   await addColumnIfMissing(db, 'signature_records', 'kind', "TEXT NOT NULL DEFAULT 'customer'");
   await addColumnIfMissing(db, 'service_order_pdfs', 'snapshot_json', 'TEXT');
   await db.execAsync(`
+    UPDATE backup_metadata SET last_backup_json = NULL WHERE last_backup_json IS NOT NULL;
     CREATE INDEX IF NOT EXISTS idx_orders_technician ON service_orders(technician_id);
     CREATE INDEX IF NOT EXISTS idx_signatures_kind ON signature_records(kind);
   `);
@@ -166,7 +167,7 @@ export async function loadAppData(): Promise<AppData> {
     statusHistory: statusHistoryRows.map(mapStatusHistory),
     backup: {
       lastBackupAt: backupRows[0]?.last_backup_at ? String(backupRows[0].last_backup_at) : null,
-      lastBackupJson: backupRows[0]?.last_backup_json ? String(backupRows[0].last_backup_json) : null,
+      lastBackupJson: null,
     },
     security: parseSecuritySettings(securityRow?.value),
     themeMode: (themeRow?.value as AppData['themeMode']) ?? initialData.themeMode,

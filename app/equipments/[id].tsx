@@ -5,6 +5,7 @@ import { AppCard } from '@/components/ui/AppCard';
 import { AppHeader } from '@/components/ui/AppHeader';
 import { AppText } from '@/components/ui/AppText';
 import { EmptyState } from '@/components/ui/EmptyState';
+import { PaginatedList } from '@/components/ui/PaginatedList';
 import { ScreenContainer } from '@/components/ui/ScreenContainer';
 import { StatusBadge } from '@/components/ui/StatusBadge';
 import { useAppData } from '@/services/storage';
@@ -26,13 +27,18 @@ export default function EquipmentDetailScreen() {
         <AppText>Serie: {equipment.serialNumber || '-'}</AppText>
         <AppText muted>{equipment.physicalState || 'Estado fisico nao informado'}</AppText>
       </AppCard>
-      {orders.map((order) => (
-        <AppCard key={order.id} onPress={() => router.push(`/orders/${order.id}`)}>
-          <AppText variant="subtitle">{order.shortCode}</AppText>
-          <AppText muted>{order.reportedIssue}</AppText>
-          <StatusBadge status={order.status} />
-        </AppCard>
-      ))}
+      <PaginatedList
+        items={orders}
+        keyExtractor={(order) => order.id}
+        empty={<AppText muted>Nenhuma OS vinculada a este equipamento.</AppText>}
+        renderItem={(order) => (
+          <AppCard key={order.id} onPress={() => router.push(`/orders/${order.id}`)}>
+            <AppText variant="subtitle">{order.shortCode}</AppText>
+            <AppText muted>{order.reportedIssue}</AppText>
+            <StatusBadge status={order.status} />
+          </AppCard>
+        )}
+      />
     </ScreenContainer>
   );
 }
