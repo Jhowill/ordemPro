@@ -42,6 +42,7 @@ export function createEmptyAppData(): AppData {
     services: [],
     parts: [],
     backup: {},
+    security: { isPinEnabled: false, updatedAt: date },
     themeMode: 'system',
     lastOrderNumber: 0,
   };
@@ -196,6 +197,7 @@ export const initialData: AppData = {
     { id: 'part_2', createdAt, updatedAt: createdAt, name: 'Tela 15.6 Full HD', category: 'Notebook', salePriceCents: 52000, unit: 'unit', status: 'active' },
   ],
   backup: {},
+  security: { isPinEnabled: false, updatedAt: createdAt },
   themeMode: 'system',
   lastOrderNumber: 123,
 };

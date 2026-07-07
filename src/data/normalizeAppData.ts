@@ -1,5 +1,5 @@
 import { createEmptyAppData, initialData } from '@/data/seed';
-import { AppData, ThemeMode } from '@/types';
+import { AppData, SecuritySettings, ThemeMode } from '@/types';
 
 const themeModes: ThemeMode[] = ['system', 'light', 'dark'];
 
@@ -10,6 +10,18 @@ function arrayOrEmpty<T>(value: unknown): T[] {
 function safeNumber(value: unknown, fallback = 0) {
   const number = Number(value);
   return Number.isFinite(number) ? number : fallback;
+}
+
+function normalizeSecurity(value: unknown, fallback: SecuritySettings): SecuritySettings {
+  if (!value || typeof value !== 'object') return fallback;
+  const source = value as Partial<SecuritySettings>;
+  const hasPin = Boolean(source.pinHash && source.pinSalt);
+  return {
+    isPinEnabled: Boolean(source.isPinEnabled && hasPin),
+    pinHash: hasPin ? source.pinHash : undefined,
+    pinSalt: hasPin ? source.pinSalt : undefined,
+    updatedAt: source.updatedAt ?? fallback.updatedAt,
+  };
 }
 
 export function normalizeAppData(input?: Partial<AppData> | null, fallback: 'empty' | 'demo' = 'empty'): AppData {
@@ -38,6 +50,7 @@ export function normalizeAppData(input?: Partial<AppData> | null, fallback: 'emp
     services: arrayOrEmpty(source.services),
     parts: arrayOrEmpty(source.parts),
     backup: source.backup ?? base.backup,
+    security: normalizeSecurity(source.security, base.security),
     themeMode,
     lastOrderNumber: Math.max(safeNumber(source.lastOrderNumber), highestOrderNumber),
   };

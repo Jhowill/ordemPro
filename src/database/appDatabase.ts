@@ -5,7 +5,7 @@ import type { SQLiteDatabase } from 'expo-sqlite';
 import { initialData } from '@/data/seed';
 import { normalizeAppData } from '@/data/normalizeAppData';
 import { createSchemaSql, CURRENT_SCHEMA_VERSION } from '@/database/schema';
-import { AppData, CatalogPart, CatalogService, CompanyProfile, Customer, DefaultTerms, Equipment, Payment, PdfSettings, PhotoAttachment, ServiceOrder, ServiceOrderItem, ServiceOrderPdf, ServiceOrderStatusHistory, SignatureRecord, TechnicianProfile } from '@/types';
+import { AppData, CatalogPart, CatalogService, CompanyProfile, Customer, DefaultTerms, Equipment, Payment, PdfSettings, PhotoAttachment, SecuritySettings, ServiceOrder, ServiceOrderItem, ServiceOrderPdf, ServiceOrderStatusHistory, SignatureRecord, TechnicianProfile } from '@/types';
 import { nowIso } from '@/utils/formatters';
 
 const DATABASE_NAME = 'ordempro.db';
@@ -28,6 +28,22 @@ const toStringArray = (value: unknown): string[] | undefined => {
     return undefined;
   }
 };
+
+function parseSecuritySettings(value?: string | null): SecuritySettings {
+  if (!value) return initialData.security;
+  try {
+    const parsed = JSON.parse(value) as Partial<SecuritySettings>;
+    const hasPin = Boolean(parsed.pinHash && parsed.pinSalt);
+    return {
+      isPinEnabled: Boolean(parsed.isPinEnabled && hasPin),
+      pinHash: hasPin ? parsed.pinHash : undefined,
+      pinSalt: hasPin ? parsed.pinSalt : undefined,
+      updatedAt: parsed.updatedAt ?? initialData.security.updatedAt,
+    };
+  } catch {
+    return initialData.security;
+  }
+}
 
 function rowBase<T extends DbRow>(row: T) {
   return {
@@ -110,7 +126,7 @@ export async function loadAppData(): Promise<AppData> {
   }
 
   const db = await getDatabase();
-  const [companyRows, pdfRows, termRows, customerRows, equipmentRows, technicianRows, serviceRows, partRows, orderRows, itemRows, paymentRows, photoRows, signatureRows, pdfRecordRows, statusHistoryRows, backupRows, lastOrderRow, themeRow] = await Promise.all([
+  const [companyRows, pdfRows, termRows, customerRows, equipmentRows, technicianRows, serviceRows, partRows, orderRows, itemRows, paymentRows, photoRows, signatureRows, pdfRecordRows, statusHistoryRows, backupRows, lastOrderRow, themeRow, securityRow] = await Promise.all([
     db.getAllAsync<DbRow>('SELECT * FROM company_profile WHERE deleted_at IS NULL ORDER BY updated_at DESC LIMIT 1'),
     db.getAllAsync<DbRow>('SELECT * FROM pdf_settings WHERE deleted_at IS NULL LIMIT 1'),
     db.getAllAsync<DbRow>('SELECT * FROM default_terms WHERE deleted_at IS NULL LIMIT 1'),
@@ -129,6 +145,7 @@ export async function loadAppData(): Promise<AppData> {
     db.getAllAsync<DbRow>('SELECT * FROM backup_metadata LIMIT 1'),
     db.getFirstAsync<{ value: string }>("SELECT value FROM app_meta WHERE key = 'last_order_number'"),
     db.getFirstAsync<{ value: string }>("SELECT value FROM app_meta WHERE key = 'theme_mode'"),
+    db.getFirstAsync<{ value: string }>("SELECT value FROM app_meta WHERE key = 'security_settings'"),
   ]);
 
   return {
@@ -151,6 +168,7 @@ export async function loadAppData(): Promise<AppData> {
       lastBackupAt: backupRows[0]?.last_backup_at ? String(backupRows[0].last_backup_at) : null,
       lastBackupJson: backupRows[0]?.last_backup_json ? String(backupRows[0].last_backup_json) : null,
     },
+    security: parseSecuritySettings(securityRow?.value),
     themeMode: (themeRow?.value as AppData['themeMode']) ?? initialData.themeMode,
     lastOrderNumber: Number(lastOrderRow?.value ?? Math.max(0, ...orderRows.map((order) => Number(order.number)))),
   };
@@ -188,6 +206,7 @@ export async function replaceAppData(data: AppData) {
     await setMeta(db, 'schema_version', String(CURRENT_SCHEMA_VERSION));
     await setMeta(db, 'last_order_number', String(normalizedData.lastOrderNumber));
     await setMeta(db, 'theme_mode', normalizedData.themeMode);
+    await setMeta(db, 'security_settings', JSON.stringify(normalizedData.security));
   });
 }
 

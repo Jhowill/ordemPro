@@ -217,6 +217,13 @@ export type BackupMetadata = {
   lastBackupJson?: string | null;
 };
 
+export type SecuritySettings = {
+  isPinEnabled: boolean;
+  pinHash?: string;
+  pinSalt?: string;
+  updatedAt?: ISODateString;
+};
+
 export type AppData = {
   company: CompanyProfile | null;
   pdfSettings: PdfSettings;
@@ -234,6 +241,7 @@ export type AppData = {
   services: CatalogService[];
   parts: CatalogPart[];
   backup: BackupMetadata;
+  security: SecuritySettings;
   themeMode: ThemeMode;
   lastOrderNumber: number;
 };

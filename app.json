@@ -27,7 +27,8 @@
         "expo-image-picker",
         {
           "photosPermission": "Permita selecionar logos, fotos das OS e assinaturas.",
-          "cameraPermission": "Permita tirar fotos de equipamentos, servicos e assinaturas."
+          "cameraPermission": "Permita tirar fotos de equipamentos, servicos e assinaturas.",
+          "microphonePermission": false
         }
       ]
     ]

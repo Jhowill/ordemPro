@@ -3,7 +3,7 @@ import { createContext, ReactNode, useCallback, useContext, useEffect, useMemo, 
 import { createEmptyAppData, initialData } from '@/data/seed';
 import { normalizeAppData } from '@/data/normalizeAppData';
 import { loadAppData, replaceAppData } from '@/database/appDatabase';
-import { AppData, CatalogPart, CatalogService, CompanyProfile, Customer, DefaultTerms, Equipment, Payment, PdfSettings, PhotoAttachment, ServiceOrder, ServiceOrderItem, ServiceOrderPdf, ServiceOrderStatusHistory, SignatureRecord, TechnicianProfile } from '@/types';
+import { AppData, CatalogPart, CatalogService, CompanyProfile, Customer, DefaultTerms, Equipment, Payment, PdfSettings, PhotoAttachment, SecuritySettings, ServiceOrder, ServiceOrderItem, ServiceOrderPdf, ServiceOrderStatusHistory, SignatureRecord, TechnicianProfile } from '@/types';
 import { calculateOrderTotals } from '@/services/calculations';
 import { clearStoredMedia } from '@/services/media';
 import { makeId, nowIso } from '@/utils/formatters';
@@ -50,6 +50,7 @@ type AppDataContextValue = {
   updatePdfRecord: (pdf: ServiceOrderPdf) => Promise<void>;
   exportBackup: () => Promise<string>;
   importBackup: (json: string) => Promise<void>;
+  saveSecuritySettings: (settings: SecuritySettings) => Promise<void>;
   resetDemo: () => Promise<void>;
   clearAllData: () => Promise<void>;
 };
@@ -611,6 +612,13 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
     [commit],
   );
 
+  const saveSecuritySettings = useCallback<AppDataContextValue['saveSecuritySettings']>(
+    async (settings) => {
+      await commit((current) => ({ ...current, security: { ...settings, updatedAt: nowIso() } }));
+    },
+    [commit],
+  );
+
   const resetDemo = useCallback(async () => {
     dataRef.current = initialData;
     setData(initialData);
@@ -656,10 +664,11 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
       updatePdfRecord,
       exportBackup,
       importBackup,
+      saveSecuritySettings,
       resetDemo,
       clearAllData,
     }),
-    [addCatalogPart, addCatalogService, addCustomer, addEquipment, addOrderPhoto, addPayment, addSignature, clearAllData, createOrder, data, exportBackup, importBackup, loadError, loading, removeCatalogPart, removeCatalogService, removeOrderPhoto, removePayment, removeTechnician, replaceOrderItems, resetDemo, saveCatalogPart, saveCatalogService, saveCompany, savePdfSettings, saveTechnician, saveTerms, updateOrder, updateOrderPhoto, updateOrderStatus, updatePdfRecord],
+    [addCatalogPart, addCatalogService, addCustomer, addEquipment, addOrderPhoto, addPayment, addSignature, clearAllData, createOrder, data, exportBackup, importBackup, loadError, loading, removeCatalogPart, removeCatalogService, removeOrderPhoto, removePayment, removeTechnician, replaceOrderItems, resetDemo, saveCatalogPart, saveCatalogService, saveCompany, savePdfSettings, saveSecuritySettings, saveTechnician, saveTerms, updateOrder, updateOrderPhoto, updateOrderStatus, updatePdfRecord],
   );
 
   return <AppDataContext.Provider value={value}>{children}</AppDataContext.Provider>;

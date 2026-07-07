@@ -1,5 +1,5 @@
 import { Stack, router, useSegments } from 'expo-router';
-import { useEffect } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, View } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
@@ -7,6 +7,7 @@ import { StatusBar } from 'expo-status-bar';
 
 import { AppButton } from '@/components/ui/AppButton';
 import { AppText } from '@/components/ui/AppText';
+import { AppLock } from '@/components/security/AppLock';
 import { AppDataProvider, useAppData } from '@/services/storage';
 import { useThemeColors } from '@/hooks/useThemeColors';
 
@@ -14,9 +15,15 @@ function RootNavigator() {
   const { data, loading, loadError } = useAppData();
   const segments = useSegments();
   const colors = useThemeColors();
+  const didEvaluatePin = useRef(false);
+  const [pinUnlocked, setPinUnlocked] = useState(false);
 
   useEffect(() => {
     if (loading) return;
+    if (!didEvaluatePin.current) {
+      setPinUnlocked(!data.security.isPinEnabled);
+      didEvaluatePin.current = true;
+    }
     const inOnboarding = segments[0] === 'onboarding';
     if (!data.company?.isOnboardingCompleted && !inOnboarding) {
       router.replace('/onboarding/company');
@@ -24,7 +31,7 @@ function RootNavigator() {
     if (data.company?.isOnboardingCompleted && inOnboarding) {
       router.replace('/(tabs)');
     }
-  }, [data.company?.isOnboardingCompleted, loading, segments]);
+  }, [data.company?.isOnboardingCompleted, data.security.isPinEnabled, loading, segments]);
 
   if (loading) {
     return (
@@ -44,6 +51,10 @@ function RootNavigator() {
         <AppButton title="Tentar novamente" onPress={() => router.replace('/')} />
       </View>
     );
+  }
+
+  if (data.company?.isOnboardingCompleted && data.security.isPinEnabled && !pinUnlocked) {
+    return <AppLock security={data.security} onUnlock={() => setPinUnlocked(true)} />;
   }
 
   return (
