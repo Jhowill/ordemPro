@@ -10,10 +10,34 @@ import { AppHeader } from '@/components/ui/AppHeader';
 import { AppText } from '@/components/ui/AppText';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { ScreenContainer } from '@/components/ui/ScreenContainer';
+import { imageUriToDataUri } from '@/services/media';
 import { buildOrderPdfHtml, PDF_PAGE_MARGINS } from '@/services/pdfTemplate';
 import { useAppData } from '@/services/storage';
-import { ServiceOrderPdf } from '@/types';
+import { AppData, ServiceOrderPdf } from '@/types';
 import { formatDate, formatMoney, makeId, nowIso } from '@/utils/formatters';
+
+async function preparePdfData(data: AppData, orderId: string): Promise<AppData> {
+  const [logoUri, photos, technicians, signatures] = await Promise.all([
+    imageUriToDataUri(data.company?.logoUri),
+    Promise.all(data.photos.map(async (photo) => (
+      photo.orderId === orderId ? { ...photo, localUri: await imageUriToDataUri(photo.localUri) ?? photo.localUri } : photo
+    ))),
+    Promise.all(data.technicians.map(async (technician) => (
+      technician.signatureUri ? { ...technician, signatureUri: await imageUriToDataUri(technician.signatureUri) ?? technician.signatureUri } : technician
+    ))),
+    Promise.all(data.signatures.map(async (signature) => (
+      signature.orderId === orderId ? { ...signature, localUri: await imageUriToDataUri(signature.localUri) ?? signature.localUri } : signature
+    ))),
+  ]);
+
+  return {
+    ...data,
+    company: data.company ? { ...data.company, logoUri } : data.company,
+    photos,
+    technicians,
+    signatures,
+  };
+}
 
 export default function OrderPdfScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -34,7 +58,8 @@ export default function OrderPdfScreen() {
   async function generate() {
     try {
       setLoading(true);
-      const html = buildOrderPdfHtml(data, activeOrder, { useBodyMargins: Platform.OS !== 'ios' });
+      const pdfData = await preparePdfData(data, activeOrder.id);
+      const html = buildOrderPdfHtml(pdfData, activeOrder, { useBodyMargins: Platform.OS !== 'ios' });
       const result = await Print.printToFileAsync({
         html,
         base64: false,

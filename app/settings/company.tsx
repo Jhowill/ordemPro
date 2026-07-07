@@ -11,16 +11,17 @@ import { ScreenContainer } from '@/components/ui/ScreenContainer';
 import { spacing } from '@/constants/theme';
 import { pickAndStoreImage } from '@/services/media';
 import { useAppData } from '@/services/storage';
+import { formatCpfCnpjInput, formatPhoneInput } from '@/utils/formatters';
 
 export default function CompanySettingsScreen() {
   const { data, saveCompany } = useAppData();
   const [form, setForm] = useState({
     name: data.company?.name ?? '',
     tradeName: data.company?.tradeName ?? '',
-    document: data.company?.document ?? '',
+    document: formatCpfCnpjInput(data.company?.document ?? ''),
     responsibleName: data.company?.responsibleName ?? '',
-    phone: data.company?.phone ?? '',
-    whatsapp: data.company?.whatsapp ?? '',
+    phone: formatPhoneInput(data.company?.phone ?? ''),
+    whatsapp: formatPhoneInput(data.company?.whatsapp ?? ''),
     email: data.company?.email ?? '',
     addressLine: data.company?.addressLine ?? '',
     city: data.company?.city ?? '',
@@ -57,10 +58,10 @@ export default function CompanySettingsScreen() {
       </AppCard>
       <InputField label="Nome" value={form.name} onChangeText={(value) => update('name', value)} />
       <InputField label="Nome fantasia" value={form.tradeName} onChangeText={(value) => update('tradeName', value)} />
-      <InputField label="CPF/CNPJ" value={form.document} onChangeText={(value) => update('document', value)} />
+      <InputField label="CPF/CNPJ" value={form.document} onChangeText={(value) => update('document', formatCpfCnpjInput(value))} keyboardType="numeric" />
       <InputField label="Responsavel" value={form.responsibleName} onChangeText={(value) => update('responsibleName', value)} />
-      <InputField label="Telefone" value={form.phone} onChangeText={(value) => update('phone', value)} />
-      <InputField label="WhatsApp" value={form.whatsapp} onChangeText={(value) => update('whatsapp', value)} />
+      <InputField label="Telefone" value={form.phone} onChangeText={(value) => update('phone', formatPhoneInput(value))} keyboardType="phone-pad" />
+      <InputField label="WhatsApp" value={form.whatsapp} onChangeText={(value) => update('whatsapp', formatPhoneInput(value))} keyboardType="phone-pad" />
       <InputField label="E-mail" value={form.email} onChangeText={(value) => update('email', value)} />
       <InputField label="Endereco" value={form.addressLine} onChangeText={(value) => update('addressLine', value)} />
       <InputField label="Cidade" value={form.city} onChangeText={(value) => update('city', value)} />

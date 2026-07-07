@@ -7,6 +7,7 @@ import { AppHeader } from '@/components/ui/AppHeader';
 import { InputField } from '@/components/ui/InputField';
 import { ScreenContainer } from '@/components/ui/ScreenContainer';
 import { useAppData } from '@/services/storage';
+import { formatCpfCnpjInput, formatPhoneInput } from '@/utils/formatters';
 
 export default function NewCustomerScreen() {
   const { addCustomer } = useAppData();
@@ -26,13 +27,12 @@ export default function NewCustomerScreen() {
     <ScreenContainer footer={<AppButton title="Salvar cliente" onPress={save} />}>
       <AppHeader title="Novo cliente" subtitle="Poucos campos obrigatorios" back />
       <InputField label="Nome" value={form.name} onChangeText={(value) => update('name', value)} />
-      <InputField label="Telefone" value={form.phone} onChangeText={(value) => update('phone', value)} keyboardType="phone-pad" />
-      <InputField label="WhatsApp" value={form.whatsapp} onChangeText={(value) => update('whatsapp', value)} keyboardType="phone-pad" />
-      <InputField label="CPF/CNPJ" value={form.document} onChangeText={(value) => update('document', value)} />
+      <InputField label="Telefone" value={form.phone} onChangeText={(value) => update('phone', formatPhoneInput(value))} keyboardType="phone-pad" />
+      <InputField label="WhatsApp" value={form.whatsapp} onChangeText={(value) => update('whatsapp', formatPhoneInput(value))} keyboardType="phone-pad" />
+      <InputField label="CPF/CNPJ" value={form.document} onChangeText={(value) => update('document', formatCpfCnpjInput(value))} keyboardType="numeric" />
       <InputField label="E-mail" value={form.email} onChangeText={(value) => update('email', value)} keyboardType="email-address" />
       <InputField label="Cidade" value={form.city} onChangeText={(value) => update('city', value)} />
       <InputField label="Estado" value={form.state} onChangeText={(value) => update('state', value)} />
     </ScreenContainer>
   );
 }
-

@@ -15,6 +15,7 @@ import { useThemeColors } from '@/hooks/useThemeColors';
 import { pickAndStoreImage } from '@/services/media';
 import { useAppData } from '@/services/storage';
 import { TechnicianProfile } from '@/types';
+import { formatCpfCnpjInput, formatPhoneInput } from '@/utils/formatters';
 
 export default function TechnicianSettingsScreen() {
   const colors = useThemeColors();
@@ -36,7 +37,7 @@ export default function TechnicianSettingsScreen() {
     setName(data.company?.responsibleName ?? '');
     setRole('Tecnico responsavel');
     setDocument('');
-    setPhone(data.company?.phone ?? '');
+    setPhone(formatPhoneInput(data.company?.phone ?? ''));
     setEmail(data.company?.email ?? '');
     setSignatureUri('');
     setShowSignaturePad(false);
@@ -48,8 +49,8 @@ export default function TechnicianSettingsScreen() {
     setEditing(technician);
     setName(technician.name);
     setRole(technician.role ?? 'Tecnico responsavel');
-    setDocument(technician.document ?? '');
-    setPhone(technician.phone ?? '');
+    setDocument(formatCpfCnpjInput(technician.document ?? ''));
+    setPhone(formatPhoneInput(technician.phone ?? ''));
     setEmail(technician.email ?? '');
     setSignatureUri(technician.signatureUri ?? '');
     setShowSignaturePad(false);
@@ -147,8 +148,8 @@ export default function TechnicianSettingsScreen() {
             <SectionTitle title={editing ? 'Dados do tecnico' : 'Novo tecnico'} />
             <InputField label="Nome" value={name} onChangeText={setName} />
             <InputField label="Funcao" value={role} onChangeText={setRole} />
-            <InputField label="Documento" value={document} onChangeText={setDocument} />
-            <InputField label="Telefone" value={phone} onChangeText={setPhone} keyboardType="phone-pad" />
+            <InputField label="Documento" value={document} onChangeText={(value) => setDocument(formatCpfCnpjInput(value))} keyboardType="numeric" />
+            <InputField label="Telefone" value={phone} onChangeText={(value) => setPhone(formatPhoneInput(value))} keyboardType="phone-pad" />
             <InputField label="E-mail" value={email} onChangeText={setEmail} keyboardType="email-address" autoCapitalize="none" />
             <AppButton title="Cancelar" variant="secondary" compact onPress={closeForm} />
           </AppCard>

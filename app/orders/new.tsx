@@ -15,7 +15,7 @@ import { useThemeColors } from '@/hooks/useThemeColors';
 import { pickAndStoreImage } from '@/services/media';
 import { useAppData } from '@/services/storage';
 import { CatalogPart, CatalogService, OrderItemType } from '@/types';
-import { formatMoney, formatMoneyInput, makeId, moneyFromText } from '@/utils/formatters';
+import { formatCpfCnpjInput, formatMoney, formatMoneyInput, formatPhoneInput, makeId, moneyFromText } from '@/utils/formatters';
 
 type DraftItem = { id: string; type: OrderItemType; description: string; quantity: number; unitPriceCents: number; discountCents: number };
 type DraftPhoto = { id: string; localUri: string; caption: string; includeInPdf: boolean };
@@ -224,9 +224,9 @@ export default function NewOrderScreen() {
             <AppCard>
               <SectionTitle title="Novo cliente" description="Sera selecionado para esta OS" />
               <InputField label="Nome" value={customerForm.name} onChangeText={(value) => setCustomerForm((current) => ({ ...current, name: value }))} />
-              <InputField label="Telefone" value={customerForm.phone} onChangeText={(value) => setCustomerForm((current) => ({ ...current, phone: value }))} keyboardType="phone-pad" />
-              <InputField label="WhatsApp" value={customerForm.whatsapp} onChangeText={(value) => setCustomerForm((current) => ({ ...current, whatsapp: value }))} keyboardType="phone-pad" />
-              <InputField label="Documento" value={customerForm.document} onChangeText={(value) => setCustomerForm((current) => ({ ...current, document: value }))} />
+              <InputField label="Telefone" value={customerForm.phone} onChangeText={(value) => setCustomerForm((current) => ({ ...current, phone: formatPhoneInput(value) }))} keyboardType="phone-pad" />
+              <InputField label="WhatsApp" value={customerForm.whatsapp} onChangeText={(value) => setCustomerForm((current) => ({ ...current, whatsapp: formatPhoneInput(value) }))} keyboardType="phone-pad" />
+              <InputField label="Documento" value={customerForm.document} onChangeText={(value) => setCustomerForm((current) => ({ ...current, document: formatCpfCnpjInput(value) }))} keyboardType="numeric" />
               <InputField label="E-mail" value={customerForm.email} onChangeText={(value) => setCustomerForm((current) => ({ ...current, email: value }))} keyboardType="email-address" autoCapitalize="none" />
               <View style={styles.footer}>
                 <InputField label="Cidade" value={customerForm.city} onChangeText={(value) => setCustomerForm((current) => ({ ...current, city: value }))} style={styles.compactInput} />

@@ -13,6 +13,7 @@ import { spacing } from '@/constants/theme';
 import { useThemeColors } from '@/hooks/useThemeColors';
 import { pickAndStoreImage } from '@/services/media';
 import { useAppData } from '@/services/storage';
+import { formatCpfCnpjInput, formatPhoneInput } from '@/utils/formatters';
 
 export default function CompanyOnboardingScreen() {
   const { data, saveCompany, saveTerms } = useAppData();
@@ -20,10 +21,10 @@ export default function CompanyOnboardingScreen() {
   const [form, setForm] = useState({
     name: data.company?.name ?? 'Tech Solutions Assistencia',
     tradeName: data.company?.tradeName ?? 'Tech Solutions',
-    document: data.company?.document ?? '',
+    document: formatCpfCnpjInput(data.company?.document ?? ''),
     responsibleName: data.company?.responsibleName ?? '',
-    phone: data.company?.phone ?? '',
-    whatsapp: data.company?.whatsapp ?? '',
+    phone: formatPhoneInput(data.company?.phone ?? ''),
+    whatsapp: formatPhoneInput(data.company?.whatsapp ?? ''),
     email: data.company?.email ?? '',
     addressLine: data.company?.addressLine ?? '',
     city: data.company?.city ?? '',
@@ -99,10 +100,10 @@ export default function CompanyOnboardingScreen() {
           <AppHeader title="Dados da empresa" subtitle="Usados no cabecalho do PDF" />
           <InputField label="Nome da empresa" value={form.name} onChangeText={(value) => update('name', value)} />
           <InputField label="Nome fantasia" value={form.tradeName} onChangeText={(value) => update('tradeName', value)} />
-          <InputField label="CPF/CNPJ" value={form.document} onChangeText={(value) => update('document', value)} />
+          <InputField label="CPF/CNPJ" value={form.document} onChangeText={(value) => update('document', formatCpfCnpjInput(value))} keyboardType="numeric" />
           <InputField label="Responsavel" value={form.responsibleName} onChangeText={(value) => update('responsibleName', value)} />
-          <InputField label="Telefone" value={form.phone} onChangeText={(value) => update('phone', value)} keyboardType="phone-pad" />
-          <InputField label="WhatsApp" value={form.whatsapp} onChangeText={(value) => update('whatsapp', value)} keyboardType="phone-pad" />
+          <InputField label="Telefone" value={form.phone} onChangeText={(value) => update('phone', formatPhoneInput(value))} keyboardType="phone-pad" />
+          <InputField label="WhatsApp" value={form.whatsapp} onChangeText={(value) => update('whatsapp', formatPhoneInput(value))} keyboardType="phone-pad" />
           <InputField label="E-mail" value={form.email} onChangeText={(value) => update('email', value)} keyboardType="email-address" />
         </>
       ) : null}

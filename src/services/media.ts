@@ -63,3 +63,17 @@ export async function clearStoredMedia() {
     console.warn('Nao foi possivel limpar midias locais do OrdemPro:', error);
   }
 }
+
+export async function imageUriToDataUri(uri?: string | null) {
+  if (!uri || uri.startsWith('data:image')) return uri ?? undefined;
+  if (Platform.OS === 'web') return uri;
+  try {
+    const base64 = await FileSystem.readAsStringAsync(uri, { encoding: FileSystem.EncodingType.Base64 });
+    const lowerUri = uri.toLowerCase();
+    const mime = lowerUri.endsWith('.png') ? 'image/png' : lowerUri.endsWith('.webp') ? 'image/webp' : 'image/jpeg';
+    return `data:${mime};base64,${base64}`;
+  } catch (error) {
+    console.warn('Nao foi possivel preparar imagem para PDF:', error);
+    return uri;
+  }
+}
