@@ -47,6 +47,7 @@ export function buildOrderPdfHtml(data: AppData, order: ServiceOrder) {
       <meta charset="utf-8" />
       <style>
         * { box-sizing: border-box; }
+        @page { margin: 24px; }
         body { font-family: Arial, sans-serif; color: #0f172a; margin: 28px; font-size: 11px; }
         .header { display: grid; grid-template-columns: 1fr 190px; gap: 18px; border-bottom: 2px solid ${primary}; padding-bottom: 14px; }
         .brand { display: flex; gap: 12px; align-items: center; }
@@ -57,14 +58,21 @@ export function buildOrderPdfHtml(data: AppData, order: ServiceOrder) {
         .order-box { text-align: right; font-weight: 700; font-size: 16px; color: #0f172a; }
         .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; }
         .two { display: grid; grid-template-columns: 1fr 1fr; gap: 8px 18px; }
+        .section { page-break-inside: avoid; break-inside: avoid; }
+        .flow-section { page-break-inside: auto; break-inside: auto; }
+        .final-section { margin-top: 14px; page-break-inside: avoid; break-inside: avoid; }
         .label { color: #334155; font-weight: 700; }
         table { width: 100%; border-collapse: collapse; margin-top: 6px; }
+        tr { page-break-inside: avoid; break-inside: avoid; }
+        thead { display: table-header-group; }
         th { background: #eef4ff; color: #183b66; text-align: left; }
         td, th { border: 1px solid #cbd5e1; padding: 7px; }
         .right { text-align: right; }
         .center { text-align: center; }
         .summary { width: 260px; margin-left: auto; }
         .terms { font-size: 10px; line-height: 1.45; }
+        .terms p { page-break-inside: avoid; break-inside: avoid; margin-bottom: 5px; }
+        .signature-section { page-break-inside: avoid; break-inside: avoid; margin-top: 14px; }
         .signatures { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-top: 12px; }
         .signature { border: 1px solid #cbd5e1; border-radius: 8px; height: 118px; padding: 10px 12px 8px; text-align: center; display: flex; flex-direction: column; justify-content: flex-end; break-inside: avoid; }
         .signature-image-wrap { height: 62px; display: flex; align-items: center; justify-content: center; margin-bottom: 5px; }
@@ -73,10 +81,11 @@ export function buildOrderPdfHtml(data: AppData, order: ServiceOrder) {
         .footer { border-top: 1px solid #cbd5e1; margin-top: 16px; padding-top: 10px; text-align: center; color: #475569; font-size: 10px; }
         .photo-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
         .photo { width: 100%; height: 92px; object-fit: cover; border: 1px solid #cbd5e1; border-radius: 6px; }
+        .photo, .photo-grid, .summary, .footer { page-break-inside: avoid; break-inside: avoid; }
       </style>
     </head>
     <body>
-      <section class="header">
+      <section class="header section">
         <div class="brand">
           ${
             company?.logoUri
@@ -97,7 +106,7 @@ export function buildOrderPdfHtml(data: AppData, order: ServiceOrder) {
         </div>
       </section>
 
-      <section class="grid">
+      <section class="grid section">
         <div>
           <h2>DADOS DO CLIENTE</h2>
           <p><span class="label">Nome:</span> ${escapeHtml(customer?.name ?? '-')}</p>
@@ -115,41 +124,51 @@ export function buildOrderPdfHtml(data: AppData, order: ServiceOrder) {
         </div>
       </section>
 
-      <h2>DEFEITO RELATADO</h2>
-      <p>${escapeHtml(order.reportedIssue)}</p>
+      <section class="section">
+        <h2>DEFEITO RELATADO</h2>
+        <p>${escapeHtml(order.reportedIssue)}</p>
+      </section>
 
-      <h2>DIAGNOSTICO</h2>
-      <p>${escapeHtml(order.diagnosis ?? '-')}</p>
+      <section class="section">
+        <h2>DIAGNOSTICO</h2>
+        <p>${escapeHtml(order.diagnosis ?? '-')}</p>
+      </section>
 
-      <h2>SERVICO EXECUTADO</h2>
-      <p>${escapeHtml(order.performedService ?? '-')}</p>
+      <section class="section">
+        <h2>SERVICO EXECUTADO</h2>
+        <p>${escapeHtml(order.performedService ?? '-')}</p>
+      </section>
 
-      <h2>SERVICOS</h2>
-      <table><thead><tr><th>Descricao</th><th>Qtd</th><th>Valor Unit.</th><th>Total</th></tr></thead><tbody>${rows(services) || '<tr><td colspan="4">Nenhum servico informado.</td></tr>'}</tbody></table>
+      <section class="flow-section">
+        <h2>SERVICOS</h2>
+        <table><thead><tr><th>Descricao</th><th>Qtd</th><th>Valor Unit.</th><th>Total</th></tr></thead><tbody>${rows(services) || '<tr><td colspan="4">Nenhum servico informado.</td></tr>'}</tbody></table>
+      </section>
 
-      <h2>PECAS</h2>
-      <table><thead><tr><th>Descricao</th><th>Qtd</th><th>Valor Unit.</th><th>Total</th></tr></thead><tbody>${rows(parts) || '<tr><td colspan="4">Nenhuma peca informada.</td></tr>'}</tbody></table>
+      <section class="flow-section">
+        <h2>PECAS</h2>
+        <table><thead><tr><th>Descricao</th><th>Qtd</th><th>Valor Unit.</th><th>Total</th></tr></thead><tbody>${rows(parts) || '<tr><td colspan="4">Nenhuma peca informada.</td></tr>'}</tbody></table>
+      </section>
 
       ${
         data.pdfSettings.showPhotos && photos.length
-          ? `<h2>FOTOS DO SERVICO</h2><div class="photo-grid">${photos.map((photo) => `<img class="photo" src="${escapeHtml(photo.localUri)}" />`).join('')}</div>`
+          ? `<section class="final-section"><h2>FOTOS DO SERVICO</h2><div class="photo-grid">${photos.map((photo) => `<img class="photo" src="${escapeHtml(photo.localUri)}" />`).join('')}</div></section>`
           : ''
       }
 
       ${
         data.pdfSettings.showValues
-          ? `<h2>VALORES</h2>
+          ? `<section class="final-section"><h2>VALORES</h2>
             <table class="summary">
               <tr><td>Subtotal servicos</td><td class="right">${formatMoney(order.laborTotalCents)}</td></tr>
               <tr><td>Subtotal pecas</td><td class="right">${formatMoney(order.partsTotalCents)}</td></tr>
               <tr><td><strong>Total</strong></td><td class="right"><strong>${formatMoney(order.totalCents)}</strong></td></tr>
               <tr><td>Pago</td><td class="right">${formatMoney(order.paidCents)}</td></tr>
               <tr><td>Pendente</td><td class="right">${formatMoney(order.pendingCents)}</td></tr>
-            </table>`
+            </table></section>`
           : ''
       }
 
-      <section class="grid">
+      <section class="final-section">
         <div>
           <h2>TERMOS E CONDICOES</h2>
           <div class="terms">
@@ -158,9 +177,10 @@ export function buildOrderPdfHtml(data: AppData, order: ServiceOrder) {
             <p>${escapeHtml(data.terms.dataResponsibilityText)}</p>
           </div>
         </div>
+      </section>
         ${
           data.pdfSettings.showSignatures
-            ? `<div>
+            ? `<section class="signature-section">
               <h2>ASSINATURAS</h2>
               <div class="signatures">
                 <div class="signature">
@@ -172,11 +192,10 @@ export function buildOrderPdfHtml(data: AppData, order: ServiceOrder) {
                   <div class="signature-line">${escapeHtml(technicianName)}<br />Tecnico/Responsavel</div>
                 </div>
               </div>
-            </div>
+            </section>
             `
             : ''
         }
-      </section>
 
       <div class="footer">
         ${escapeHtml(data.pdfSettings.footerText ?? 'Documento gerado pelo OrdemPro.')} - ${escapeHtml(formatDate(order.openedAt))}
