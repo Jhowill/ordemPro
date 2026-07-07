@@ -40,7 +40,7 @@ type AppDataContextValue = {
   }) => Promise<ServiceOrder>;
   updateOrder: (id: string, input: Partial<Pick<ServiceOrder, 'technicianId' | 'expectedCompletionAt' | 'priority' | 'reportedIssue' | 'diagnosis' | 'performedService' | 'warrantyDays' | 'isApprovedByCustomer'>>) => Promise<void>;
   replaceOrderItems: (orderId: string, items: Pick<ServiceOrderItem, 'type' | 'description' | 'quantity' | 'unitPriceCents' | 'discountCents'>[]) => Promise<void>;
-  updateOrderStatus: (id: string, status: ServiceOrder['status']) => Promise<void>;
+  updateOrderStatus: (id: string, status: ServiceOrder['status'], input?: { reason?: string; notes?: string }) => Promise<void>;
   addOrderPhoto: (orderId: string, input: Pick<PhotoAttachment, 'localUri' | 'caption' | 'includeInPdf'>) => Promise<void>;
   updateOrderPhoto: (photoId: string, input: Partial<Pick<PhotoAttachment, 'caption' | 'includeInPdf'>>) => Promise<void>;
   removeOrderPhoto: (photoId: string) => Promise<void>;
@@ -421,21 +421,23 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
   );
 
   const updateOrderStatus = useCallback<AppDataContextValue['updateOrderStatus']>(
-    async (id, status) => {
+    async (id, status, input) => {
+      const date = nowIso();
       await commit((current) => ({
         ...current,
-        orders: current.orders.map((order) => (order.id === id ? { ...order, status, updatedAt: nowIso(), isPdfOutdated: true } : order)),
+        orders: current.orders.map((order) => (order.id === id ? { ...order, status, updatedAt: date, isPdfOutdated: true } : order)),
         statusHistory: [
           ...current.orders
             .filter((order) => order.id === id)
             .map<ServiceOrderStatusHistory>((order) => {
-              const date = nowIso();
               return {
                 id: makeId('status_history'),
                 orderId: order.id,
                 fromStatus: order.status,
                 toStatus: status,
                 changedAt: date,
+                reason: input?.reason?.trim() || undefined,
+                notes: input?.notes?.trim() || undefined,
                 createdAt: date,
                 updatedAt: date,
               };

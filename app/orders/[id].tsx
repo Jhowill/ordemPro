@@ -7,6 +7,7 @@ import { AppCard } from '@/components/ui/AppCard';
 import { AppHeader } from '@/components/ui/AppHeader';
 import { AppText } from '@/components/ui/AppText';
 import { EmptyState } from '@/components/ui/EmptyState';
+import { InputField } from '@/components/ui/InputField';
 import { ScreenContainer } from '@/components/ui/ScreenContainer';
 import { SectionTitle } from '@/components/ui/SectionTitle';
 import { SignaturePad } from '@/components/ui/SignaturePad';
@@ -17,13 +18,16 @@ import { useAppData } from '@/services/storage';
 import { ServiceOrderStatus } from '@/types';
 import { formatDate, formatMoney, statusLabel } from '@/utils/formatters';
 
-const nextStatuses: ServiceOrderStatus[] = ['diagnosis', 'waiting_approval', 'approved', 'in_progress', 'waiting_part', 'completed', 'delivered'];
+const statusOptions: ServiceOrderStatus[] = ['open', 'diagnosis', 'waiting_approval', 'approved', 'in_progress', 'waiting_part', 'completed', 'delivered', 'cancelled'];
 
 export default function OrderDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const { data, updateOrderStatus, addOrderPhoto, updateOrderPhoto, removeOrderPhoto, addSignature, removePayment } = useAppData();
   const [showCustomerSignaturePad, setShowCustomerSignaturePad] = useState(false);
   const [isSigning, setIsSigning] = useState(false);
+  const [selectedStatus, setSelectedStatus] = useState<ServiceOrderStatus | null>(null);
+  const [statusNotes, setStatusNotes] = useState('');
+  const [savingStatus, setSavingStatus] = useState(false);
   const order = data.orders.find((item) => item.id === id);
   if (!order) return <ScreenContainer><EmptyState icon="alert-circle-outline" title="OS nao encontrada" description="A ordem pode ter sido removida." /></ScreenContainer>;
   const activeOrder = order;
@@ -36,18 +40,28 @@ export default function OrderDetailScreen() {
   const customerSignature = data.signatures.find((item) => item.orderId === activeOrder.id && item.kind === 'customer');
   const statusHistory = data.statusHistory.filter((item) => item.orderId === activeOrder.id);
 
-  function advanceStatus() {
-    const currentIndex = nextStatuses.indexOf(activeOrder.status);
-    const next = currentIndex >= 0 ? nextStatuses[currentIndex + 1] : 'diagnosis';
-    if (!next) return;
-    updateOrderStatus(activeOrder.id, next);
-  }
+  const targetStatus = selectedStatus ?? activeOrder.status;
 
-  function cancel() {
-    Alert.alert('Cancelar OS', 'Deseja marcar esta OS como cancelada?', [
-      { text: 'Voltar', style: 'cancel' },
-      { text: 'Cancelar OS', style: 'destructive', onPress: () => updateOrderStatus(activeOrder.id, 'cancelled') },
-    ]);
+  async function saveStatusChange() {
+    if (targetStatus === activeOrder.status) {
+      Alert.alert('Selecione outro status', 'Escolha um status diferente do atual para salvar a mudanca.');
+      return;
+    }
+    if (!statusNotes.trim()) {
+      Alert.alert('Descreva a mudanca', 'Informe uma descricao antes de salvar o novo status.');
+      return;
+    }
+    try {
+      setSavingStatus(true);
+      await updateOrderStatus(activeOrder.id, targetStatus, {
+        reason: 'Alteracao manual',
+        notes: statusNotes,
+      });
+      setSelectedStatus(null);
+      setStatusNotes('');
+    } finally {
+      setSavingStatus(false);
+    }
   }
 
   function confirmRemovePayment(paymentId: string) {
@@ -97,10 +111,40 @@ export default function OrderDetailScreen() {
     <ScreenContainer scrollEnabled={!isSigning}>
       <AppHeader title={activeOrder.shortCode} subtitle={customer?.name ?? 'Cliente'} back action={<StatusBadge status={activeOrder.status} />} />
       <View style={styles.actions}>
-        <AppButton title={activeOrder.status === 'delivered' ? 'Ver PDF' : 'Avancar status'} onPress={activeOrder.status === 'delivered' ? () => router.push(`/orders/${activeOrder.id}/pdf`) : advanceStatus} />
         <AppButton title="Editar" variant="secondary" onPress={() => router.push(`/orders/${activeOrder.id}/edit`)} />
         <AppButton title="PDF" variant="secondary" onPress={() => router.push(`/orders/${activeOrder.id}/pdf`)} />
       </View>
+
+      <AppCard>
+        <SectionTitle title="Alterar status" description="Selecione o novo estado e registre o motivo da mudanca" />
+        <View style={styles.statusGrid}>
+          {statusOptions.map((status) => {
+            const active = targetStatus === status;
+            return (
+              <View key={status} style={styles.statusChipWrap}>
+                <AppButton
+                  title={statusLabel(status)}
+                  variant={active ? 'primary' : 'secondary'}
+                  compact
+                  onPress={() => setSelectedStatus(status)}
+                />
+              </View>
+            );
+          })}
+        </View>
+        <InputField
+          label="Descricao da mudanca"
+          value={statusNotes}
+          onChangeText={setStatusNotes}
+          multiline
+          style={styles.textArea}
+          placeholder="Ex.: Cliente aprovou o orcamento, aguardando chegada da peca."
+        />
+        <View style={styles.statusFooter}>
+          <AppText muted>Status atual: {statusLabel(activeOrder.status)}</AppText>
+          <AppButton title="Salvar status" loading={savingStatus} compact onPress={saveStatusChange} />
+        </View>
+      </AppCard>
 
       <AppCard>
         <SectionTitle title="Cliente" />
@@ -217,19 +261,24 @@ export default function OrderDetailScreen() {
               {history.fromStatus ? `${statusLabel(history.fromStatus)} -> ` : ''}
               {formatDate(history.changedAt)}
             </AppText>
+            {history.notes ? <AppText muted>{history.notes}</AppText> : null}
+            {history.reason ? <AppText muted>Motivo: {history.reason}</AppText> : null}
           </View>
         )) : (
           <AppText muted>Nenhuma alteracao registrada ainda.</AppText>
         )}
       </AppCard>
 
-      <AppButton title="Cancelar OS" variant="danger" onPress={cancel} />
     </ScreenContainer>
   );
 }
 
 const styles = StyleSheet.create({
   actions: { flexDirection: 'row', gap: spacing.sm, marginBottom: spacing.md },
+  statusGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.xs, marginBottom: spacing.sm },
+  statusChipWrap: { flexGrow: 1, minWidth: '47%' },
+  statusFooter: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: spacing.sm },
+  textArea: { minHeight: 84, textAlignVertical: 'top' },
   item: { flexDirection: 'row', justifyContent: 'space-between', gap: spacing.md, marginBottom: spacing.xs },
   itemInfo: { flex: 1 },
   paymentRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: spacing.sm, marginTop: spacing.sm },
