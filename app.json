@@ -54,7 +54,8 @@
           "cameraPermission": "Permita tirar fotos de equipamentos, servicos e assinaturas.",
           "microphonePermission": false
         }
-      ]
+      ],
+      "expo-font"
     ],
     "web": {
       "favicon": "./Icons/02_expo_assets_ready/favicon.png"
