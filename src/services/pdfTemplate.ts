@@ -47,7 +47,7 @@ export function buildOrderPdfHtml(data: AppData, order: ServiceOrder) {
       <meta charset="utf-8" />
       <style>
         * { box-sizing: border-box; }
-        @page { margin: 38px 30px 42px; }
+        @page { margin: 54px 44px 58px; }
         body { font-family: Arial, sans-serif; color: #0f172a; margin: 0; font-size: 11px; }
         .header { display: grid; grid-template-columns: 1fr 190px; gap: 18px; border-bottom: 2px solid ${primary}; padding-bottom: 14px; margin-bottom: 12px; }
         .brand { display: flex; gap: 12px; align-items: center; }
