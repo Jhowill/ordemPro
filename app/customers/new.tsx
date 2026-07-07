@@ -19,8 +19,12 @@ export default function NewCustomerScreen() {
       Alert.alert('Campos obrigatorios', 'Informe nome e telefone ou WhatsApp.');
       return;
     }
-    const customer = await addCustomer({ kind: 'person', ...form });
-    router.replace(`/customers/${customer.id}`);
+    try {
+      const customer = await addCustomer({ kind: 'person', ...form });
+      router.replace(`/customers/${customer.id}`);
+    } catch (error) {
+      Alert.alert('Cliente nao salvo', error instanceof Error ? error.message : 'Tente novamente.');
+    }
   }
 
   return (

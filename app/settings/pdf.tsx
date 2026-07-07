@@ -33,9 +33,13 @@ export default function PdfSettingsScreen() {
   });
 
   async function save() {
-    await savePdfSettings({ ...settings, documentModel: data.pdfSettings.documentModel });
-    await saveTerms(terms);
-    Alert.alert('PDF atualizado', 'As alteracoes serao usadas nos novos PDFs ou em PDFs regenerados.');
+    try {
+      await savePdfSettings({ ...settings, documentModel: data.pdfSettings.documentModel });
+      await saveTerms(terms);
+      Alert.alert('PDF atualizado', 'As alteracoes serao usadas nos novos PDFs ou em PDFs regenerados.');
+    } catch (error) {
+      Alert.alert('Nao foi possivel salvar', error instanceof Error ? error.message : 'Tente novamente.');
+    }
   }
 
   return (

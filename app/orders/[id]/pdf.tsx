@@ -95,16 +95,20 @@ export default function OrderPdfScreen() {
   }
 
   async function share() {
-    const latest = data.pdfs.find((item) => item.orderId === id);
-    if (!latest) {
-      Alert.alert('Gere o PDF antes de compartilhar.');
-      return;
+    try {
+      const latest = data.pdfs.find((item) => item.orderId === id);
+      if (!latest) {
+        Alert.alert('Gere o PDF antes de compartilhar.');
+        return;
+      }
+      if (!(await Sharing.isAvailableAsync())) {
+        Alert.alert('Compartilhamento indisponivel neste dispositivo.');
+        return;
+      }
+      await Sharing.shareAsync(latest.localUri);
+    } catch (error) {
+      Alert.alert('PDF nao compartilhado', error instanceof Error ? error.message : 'Tente novamente.');
     }
-    if (!(await Sharing.isAvailableAsync())) {
-      Alert.alert('Compartilhamento indisponivel neste dispositivo.');
-      return;
-    }
-    await Sharing.shareAsync(latest.localUri);
   }
 
   return (

@@ -115,7 +115,7 @@ export function buildOrderPdfHtml(data: AppData, order: ServiceOrder, options: P
           </div>
         </div>
         <div class="order-box">
-          ORDEM DE SERVICO<br />Nº ${order.shortCode.replace('OS-', '')}<br />
+          ORDEM DE SERVICO<br />No. ${order.shortCode.replace('OS-', '')}<br />
           <span style="font-size: 11px; font-weight: 400;">${escapeHtml(statusLabel(order.status))}</span>
         </div>
       </section>

@@ -66,7 +66,13 @@ async function setMeta(db: SQLiteDatabase, key: string, value: string) {
 }
 
 async function isDatabaseEmpty(db: SQLiteDatabase) {
-  const row = await db.getFirstAsync<{ total: number }>('SELECT COUNT(*) as total FROM customers');
+  const row = await db.getFirstAsync<{ total: number }>(`
+    SELECT
+      (SELECT COUNT(*) FROM company_profile) +
+      (SELECT COUNT(*) FROM customers) +
+      (SELECT COUNT(*) FROM equipments) +
+      (SELECT COUNT(*) FROM service_orders) AS total
+  `);
   return !row || row.total === 0;
 }
 
@@ -102,7 +108,7 @@ export async function runMigrations(db: SQLiteDatabase) {
   if (version < CURRENT_SCHEMA_VERSION) {
     await setMeta(db, 'schema_version', String(CURRENT_SCHEMA_VERSION));
   }
-  if (await isDatabaseEmpty(db)) {
+  if (version === 0 && await isDatabaseEmpty(db)) {
     await replaceAppData(initialData);
   }
 }

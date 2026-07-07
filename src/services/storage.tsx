@@ -7,6 +7,7 @@ import { AppData, CatalogPart, CatalogService, CompanyProfile, Customer, Default
 import { calculateOrderTotals } from '@/services/calculations';
 import { cleanupOrphanMedia, clearStoredMedia, deleteLocalFile } from '@/services/media';
 import { makeId, nowIso } from '@/utils/formatters';
+import { deleteSecurePin } from '@/utils/securePinStorage';
 
 const PDF_HISTORY_LIMIT = 5;
 const MAX_BACKUP_JSON_BYTES = 8 * 1024 * 1024;
@@ -122,6 +123,18 @@ function validateBackupPayload(json: string) {
   }
 
   return data;
+}
+
+function unlockedSecuritySettings(updatedAt = nowIso()): SecuritySettings {
+  return { isPinEnabled: false, updatedAt };
+}
+
+async function deleteSecurePinSafely() {
+  try {
+    await deleteSecurePin();
+  } catch (error) {
+    console.warn('Nao foi possivel limpar PIN seguro do OrdemPro:', error);
+  }
 }
 
 export function AppDataProvider({ children }: { children: ReactNode }) {
@@ -661,6 +674,7 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
         lastBackupJson: null,
       },
       pdfs: [],
+      security: unlockedSecuritySettings(exportedAt),
     };
     const json = JSON.stringify({ app: 'OrdemPro', backupVersion: 1, exportedAt, data: exportData }, null, 2);
     await commit((current) => ({ ...current, backup: { lastBackupAt: exportedAt, lastBackupJson: null } }));
@@ -670,7 +684,8 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
   const importBackup = useCallback(
     async (json: string) => {
       const backupData = validateBackupPayload(json);
-      await commit(() => normalizeAppData(backupData, 'empty'));
+      await commit(() => ({ ...normalizeAppData(backupData, 'empty'), security: unlockedSecuritySettings() }));
+      await deleteSecurePinSafely();
     },
     [commit],
   );
@@ -678,6 +693,7 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
   const saveSecuritySettings = useCallback<AppDataContextValue['saveSecuritySettings']>(
     async (settings) => {
       await commit((current) => ({ ...current, security: { ...settings, updatedAt: nowIso() } }));
+      if (!settings.isPinEnabled) await deleteSecurePinSafely();
     },
     [commit],
   );
@@ -735,6 +751,7 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
     dataRef.current = initialData;
     setData(initialData);
     await replaceAppData(initialData);
+    await deleteSecurePinSafely();
     await clearStoredMedia();
     await Promise.all(currentPdfs.map((pdf) => deleteLocalFile(pdf.localUri)));
   }, []);
@@ -743,6 +760,7 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
     const currentPdfs = dataRef.current.pdfs;
     const emptyData = createEmptyAppData();
     await replaceAppData(emptyData);
+    await deleteSecurePinSafely();
     await clearStoredMedia();
     await Promise.all(currentPdfs.map((pdf) => deleteLocalFile(pdf.localUri)));
     dataRef.current = emptyData;

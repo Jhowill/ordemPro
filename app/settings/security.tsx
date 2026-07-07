@@ -12,7 +12,7 @@ import { ScreenContainer } from '@/components/ui/ScreenContainer';
 import { spacing } from '@/constants/theme';
 import { useAppData } from '@/services/storage';
 import { isValidPin, normalizePinInput } from '@/utils/pinSecurity';
-import { createSecurePinSettings, deleteSecurePin, verifySecurityPin } from '@/utils/securePinStorage';
+import { createSecurePinSettings, verifySecurityPin } from '@/utils/securePinStorage';
 
 export default function SecuritySettingsScreen() {
   const { data, clearAllData, optimizeStorage, saveSecuritySettings, verifyDatabaseIntegrity } = useAppData();
@@ -91,7 +91,6 @@ export default function SecuritySettingsScreen() {
     if (!(await validateCurrentPin())) return;
     try {
       setSavingPin(true);
-      await deleteSecurePin();
       await saveSecuritySettings({ isPinEnabled: false });
       clearPinFields();
       Alert.alert('PIN desativado', 'O app nao pedira PIN ao abrir.');

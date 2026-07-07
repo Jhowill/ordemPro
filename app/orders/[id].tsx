@@ -77,6 +77,8 @@ export default function OrderDetailScreen() {
       setSelectedStatus(null);
       setStatusNotes('');
       setShowStatusModal(false);
+    } catch (error) {
+      Alert.alert('Status nao atualizado', error instanceof Error ? error.message : 'Tente novamente.');
     } finally {
       setSavingStatus(false);
     }
@@ -85,7 +87,17 @@ export default function OrderDetailScreen() {
   function confirmRemovePayment(paymentId: string) {
     Alert.alert('Remover pagamento', 'Deseja retirar este pagamento da OS?', [
       { text: 'Voltar', style: 'cancel' },
-      { text: 'Remover', style: 'destructive', onPress: () => removePayment(paymentId) },
+      {
+        text: 'Remover',
+        style: 'destructive',
+        onPress: async () => {
+          try {
+            await removePayment(paymentId);
+          } catch (error) {
+            Alert.alert('Pagamento nao removido', error instanceof Error ? error.message : 'Tente novamente.');
+          }
+        },
+      },
     ]);
   }
 
@@ -115,14 +127,18 @@ export default function OrderDetailScreen() {
   }
 
   async function saveDrawnCustomerSignature(uri: string) {
-    await addSignature(activeOrder.id, {
-      kind: 'customer',
-      localUri: uri,
-      signerName: customer?.name ?? 'Cliente',
-      signerDocument: customer?.document,
-    });
-    setShowCustomerSignaturePad(false);
-    setIsSigning(false);
+    try {
+      await addSignature(activeOrder.id, {
+        kind: 'customer',
+        localUri: uri,
+        signerName: customer?.name ?? 'Cliente',
+        signerDocument: customer?.document,
+      });
+      setShowCustomerSignaturePad(false);
+      setIsSigning(false);
+    } catch (error) {
+      Alert.alert('Assinatura nao salva', error instanceof Error ? error.message : 'Tente novamente.');
+    }
   }
 
   return (

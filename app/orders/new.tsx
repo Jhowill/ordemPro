@@ -111,21 +111,25 @@ export default function NewOrderScreen() {
       Alert.alert('Informe o nome do cliente.');
       return;
     }
-    const customer = await addCustomer({
-      kind: 'person',
-      name: customerForm.name,
-      phone: customerForm.phone,
-      whatsapp: customerForm.whatsapp,
-      email: customerForm.email,
-      document: customerForm.document,
-      city: customerForm.city,
-      state: customerForm.state,
-    });
-    setCustomerId(customer.id);
-    setEquipmentId(null);
-    setWithoutEquipment(false);
-    setShowNewCustomer(false);
-    setCustomerForm({ name: '', phone: '', whatsapp: '', email: '', document: '', city: '', state: '' });
+    try {
+      const customer = await addCustomer({
+        kind: 'person',
+        name: customerForm.name,
+        phone: customerForm.phone,
+        whatsapp: customerForm.whatsapp,
+        email: customerForm.email,
+        document: customerForm.document,
+        city: customerForm.city,
+        state: customerForm.state,
+      });
+      setCustomerId(customer.id);
+      setEquipmentId(null);
+      setWithoutEquipment(false);
+      setShowNewCustomer(false);
+      setCustomerForm({ name: '', phone: '', whatsapp: '', email: '', document: '', city: '', state: '' });
+    } catch (error) {
+      Alert.alert('Cliente nao salvo', error instanceof Error ? error.message : 'Tente novamente.');
+    }
   }
 
   async function addDraftPhoto(source: 'library' | 'camera') {
@@ -148,19 +152,23 @@ export default function NewOrderScreen() {
       Alert.alert('Informe o tipo ou descricao do equipamento.');
       return;
     }
-    const equipment = await addEquipment({
-      customerId,
-      category: 'other',
-      type: equipmentForm.type,
-      brand: equipmentForm.brand,
-      model: equipmentForm.model,
-      serialNumber: equipmentForm.serialNumber,
-      description: equipmentForm.description,
-    });
-    setEquipmentId(equipment.id);
-    setWithoutEquipment(false);
-    setShowNewEquipment(false);
-    setEquipmentForm({ type: 'Equipamento', brand: '', model: '', serialNumber: '', description: '' });
+    try {
+      const equipment = await addEquipment({
+        customerId,
+        category: 'other',
+        type: equipmentForm.type,
+        brand: equipmentForm.brand,
+        model: equipmentForm.model,
+        serialNumber: equipmentForm.serialNumber,
+        description: equipmentForm.description,
+      });
+      setEquipmentId(equipment.id);
+      setWithoutEquipment(false);
+      setShowNewEquipment(false);
+      setEquipmentForm({ type: 'Equipamento', brand: '', model: '', serialNumber: '', description: '' });
+    } catch (error) {
+      Alert.alert('Equipamento nao salvo', error instanceof Error ? error.message : 'Tente novamente.');
+    }
   }
 
   async function save() {

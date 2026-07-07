@@ -52,6 +52,15 @@ export default function BackupSettingsScreen() {
     }
   }
 
+  async function handleResetDemo() {
+    try {
+      await resetDemo();
+      Alert.alert('Dados restaurados', 'Os dados de demonstracao foram carregados.');
+    } catch (error) {
+      Alert.alert('Falha ao restaurar', error instanceof Error ? error.message : 'Tente novamente.');
+    }
+  }
+
   return (
     <ScreenContainer>
       <AppHeader title="Backup" subtitle="Exportacao manual offline" back />
@@ -63,7 +72,7 @@ export default function BackupSettingsScreen() {
       <InputField label="Importar JSON de backup" value={json} onChangeText={setJson} multiline style={{ minHeight: 120 }} />
       <AppButton title="Selecionar arquivo JSON" variant="secondary" onPress={pickBackupFile} />
       <AppButton title="Restaurar backup" variant="secondary" onPress={importJson} />
-      <AppButton title="Restaurar dados de demonstracao" variant="danger" onPress={resetDemo} />
+      <AppButton title="Restaurar dados de demonstracao" variant="danger" onPress={handleResetDemo} />
     </ScreenContainer>
   );
 }

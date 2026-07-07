@@ -19,8 +19,12 @@ export default function NewEquipmentScreen() {
       Alert.alert('Campos obrigatorios', 'Selecione cliente e informe tipo ou descricao.');
       return;
     }
-    const equipment = await addEquipment({ ...form, category: 'notebook' });
-    router.replace(`/equipments/${equipment.id}`);
+    try {
+      const equipment = await addEquipment({ ...form, category: 'notebook' });
+      router.replace(`/equipments/${equipment.id}`);
+    } catch (error) {
+      Alert.alert('Equipamento nao salvo', error instanceof Error ? error.message : 'Tente novamente.');
+    }
   }
 
   return (
@@ -35,4 +39,3 @@ export default function NewEquipmentScreen() {
     </ScreenContainer>
   );
 }
-

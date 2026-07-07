@@ -64,6 +64,8 @@ export default function PartsCatalogScreen() {
         salePriceCents: moneyFromText(price),
       });
       closeForm();
+    } catch (error) {
+      Alert.alert('Peca nao salva', error instanceof Error ? error.message : 'Tente novamente.');
     } finally {
       setSaving(false);
     }
@@ -72,7 +74,17 @@ export default function PartsCatalogScreen() {
   function confirmRemove(part: CatalogPart) {
     Alert.alert('Excluir peca', `Deseja excluir "${part.name}" do catalogo?`, [
       { text: 'Cancelar', style: 'cancel' },
-      { text: 'Excluir', style: 'destructive', onPress: () => removeCatalogPart(part.id) },
+      {
+        text: 'Excluir',
+        style: 'destructive',
+        onPress: async () => {
+          try {
+            await removeCatalogPart(part.id);
+          } catch (error) {
+            Alert.alert('Peca nao excluida', error instanceof Error ? error.message : 'Tente novamente.');
+          }
+        },
+      },
     ]);
   }
 

@@ -46,7 +46,17 @@ export function HoldToConfirmButton({ title, holdTitle, completedTitle = 'Confir
       confirmedRef.current = true;
       clearTimers(false);
       setProgress(1);
-      void onConfirm();
+      try {
+        Promise.resolve(onConfirm()).catch((error) => {
+          confirmedRef.current = false;
+          setProgress(0);
+          console.warn('Confirmacao segurada falhou:', error);
+        });
+      } catch (error) {
+        confirmedRef.current = false;
+        setProgress(0);
+        console.warn('Confirmacao segurada falhou:', error);
+      }
     }, durationMs);
   }
 
@@ -60,7 +70,7 @@ export function HoldToConfirmButton({ title, holdTitle, completedTitle = 'Confir
   const label = loading ? 'Limpando...' : progress >= 1 ? completedTitle : holding ? (holdTitle ?? 'Continue segurando...') : title;
 
   return (
-      <Pressable
+    <Pressable
       onPressIn={startHold}
       onPressOut={cancelHold}
       disabled={loading}

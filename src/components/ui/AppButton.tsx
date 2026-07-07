@@ -24,7 +24,16 @@ export function AppButton({ title, onPress, variant = 'primary', icon, loading, 
     const now = Date.now();
     if (now - lastPressAt.current < 650) return;
     lastPressAt.current = now;
-    onPress?.();
+    try {
+      const result = onPress?.();
+      if (result && typeof result.catch === 'function') {
+        result.catch((error) => {
+          console.warn('Acao do botao falhou:', error);
+        });
+      }
+    } catch (error) {
+      console.warn('Acao do botao falhou:', error);
+    }
   }
 
   return (

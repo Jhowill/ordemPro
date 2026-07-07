@@ -64,6 +64,8 @@ export default function ServicesCatalogScreen() {
         defaultPriceCents: moneyFromText(price),
       });
       closeForm();
+    } catch (error) {
+      Alert.alert('Servico nao salvo', error instanceof Error ? error.message : 'Tente novamente.');
     } finally {
       setSaving(false);
     }
@@ -72,7 +74,17 @@ export default function ServicesCatalogScreen() {
   function confirmRemove(service: CatalogService) {
     Alert.alert('Excluir servico', `Deseja excluir "${service.name}" do catalogo?`, [
       { text: 'Cancelar', style: 'cancel' },
-      { text: 'Excluir', style: 'destructive', onPress: () => removeCatalogService(service.id) },
+      {
+        text: 'Excluir',
+        style: 'destructive',
+        onPress: async () => {
+          try {
+            await removeCatalogService(service.id);
+          } catch (error) {
+            Alert.alert('Servico nao excluido', error instanceof Error ? error.message : 'Tente novamente.');
+          }
+        },
+      },
     ]);
   }
 

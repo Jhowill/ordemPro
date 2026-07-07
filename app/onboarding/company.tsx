@@ -64,15 +64,19 @@ export default function CompanyOnboardingScreen() {
       Alert.alert('Dados obrigatorios', 'Informe o nome da empresa e um telefone ou WhatsApp.');
       return;
     }
-    await saveTerms({
-      warrantyText: enabledTerms.warrantyText ? terms.warrantyText : '',
-      serviceAuthorizationText: enabledTerms.serviceAuthorizationText ? terms.serviceAuthorizationText : '',
-      withdrawalText: enabledTerms.withdrawalText ? terms.withdrawalText : '',
-      dataResponsibilityText: enabledTerms.dataResponsibilityText ? terms.dataResponsibilityText : '',
-      unclaimedEquipmentText: enabledTerms.unclaimedEquipmentText ? terms.unclaimedEquipmentText : '',
-    });
-    await saveCompany(form);
-    router.replace('/(tabs)');
+    try {
+      await saveTerms({
+        warrantyText: enabledTerms.warrantyText ? terms.warrantyText : '',
+        serviceAuthorizationText: enabledTerms.serviceAuthorizationText ? terms.serviceAuthorizationText : '',
+        withdrawalText: enabledTerms.withdrawalText ? terms.withdrawalText : '',
+        dataResponsibilityText: enabledTerms.dataResponsibilityText ? terms.dataResponsibilityText : '',
+        unclaimedEquipmentText: enabledTerms.unclaimedEquipmentText ? terms.unclaimedEquipmentText : '',
+      });
+      await saveCompany(form);
+      router.replace('/(tabs)');
+    } catch (error) {
+      Alert.alert('Nao foi possivel finalizar', error instanceof Error ? error.message : 'Tente novamente.');
+    }
   }
 
   return (

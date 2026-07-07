@@ -40,9 +40,13 @@ export default function CompanySettingsScreen() {
   }
 
   async function save() {
-    await saveCompany(form);
-    Alert.alert('Empresa salva');
-    router.back();
+    try {
+      await saveCompany(form);
+      Alert.alert('Empresa salva');
+      router.back();
+    } catch (error) {
+      Alert.alert('Nao foi possivel salvar', error instanceof Error ? error.message : 'Tente novamente.');
+    }
   }
 
   return (

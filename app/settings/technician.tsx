@@ -100,6 +100,8 @@ export default function TechnicianSettingsScreen() {
         status: 'active',
       });
       closeForm();
+    } catch (error) {
+      Alert.alert('Nao foi possivel salvar', error instanceof Error ? error.message : 'Tente novamente.');
     } finally {
       setSaving(false);
     }
@@ -108,7 +110,17 @@ export default function TechnicianSettingsScreen() {
   function confirmRemove(technician: TechnicianProfile) {
     Alert.alert('Excluir tecnico', `Deseja excluir "${technician.name}"? As OS vinculadas serao atualizadas para outro tecnico padrao quando houver.`, [
       { text: 'Cancelar', style: 'cancel' },
-      { text: 'Excluir', style: 'destructive', onPress: () => removeTechnician(technician.id) },
+      {
+        text: 'Excluir',
+        style: 'destructive',
+        onPress: async () => {
+          try {
+            await removeTechnician(technician.id);
+          } catch (error) {
+            Alert.alert('Nao foi possivel excluir', error instanceof Error ? error.message : 'Tente novamente.');
+          }
+        },
+      },
     ]);
   }
 
