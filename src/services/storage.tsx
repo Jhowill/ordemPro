@@ -18,8 +18,13 @@ type AppDataContextValue = {
   addCustomer: (input: Omit<Customer, 'id' | 'createdAt' | 'updatedAt' | 'status'>) => Promise<Customer>;
   addEquipment: (input: Omit<Equipment, 'id' | 'createdAt' | 'updatedAt' | 'status'>) => Promise<Equipment>;
   addCatalogService: (input: Pick<CatalogService, 'name' | 'category' | 'defaultPriceCents'>) => Promise<void>;
+  saveCatalogService: (input: Partial<CatalogService> & Pick<CatalogService, 'name' | 'defaultPriceCents'>) => Promise<void>;
+  removeCatalogService: (id: string) => Promise<void>;
   addCatalogPart: (input: Pick<CatalogPart, 'name' | 'category' | 'salePriceCents'>) => Promise<void>;
+  saveCatalogPart: (input: Partial<CatalogPart> & Pick<CatalogPart, 'name' | 'salePriceCents'>) => Promise<void>;
+  removeCatalogPart: (id: string) => Promise<void>;
   saveTechnician: (input: Partial<TechnicianProfile> & Pick<TechnicianProfile, 'name'>) => Promise<TechnicianProfile>;
+  removeTechnician: (id: string) => Promise<void>;
   createOrder: (input: {
     customerId: string;
     equipmentId?: string | null;
@@ -178,18 +183,78 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
     [commit],
   );
 
+  const saveCatalogService = useCallback<AppDataContextValue['saveCatalogService']>(
+    async (input) => {
+      const date = nowIso();
+      const service: CatalogService = {
+        id: input.id ?? makeId('service'),
+        createdAt: input.createdAt ?? date,
+        updatedAt: date,
+        name: input.name.trim() || 'Servico',
+        category: input.category?.trim() || 'Geral',
+        defaultPriceCents: Math.max(0, input.defaultPriceCents),
+        defaultWarrantyDays: input.defaultWarrantyDays ?? 30,
+        status: input.status ?? 'active',
+      };
+      await commit((current) => ({
+        ...current,
+        services: [service, ...current.services.filter((item) => item.id !== service.id)],
+      }));
+    },
+    [commit],
+  );
+
   const addCatalogService = useCallback<AppDataContextValue['addCatalogService']>(
     async (input) => {
-      const service: CatalogService = { ...withEntityDates(input), defaultWarrantyDays: 30, status: 'active' };
-      await commit((current) => ({ ...current, services: [service, ...current.services] }));
+      await saveCatalogService({ ...input, defaultWarrantyDays: 30, status: 'active' });
+    },
+    [saveCatalogService],
+  );
+
+  const removeCatalogService = useCallback<AppDataContextValue['removeCatalogService']>(
+    async (id) => {
+      await commit((current) => ({
+        ...current,
+        services: current.services.filter((item) => item.id !== id),
+      }));
+    },
+    [commit],
+  );
+
+  const saveCatalogPart = useCallback<AppDataContextValue['saveCatalogPart']>(
+    async (input) => {
+      const date = nowIso();
+      const part: CatalogPart = {
+        id: input.id ?? makeId('part'),
+        createdAt: input.createdAt ?? date,
+        updatedAt: date,
+        name: input.name.trim() || 'Peca',
+        category: input.category?.trim() || 'Geral',
+        salePriceCents: Math.max(0, input.salePriceCents),
+        unit: input.unit ?? 'unit',
+        status: input.status ?? 'active',
+      };
+      await commit((current) => ({
+        ...current,
+        parts: [part, ...current.parts.filter((item) => item.id !== part.id)],
+      }));
     },
     [commit],
   );
 
   const addCatalogPart = useCallback<AppDataContextValue['addCatalogPart']>(
     async (input) => {
-      const part: CatalogPart = { ...withEntityDates(input), unit: 'unit', status: 'active' };
-      await commit((current) => ({ ...current, parts: [part, ...current.parts] }));
+      await saveCatalogPart({ ...input, unit: 'unit', status: 'active' });
+    },
+    [saveCatalogPart],
+  );
+
+  const removeCatalogPart = useCallback<AppDataContextValue['removeCatalogPart']>(
+    async (id) => {
+      await commit((current) => ({
+        ...current,
+        parts: current.parts.filter((item) => item.id !== id),
+      }));
     },
     [commit],
   );
@@ -218,6 +283,29 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
         })),
       }));
       return saved;
+    },
+    [commit],
+  );
+
+  const removeTechnician = useCallback<AppDataContextValue['removeTechnician']>(
+    async (id) => {
+      const date = nowIso();
+      await commit((current) => {
+        const remainingTechnicians = current.technicians.filter((item) => item.id !== id);
+        const defaultTechnicianId = remainingTechnicians.find((item) => item.isDefault)?.id ?? remainingTechnicians[0]?.id ?? null;
+        return {
+          ...current,
+          technicians: remainingTechnicians.map((item, index) => ({
+            ...item,
+            isDefault: item.id === defaultTechnicianId || (!defaultTechnicianId && index === 0),
+          })),
+          orders: current.orders.map((order) =>
+            order.technicianId === id
+              ? { ...order, technicianId: defaultTechnicianId, updatedAt: date, isPdfOutdated: true }
+              : order,
+          ),
+        };
+      });
     },
     [commit],
   );
@@ -546,8 +634,13 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
       addCustomer,
       addEquipment,
       addCatalogService,
+      saveCatalogService,
+      removeCatalogService,
       addCatalogPart,
+      saveCatalogPart,
+      removeCatalogPart,
       saveTechnician,
+      removeTechnician,
       createOrder,
       updateOrder,
       replaceOrderItems,
@@ -564,7 +657,7 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
       resetDemo,
       clearAllData,
     }),
-    [addCatalogPart, addCatalogService, addCustomer, addEquipment, addOrderPhoto, addPayment, addSignature, clearAllData, createOrder, data, exportBackup, importBackup, loadError, loading, removeOrderPhoto, removePayment, replaceOrderItems, resetDemo, saveCompany, savePdfSettings, saveTechnician, saveTerms, updateOrder, updateOrderPhoto, updateOrderStatus, updatePdfRecord],
+    [addCatalogPart, addCatalogService, addCustomer, addEquipment, addOrderPhoto, addPayment, addSignature, clearAllData, createOrder, data, exportBackup, importBackup, loadError, loading, removeCatalogPart, removeCatalogService, removeOrderPhoto, removePayment, removeTechnician, replaceOrderItems, resetDemo, saveCatalogPart, saveCatalogService, saveCompany, savePdfSettings, saveTechnician, saveTerms, updateOrder, updateOrderPhoto, updateOrderStatus, updatePdfRecord],
   );
 
   return <AppDataContext.Provider value={value}>{children}</AppDataContext.Provider>;
