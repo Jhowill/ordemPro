@@ -17,7 +17,7 @@ import { useAppData } from '@/services/storage';
 import { CatalogPart, CatalogService, OrderItemType } from '@/types';
 import { formatCpfCnpjInput, formatMoney, formatMoneyInput, formatPhoneInput, makeId, moneyFromText } from '@/utils/formatters';
 
-type DraftItem = { id: string; type: OrderItemType; description: string; quantity: number; unitPriceCents: number; discountCents: number };
+type DraftItem = { id: string; type: OrderItemType; description: string; quantity: number | null; unitPriceCents: number; discountCents: number };
 type DraftPhoto = { id: string; localUri: string; caption: string; includeInPdf: boolean };
 
 export default function NewOrderScreen() {
@@ -92,6 +92,11 @@ export default function NewOrderScreen() {
           : draft
       )),
     );
+  }
+
+  function updateItemQuantity(id: string, value: string) {
+    const digits = value.replace(/\D/g, '');
+    updateItem(id, { quantity: digits ? Math.max(1, Number(digits)) : null });
   }
 
   async function createCustomerInOrder() {
@@ -170,7 +175,16 @@ export default function NewOrderScreen() {
     }
     try {
       setSaving(true);
-      const order = await createOrder({ customerId, equipmentId, technicianId, isServiceWithoutEquipment: withoutEquipment, reportedIssue, diagnosis, performedService, items });
+      const order = await createOrder({
+        customerId,
+        equipmentId,
+        technicianId,
+        isServiceWithoutEquipment: withoutEquipment,
+        reportedIssue,
+        diagnosis,
+        performedService,
+        items: items.map((draft) => ({ ...draft, quantity: draft.quantity ?? 1 })),
+      });
       for (const photo of photos) {
         await addOrderPhoto(order.id, { localUri: photo.localUri, caption: photo.caption, includeInPdf: photo.includeInPdf });
       }
@@ -191,7 +205,7 @@ export default function NewOrderScreen() {
     }
   }
 
-  const total = items.reduce((sum, draft) => sum + draft.quantity * draft.unitPriceCents - draft.discountCents, 0);
+  const total = items.reduce((sum, draft) => sum + Math.max(0, (draft.quantity ?? 0) * draft.unitPriceCents - draft.discountCents), 0);
 
   return (
     <ScreenContainer
@@ -333,9 +347,9 @@ export default function NewOrderScreen() {
               <View style={styles.itemRow}>
                 <View style={styles.itemInfo}>
                   <AppText variant="subtitle">{draft.description}</AppText>
-                  <AppText muted>{draft.type === 'service' ? 'Servico' : 'Peca'} - Total {formatMoney(Math.max(0, draft.quantity * draft.unitPriceCents - draft.discountCents))}</AppText>
+                  <AppText muted>{draft.type === 'service' ? 'Servico' : 'Peca'} - Total {formatMoney(Math.max(0, (draft.quantity ?? 0) * draft.unitPriceCents - draft.discountCents))}</AppText>
                   <View style={styles.compactFields}>
-                    <InputField label="Qtd" value={String(draft.quantity)} onChangeText={(value) => updateItem(draft.id, { quantity: Math.max(1, Number(value.replace(/\D/g, '') || 1)) })} keyboardType="numeric" style={styles.compactInput} />
+                    <InputField label="Qtd" value={draft.quantity === null ? '' : String(draft.quantity)} onChangeText={(value) => updateItemQuantity(draft.id, value)} keyboardType="numeric" style={styles.compactInput} />
                     <InputField label="Valor" value={formatMoney(draft.unitPriceCents)} onChangeText={(value) => updateItem(draft.id, { unitPriceCents: moneyFromText(value) })} keyboardType="numeric" style={styles.compactInput} />
                     <InputField label="Desc." value={formatMoney(draft.discountCents)} onChangeText={(value) => updateItem(draft.id, { discountCents: moneyFromText(value) })} keyboardType="numeric" style={styles.compactInput} />
                   </View>

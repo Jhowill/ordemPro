@@ -16,7 +16,7 @@ type Props = {
 export function ScreenContainer({ children, scroll = true, scrollEnabled = true, padded = true, footer }: Props) {
   const colors = useThemeColors();
   const content = scroll ? (
-    <ScrollView contentContainerStyle={[styles.content, padded && styles.padded]} scrollEnabled={scrollEnabled} showsVerticalScrollIndicator={false}>
+    <ScrollView contentContainerStyle={[styles.content, padded && styles.padded]} scrollEnabled={scrollEnabled} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
       {children}
     </ScrollView>
   ) : (

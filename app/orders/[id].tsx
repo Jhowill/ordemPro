@@ -1,6 +1,6 @@
 import { router, useLocalSearchParams } from 'expo-router';
 import { useState } from 'react';
-import { Alert, Image, StyleSheet, View } from 'react-native';
+import { Alert, Image, Modal, Pressable, StyleSheet, View } from 'react-native';
 
 import { AppButton } from '@/components/ui/AppButton';
 import { AppCard } from '@/components/ui/AppCard';
@@ -13,6 +13,7 @@ import { SectionTitle } from '@/components/ui/SectionTitle';
 import { SignaturePad } from '@/components/ui/SignaturePad';
 import { StatusBadge } from '@/components/ui/StatusBadge';
 import { spacing } from '@/constants/theme';
+import { useThemeColors } from '@/hooks/useThemeColors';
 import { pickAndStoreImage } from '@/services/media';
 import { useAppData } from '@/services/storage';
 import { ServiceOrderStatus } from '@/types';
@@ -22,8 +23,10 @@ const statusOptions: ServiceOrderStatus[] = ['open', 'diagnosis', 'waiting_appro
 
 export default function OrderDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
+  const colors = useThemeColors();
   const { data, updateOrderStatus, addOrderPhoto, updateOrderPhoto, removeOrderPhoto, addSignature, removePayment } = useAppData();
   const [showCustomerSignaturePad, setShowCustomerSignaturePad] = useState(false);
+  const [showStatusModal, setShowStatusModal] = useState(false);
   const [isSigning, setIsSigning] = useState(false);
   const [selectedStatus, setSelectedStatus] = useState<ServiceOrderStatus | null>(null);
   const [statusNotes, setStatusNotes] = useState('');
@@ -42,6 +45,19 @@ export default function OrderDetailScreen() {
 
   const targetStatus = selectedStatus ?? activeOrder.status;
 
+  function openStatusModal() {
+    setSelectedStatus(activeOrder.status);
+    setStatusNotes('');
+    setShowStatusModal(true);
+  }
+
+  function closeStatusModal() {
+    if (savingStatus) return;
+    setSelectedStatus(null);
+    setStatusNotes('');
+    setShowStatusModal(false);
+  }
+
   async function saveStatusChange() {
     if (targetStatus === activeOrder.status) {
       Alert.alert('Selecione outro status', 'Escolha um status diferente do atual para salvar a mudanca.');
@@ -59,6 +75,7 @@ export default function OrderDetailScreen() {
       });
       setSelectedStatus(null);
       setStatusNotes('');
+      setShowStatusModal(false);
     } finally {
       setSavingStatus(false);
     }
@@ -111,40 +128,51 @@ export default function OrderDetailScreen() {
     <ScreenContainer scrollEnabled={!isSigning}>
       <AppHeader title={activeOrder.shortCode} subtitle={customer?.name ?? 'Cliente'} back action={<StatusBadge status={activeOrder.status} />} />
       <View style={styles.actions}>
+        <AppButton title="Alterar status" onPress={openStatusModal} />
         <AppButton title="Editar" variant="secondary" onPress={() => router.push(`/orders/${activeOrder.id}/edit`)} />
         <AppButton title="PDF" variant="secondary" onPress={() => router.push(`/orders/${activeOrder.id}/pdf`)} />
       </View>
 
-      <AppCard>
-        <SectionTitle title="Alterar status" description="Selecione o novo estado e registre o motivo da mudanca" />
-        <View style={styles.statusGrid}>
-          {statusOptions.map((status) => {
-            const active = targetStatus === status;
-            return (
-              <View key={status} style={styles.statusChipWrap}>
-                <AppButton
-                  title={statusLabel(status)}
-                  variant={active ? 'primary' : 'secondary'}
-                  compact
-                  onPress={() => setSelectedStatus(status)}
-                />
+      <Modal visible={showStatusModal} transparent animationType="fade" onRequestClose={closeStatusModal}>
+        <View style={styles.modalRoot}>
+          <Pressable style={[styles.modalBackdrop, { backgroundColor: colors.overlay }]} onPress={closeStatusModal} />
+          <View style={[styles.modalSheet, { backgroundColor: colors.background }]}>
+            <AppCard>
+              <SectionTitle title="Alterar status" description="Selecione o novo estado e registre o motivo da mudanca" />
+              <View style={styles.statusGrid}>
+                {statusOptions.map((status) => {
+                  const active = targetStatus === status;
+                  return (
+                    <View key={status} style={styles.statusChipWrap}>
+                      <AppButton
+                        title={statusLabel(status)}
+                        variant={active ? 'primary' : 'secondary'}
+                        compact
+                        onPress={() => setSelectedStatus(status)}
+                      />
+                    </View>
+                  );
+                })}
               </View>
-            );
-          })}
+              <InputField
+                label="Descricao da mudanca"
+                value={statusNotes}
+                onChangeText={setStatusNotes}
+                multiline
+                style={styles.textArea}
+                placeholder="Ex.: Cliente aprovou o orcamento, aguardando chegada da peca."
+              />
+              <View style={styles.statusFooter}>
+                <AppText muted>Status atual: {statusLabel(activeOrder.status)}</AppText>
+                <View style={styles.modalActions}>
+                  <AppButton title="Voltar" variant="secondary" compact onPress={closeStatusModal} />
+                  <AppButton title="Salvar" loading={savingStatus} compact onPress={saveStatusChange} />
+                </View>
+              </View>
+            </AppCard>
+          </View>
         </View>
-        <InputField
-          label="Descricao da mudanca"
-          value={statusNotes}
-          onChangeText={setStatusNotes}
-          multiline
-          style={styles.textArea}
-          placeholder="Ex.: Cliente aprovou o orcamento, aguardando chegada da peca."
-        />
-        <View style={styles.statusFooter}>
-          <AppText muted>Status atual: {statusLabel(activeOrder.status)}</AppText>
-          <AppButton title="Salvar status" loading={savingStatus} compact onPress={saveStatusChange} />
-        </View>
-      </AppCard>
+      </Modal>
 
       <AppCard>
         <SectionTitle title="Cliente" />
@@ -277,7 +305,11 @@ const styles = StyleSheet.create({
   actions: { flexDirection: 'row', gap: spacing.sm, marginBottom: spacing.md },
   statusGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.xs, marginBottom: spacing.sm },
   statusChipWrap: { flexGrow: 1, minWidth: '47%' },
-  statusFooter: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: spacing.sm },
+  statusFooter: { gap: spacing.sm },
+  modalActions: { flexDirection: 'row', gap: spacing.sm },
+  modalRoot: { flex: 1, justifyContent: 'flex-end' },
+  modalBackdrop: { ...StyleSheet.absoluteFillObject },
+  modalSheet: { padding: spacing.md, paddingBottom: spacing.lg, borderTopLeftRadius: 18, borderTopRightRadius: 18 },
   textArea: { minHeight: 84, textAlignVertical: 'top' },
   item: { flexDirection: 'row', justifyContent: 'space-between', gap: spacing.md, marginBottom: spacing.xs },
   itemInfo: { flex: 1 },

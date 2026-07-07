@@ -16,7 +16,7 @@ import { useAppData } from '@/services/storage';
 import { CatalogPart, CatalogService, OrderItemType, PaymentMethod, ServiceOrderPriority } from '@/types';
 import { formatMoney, formatMoneyInput, makeId, moneyFromText } from '@/utils/formatters';
 
-type DraftItem = { id: string; type: OrderItemType; description: string; quantity: number; unitPriceCents: number; discountCents: number };
+type DraftItem = { id: string; type: OrderItemType; description: string; quantity: number | null; unitPriceCents: number; discountCents: number };
 
 const priorities: ServiceOrderPriority[] = ['low', 'normal', 'high', 'urgent'];
 const paymentMethods: PaymentMethod[] = ['cash', 'pix', 'debit_card', 'credit_card', 'bank_transfer', 'other'];
@@ -87,7 +87,7 @@ export default function EditOrderScreen() {
         warrantyDays: warrantyDays ? Number(warrantyDays) : undefined,
         isApprovedByCustomer: approved,
       });
-      await replaceOrderItems(activeOrder.id, items);
+      await replaceOrderItems(activeOrder.id, items.map((item) => ({ ...item, quantity: item.quantity ?? 1 })));
       const amountCents = moneyFromText(paymentValue);
       if (amountCents > 0) {
         await addPayment(activeOrder.id, { amountCents, method: paymentMethod, paidAt: new Date().toISOString() });
@@ -134,11 +134,16 @@ export default function EditOrderScreen() {
     setItems((current) => current.map((item) => (item.id === id ? { ...item, ...input } : item)));
   }
 
+  function updateItemQuantity(id: string, value: string) {
+    const digits = value.replace(/\D/g, '');
+    updateItem(id, { quantity: digits ? Math.max(1, Number(digits)) : null });
+  }
+
   function removeItem(id: string) {
     setItems((current) => current.filter((item) => item.id !== id));
   }
 
-  const itemsTotal = items.reduce((sum, item) => sum + Math.max(0, item.quantity * item.unitPriceCents - item.discountCents), 0);
+  const itemsTotal = items.reduce((sum, item) => sum + Math.max(0, (item.quantity ?? 0) * item.unitPriceCents - item.discountCents), 0);
 
   return (
     <ScreenContainer footer={<AppButton title="Salvar alteracoes" loading={saving} onPress={save} />}>
@@ -209,12 +214,12 @@ export default function EditOrderScreen() {
             <View style={styles.itemRow}>
               <View style={styles.itemInfo}>
                 <AppText variant="subtitle">{item.description}</AppText>
-                <AppText muted>{item.type === 'service' ? 'Servico' : 'Peca'} - Total {formatMoney(Math.max(0, item.quantity * item.unitPriceCents - item.discountCents))}</AppText>
+                <AppText muted>{item.type === 'service' ? 'Servico' : 'Peca'} - Total {formatMoney(Math.max(0, (item.quantity ?? 0) * item.unitPriceCents - item.discountCents))}</AppText>
               </View>
               <AppButton title="Retirar" variant="danger" compact onPress={() => removeItem(item.id)} />
             </View>
             <View style={styles.compactFields}>
-              <InputField label="Qtd" value={String(item.quantity)} onChangeText={(value) => updateItem(item.id, { quantity: Math.max(1, Number(value.replace(/\D/g, '') || 1)) })} keyboardType="numeric" style={styles.compactInput} />
+              <InputField label="Qtd" value={item.quantity === null ? '' : String(item.quantity)} onChangeText={(value) => updateItemQuantity(item.id, value)} keyboardType="numeric" style={styles.compactInput} />
               <InputField label="Valor" value={formatMoney(item.unitPriceCents)} onChangeText={(value) => updateItem(item.id, { unitPriceCents: moneyFromText(value) })} keyboardType="numeric" style={styles.compactInput} />
               <InputField label="Desc." value={formatMoney(item.discountCents)} onChangeText={(value) => updateItem(item.id, { discountCents: moneyFromText(value) })} keyboardType="numeric" style={styles.compactInput} />
             </View>
