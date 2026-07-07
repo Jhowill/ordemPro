@@ -253,10 +253,16 @@ export default function OrderDetailScreen() {
                 ) : <AppText muted>Sem assinatura no perfil.</AppText>}
               </View>
             </View>
-            <View style={styles.actions}>
-              <AppButton title="Assinar na tela" variant="secondary" compact onPress={() => setShowCustomerSignaturePad(true)} />
-              <AppButton title="Assinar galeria" variant="secondary" compact onPress={() => addCustomerSignature('library')} />
-              <AppButton title="Assinar camera" variant="secondary" compact onPress={() => addCustomerSignature('camera')} />
+            <View style={styles.signatureActions}>
+              <View style={styles.signatureAction}>
+                <AppButton title="Assinar na tela" variant="secondary" compact onPress={() => setShowCustomerSignaturePad(true)} />
+              </View>
+              <View style={styles.signatureAction}>
+                <AppButton title="Assinar galeria" variant="secondary" compact onPress={() => addCustomerSignature('library')} />
+              </View>
+              <View style={styles.signatureAction}>
+                <AppButton title="Assinar camera" variant="secondary" compact onPress={() => addCustomerSignature('camera')} />
+              </View>
             </View>
           </>
         )}
@@ -321,4 +327,6 @@ const styles = StyleSheet.create({
   signatureRow: { flexDirection: 'row', gap: spacing.sm, marginBottom: spacing.sm },
   signatureBox: { flex: 1, gap: spacing.xs },
   signatureImage: { width: '100%', height: 80, resizeMode: 'contain', borderRadius: 8, backgroundColor: '#F8FAFC', alignItems: 'center', justifyContent: 'center' },
+  signatureActions: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm, marginBottom: spacing.md },
+  signatureAction: { flexGrow: 1, minWidth: '47%' },
 });
