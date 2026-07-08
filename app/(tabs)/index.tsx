@@ -12,6 +12,7 @@ import { ScreenContainer } from '@/components/ui/ScreenContainer';
 import { SearchInput } from '@/components/ui/SearchInput';
 import { StatusBadge } from '@/components/ui/StatusBadge';
 import { spacing } from '@/constants/theme';
+import { useI18n } from '@/hooks/useI18n';
 import { useThemeColors } from '@/hooks/useThemeColors';
 import { useAppData } from '@/services/storage';
 import { formatDate, formatMoney, normalizeSearch } from '@/utils/formatters';
@@ -19,6 +20,7 @@ import { formatDate, formatMoney, normalizeSearch } from '@/utils/formatters';
 export default function HomeScreen() {
   const { data } = useAppData();
   const colors = useThemeColors();
+  const { t, locale } = useI18n();
   const [query, setQuery] = useState('');
 
   const filtered = useMemo(() => {
@@ -39,17 +41,17 @@ export default function HomeScreen() {
 
   return (
     <ScreenContainer>
-      <AppHeader title={`Ola, ${data.company?.tradeName || data.company?.name || 'OrdemPro'}`} subtitle="Seu painel de ordens de servico" />
-      <AppButton title="Nova OS" icon={<Ionicons name="add-circle-outline" color={colors.white} size={18} />} onPress={() => router.push('/orders/new')} />
+      <AppHeader title={`${t('common.appName')} ${data.company?.tradeName || data.company?.name || ''}`.trim()} subtitle={t('home.subtitle')} />
+      <AppButton title={t('home.newOrder')} icon={<Ionicons name="add-circle-outline" color={colors.white} size={18} />} onPress={() => router.push('/orders/new')} />
       <View style={styles.space} />
-      <SearchInput value={query} onChangeText={setQuery} placeholder="Buscar por OS, cliente ou problema..." />
+      <SearchInput value={query} onChangeText={setQuery} placeholder={t('common.searchOrder')} />
 
       <View style={styles.grid}>
         {[
-          ['Abertas', counters.open, colors.info],
-          ['Em andamento', counters.progress, colors.primary],
-          ['Aguardando', counters.waiting, colors.warning],
-          ['Finalizadas', counters.completed, colors.success],
+          [t('home.counters.open'), counters.open, colors.info],
+          [t('home.counters.progress'), counters.progress, colors.primary],
+          [t('home.counters.waiting'), counters.waiting, colors.warning],
+          [t('home.counters.completed'), counters.completed, colors.success],
         ].map(([label, value, color]) => (
           <AppCard key={String(label)}>
             <AppText variant="small" muted>{label}</AppText>
@@ -59,16 +61,16 @@ export default function HomeScreen() {
       </View>
 
       <View style={styles.shortcuts}>
-        <Shortcut icon="people-outline" label="Cliente" onPress={() => router.push('/customers/new')} />
-        <Shortcut icon="construct-outline" label="Equipamento" onPress={() => router.push('/equipments/new')} />
-        <Shortcut icon="document-text-outline" label="OS" onPress={() => router.push('/orders/new')} />
+        <Shortcut icon="people-outline" label={t('home.shortcuts.customer')} onPress={() => router.push('/customers/new')} />
+        <Shortcut icon="construct-outline" label={t('home.shortcuts.equipment')} onPress={() => router.push('/equipments/new')} />
+        <Shortcut icon="document-text-outline" label={t('home.shortcuts.order')} onPress={() => router.push('/orders/new')} />
       </View>
 
-      <AppText variant="subtitle" style={styles.section}>Ultimas OS</AppText>
+      <AppText variant="subtitle" style={styles.section}>{t('home.lastOrders')}</AppText>
       <PaginatedList
         items={filtered}
         keyExtractor={(order) => order.id}
-        empty={<AppText muted>Nenhuma OS encontrada.</AppText>}
+        empty={<AppText muted>{t('home.empty')}</AppText>}
         renderItem={(order) => {
           const customer = data.customers.find((item) => item.id === order.customerId);
           return (
@@ -76,8 +78,8 @@ export default function HomeScreen() {
               <View style={styles.row}>
                 <View style={{ flex: 1 }}>
                   <AppText variant="subtitle">{order.shortCode}</AppText>
-                  <AppText muted>{customer?.name ?? 'Cliente nao encontrado'}</AppText>
-                  <AppText variant="small" muted>{formatDate(order.openedAt)} - {formatMoney(order.totalCents)}</AppText>
+                  <AppText muted>{customer?.name ?? t('home.customerNotFound')}</AppText>
+                  <AppText variant="small" muted>{formatDate(order.openedAt, locale)} - {formatMoney(order.totalCents)}</AppText>
                 </View>
                 <StatusBadge status={order.status} />
               </View>
@@ -88,8 +90,8 @@ export default function HomeScreen() {
 
       {data.backup.lastBackupAt ? null : (
         <AppCard onPress={() => router.push('/settings/backup')}>
-          <AppText variant="subtitle">Backup pendente</AppText>
-          <AppText muted>Exporte uma copia dos dados para evitar perdas.</AppText>
+          <AppText variant="subtitle">{t('home.backupPending')}</AppText>
+          <AppText muted>{t('home.backupPendingDesc')}</AppText>
         </AppCard>
       )}
     </ScreenContainer>

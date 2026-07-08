@@ -1,3 +1,6 @@
+import { getLocaleIntl, getStatusLabel } from '@/i18n/translations';
+import type { AppLocale, ServiceOrderStatus } from '@/types';
+
 export function makeId(prefix = 'id') {
   return `${prefix}_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`;
 }
@@ -47,11 +50,11 @@ export function formatPhoneInput(value: string) {
   return digits.replace(/^(\d{2})(\d{5})(\d)/, '($1) $2-$3');
 }
 
-export function formatDate(value?: string) {
+export function formatDate(value?: string, locale: AppLocale = 'pt') {
   if (!value) return '-';
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return '-';
-  return new Intl.DateTimeFormat('pt-BR').format(date);
+  return new Intl.DateTimeFormat(getLocaleIntl(locale)).format(date);
 }
 
 export function normalizeSearch(value: string) {
@@ -62,23 +65,12 @@ export function normalizeSearch(value: string) {
     .trim();
 }
 
-export function statusLabel(status: string) {
-  const map: Record<string, string> = {
-    open: 'Aberta',
-    diagnosis: 'Em diagnostico',
-    waiting_approval: 'Aguardando aprovacao',
-    approved: 'Aprovada',
-    in_progress: 'Em execucao',
-    waiting_part: 'Aguardando peca',
-    completed: 'Concluida',
-    delivered: 'Entregue',
-    cancelled: 'Cancelada',
-  };
-  return map[status] ?? status;
+export function statusLabel(status: ServiceOrderStatus, locale: AppLocale = 'pt') {
+  return getStatusLabel(status, locale);
 }
 
-export function statusColors(status: string, isDarkTheme = false) {
-  const lightMap: Record<string, { color: string; backgroundColor: string; borderColor: string }> = {
+export function statusColors(status: ServiceOrderStatus, isDarkTheme = false) {
+  const lightMap: Record<ServiceOrderStatus, { color: string; backgroundColor: string; borderColor: string }> = {
     open: { color: '#2563EB', backgroundColor: '#DBEAFE', borderColor: '#93C5FD' },
     diagnosis: { color: '#7C3AED', backgroundColor: '#EDE9FE', borderColor: '#C4B5FD' },
     waiting_approval: { color: '#D97706', backgroundColor: '#FEF3C7', borderColor: '#FCD34D' },
@@ -89,7 +81,7 @@ export function statusColors(status: string, isDarkTheme = false) {
     delivered: { color: '#0F766E', backgroundColor: '#CCFBF1', borderColor: '#5EEAD4' },
     cancelled: { color: '#DC2626', backgroundColor: '#FEE2E2', borderColor: '#FCA5A5' },
   };
-  const darkMap: Record<string, { color: string; backgroundColor: string; borderColor: string }> = {
+  const darkMap: Record<ServiceOrderStatus, { color: string; backgroundColor: string; borderColor: string }> = {
     open: { color: '#93C5FD', backgroundColor: 'rgba(37, 99, 235, 0.18)', borderColor: 'rgba(147, 197, 253, 0.42)' },
     diagnosis: { color: '#C4B5FD', backgroundColor: 'rgba(124, 58, 237, 0.18)', borderColor: 'rgba(196, 181, 253, 0.42)' },
     waiting_approval: { color: '#FCD34D', backgroundColor: 'rgba(217, 119, 6, 0.18)', borderColor: 'rgba(252, 211, 77, 0.42)' },

@@ -44,6 +44,7 @@ export function createEmptyAppData(): AppData {
     backup: {},
     security: { isPinEnabled: false, updatedAt: date },
     themeMode: 'system',
+    locale: 'pt',
     lastOrderNumber: 0,
   };
 }
@@ -199,5 +200,6 @@ export const initialData: AppData = {
   backup: {},
   security: { isPinEnabled: false, updatedAt: createdAt },
   themeMode: 'system',
+  locale: 'pt',
   lastOrderNumber: 123,
 };

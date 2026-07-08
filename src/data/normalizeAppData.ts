@@ -1,7 +1,8 @@
 import { createEmptyAppData, initialData } from '@/data/seed';
-import { AppData, SecuritySettings, ThemeMode } from '@/types';
+import { AppData, AppLocale, SecuritySettings, ThemeMode } from '@/types';
 
 const themeModes: ThemeMode[] = ['system', 'light', 'dark'];
+const locales: AppLocale[] = ['pt', 'en', 'fr', 'es'];
 
 function arrayOrEmpty<T>(value: unknown): T[] {
   return Array.isArray(value) ? value : [];
@@ -32,6 +33,7 @@ export function normalizeAppData(input?: Partial<AppData> | null, fallback: 'emp
   const orders = arrayOrEmpty<AppData['orders'][number]>(source.orders);
   const highestOrderNumber = Math.max(0, ...orders.map((order) => safeNumber(order?.number)));
   const themeMode = themeModes.includes(source.themeMode as ThemeMode) ? (source.themeMode as ThemeMode) : base.themeMode;
+  const locale = locales.includes(source.locale as AppLocale) ? (source.locale as AppLocale) : base.locale;
 
   return {
     ...base,
@@ -57,6 +59,7 @@ export function normalizeAppData(input?: Partial<AppData> | null, fallback: 'emp
     },
     security: normalizeSecurity(source.security, base.security),
     themeMode,
+    locale,
     lastOrderNumber: Math.max(safeNumber(source.lastOrderNumber), highestOrderNumber),
   };
 }

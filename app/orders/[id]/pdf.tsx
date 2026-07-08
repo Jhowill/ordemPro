@@ -10,6 +10,7 @@ import { AppHeader } from '@/components/ui/AppHeader';
 import { AppText } from '@/components/ui/AppText';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { ScreenContainer } from '@/components/ui/ScreenContainer';
+import { useI18n } from '@/hooks/useI18n';
 import { useThemeColors } from '@/hooks/useThemeColors';
 import { imageUriToDataUri } from '@/services/media';
 import { buildOrderPdfHtml, PDF_PAGE_MARGINS } from '@/services/pdfTemplate';
@@ -17,26 +18,36 @@ import { useAppData } from '@/services/storage';
 import { AppData, ServiceOrderPdf } from '@/types';
 import { formatDate, formatMoney, makeId, nowIso } from '@/utils/formatters';
 
+function isDefined<T>(value: T | null): value is T {
+  return value !== null;
+}
+
 async function preparePdfData(data: AppData, orderId: string): Promise<AppData> {
   const [logoUri, photos, technicians, signatures] = await Promise.all([
     imageUriToDataUri(data.company?.logoUri),
-    Promise.all(data.photos.map(async (photo) => (
-      photo.orderId === orderId ? { ...photo, localUri: await imageUriToDataUri(photo.localUri) ?? photo.localUri } : photo
-    ))),
-    Promise.all(data.technicians.map(async (technician) => (
-      technician.signatureUri ? { ...technician, signatureUri: await imageUriToDataUri(technician.signatureUri) ?? technician.signatureUri } : technician
-    ))),
-    Promise.all(data.signatures.map(async (signature) => (
-      signature.orderId === orderId ? { ...signature, localUri: await imageUriToDataUri(signature.localUri) ?? signature.localUri } : signature
-    ))),
+    Promise.all(data.photos.map(async (photo) => {
+      if (photo.orderId !== orderId) return photo;
+      const localUri = await imageUriToDataUri(photo.localUri);
+      return localUri ? { ...photo, localUri } : null;
+    })),
+    Promise.all(data.technicians.map(async (technician) => {
+      if (!technician.signatureUri) return technician;
+      const signatureUri = await imageUriToDataUri(technician.signatureUri);
+      return { ...technician, signatureUri: signatureUri ?? undefined };
+    })),
+    Promise.all(data.signatures.map(async (signature) => {
+      if (signature.orderId !== orderId) return signature;
+      const localUri = await imageUriToDataUri(signature.localUri);
+      return localUri ? { ...signature, localUri } : null;
+    })),
   ]);
 
   return {
     ...data,
     company: data.company ? { ...data.company, logoUri } : data.company,
-    photos,
+    photos: photos.filter(isDefined),
     technicians,
-    signatures,
+    signatures: signatures.filter(isDefined),
   };
 }
 
@@ -44,11 +55,12 @@ export default function OrderPdfScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const { data, updatePdfRecord } = useAppData();
   const colors = useThemeColors();
+  const { t } = useI18n();
   const [loading, setLoading] = useState(false);
   const order = data.orders.find((item) => item.id === id);
   const pdf = data.pdfs.find((item) => item.orderId === id);
 
-  if (!order) return <ScreenContainer><EmptyState icon="document-outline" title="OS nao encontrada" description="Nao foi possivel abrir o PDF." /></ScreenContainer>;
+  if (!order) return <ScreenContainer><EmptyState icon="document-outline" title={t('orderDetail.notFound')} description={t('orderDetail.notFoundDesc')} /></ScreenContainer>;
   const activeOrder = order;
   const customer = data.customers.find((item) => item.id === activeOrder.customerId);
   const equipment = data.equipments.find((item) => item.id === activeOrder.equipmentId);
@@ -77,6 +89,7 @@ export default function OrderPdfScreen() {
         generatedAt: nowIso(),
         totalCents: activeOrder.totalCents,
         snapshotJson: JSON.stringify({
+          locale: data.locale,
           order: activeOrder,
           customer: data.customers.find((item) => item.id === activeOrder.customerId),
           equipment: data.equipments.find((item) => item.id === activeOrder.equipmentId),
@@ -88,9 +101,9 @@ export default function OrderPdfScreen() {
         }),
       };
       await updatePdfRecord(record);
-      Alert.alert('PDF gerado', 'O arquivo foi salvo localmente.');
+      Alert.alert(t('pdf.updated'), t('pdf.updatedDesc'));
     } catch (error) {
-      Alert.alert('Erro ao gerar PDF', error instanceof Error ? error.message : 'Tente novamente.');
+      Alert.alert(t('pdf.saveFail'), error instanceof Error ? error.message : t('common.retry'));
     } finally {
       setLoading(false);
     }
@@ -100,37 +113,37 @@ export default function OrderPdfScreen() {
     try {
       const latest = data.pdfs.find((item) => item.orderId === id);
       if (!latest) {
-        Alert.alert('Gere o PDF antes de compartilhar.');
+        Alert.alert(t('pdf.shareBefore'));
         return;
       }
       if (!(await Sharing.isAvailableAsync())) {
-        Alert.alert('Compartilhamento indisponivel neste dispositivo.');
+        Alert.alert(t('pdf.shareUnavailable'));
         return;
       }
       await Sharing.shareAsync(latest.localUri);
     } catch (error) {
-      Alert.alert('PDF nao compartilhado', error instanceof Error ? error.message : 'Tente novamente.');
+      Alert.alert(t('pdf.shareFail'), error instanceof Error ? error.message : t('common.retry'));
     }
   }
 
   return (
     <ScreenContainer>
-      <AppHeader title="PDF da OS" subtitle={activeOrder.shortCode} back />
+      <AppHeader title={t('pdf.title')} subtitle={activeOrder.shortCode} back />
       <AppCard>
-        <AppText variant="subtitle">{pdf ? 'PDF gerado' : 'Nenhum PDF gerado'}</AppText>
-        <AppText muted>{pdf ? `Versao ${pdf.version} - ${formatDate(pdf.generatedAt)}` : 'Gere o documento profissional para enviar ao cliente.'}</AppText>
-        {activeOrder.isPdfOutdated ? <AppText color={colors.warning}>A OS foi alterada depois da ultima geracao.</AppText> : null}
+        <AppText variant="subtitle">{pdf ? t('pdf.title') : t('pdf.updated')}</AppText>
+        <AppText muted>{pdf ? `V${pdf.version} - ${formatDate(pdf.generatedAt, data.locale)}` : t('pdf.updatedDesc')}</AppText>
+        {activeOrder.isPdfOutdated ? <AppText color={colors.warning}>{t('orderDetail.selectDifferentStatus')}</AppText> : null}
       </AppCard>
       <AppCard>
-        <AppText variant="subtitle">Previa do conteudo</AppText>
-        <AppText>Cliente: {customer?.name ?? '-'}</AppText>
-        <AppText>Equipamento: {equipment ? `${equipment.type ?? equipment.category} ${equipment.brand ?? ''} ${equipment.model ?? ''}` : 'Servico sem equipamento'}</AppText>
-        <AppText>Tecnico: {technician?.name ?? data.company?.responsibleName ?? '-'}</AppText>
-        <AppText>Total: {formatMoney(activeOrder.totalCents)}</AppText>
-        <AppText muted>{items.length} itens, {photos.length} fotos no PDF, {signatures.length} assinatura(s)</AppText>
+        <AppText variant="subtitle">{t('orderNew.summaryTitle')}</AppText>
+        <AppText>{t('details.customerTitle')}: {customer?.name ?? '-'}</AppText>
+        <AppText>{t('details.equipmentTitle')}: {equipment ? `${equipment.type ?? equipment.category} ${equipment.brand ?? ''} ${equipment.model ?? ''}` : t('common.serviceWithoutEquipment')}</AppText>
+        <AppText>{t('common.technician')}: {technician?.name ?? data.company?.responsibleName ?? '-'}</AppText>
+        <AppText>{t('orderDetail.total')}: {formatMoney(activeOrder.totalCents)}</AppText>
+        <AppText muted>{t('pdf.summaryCounts', { items: items.length, photos: photos.length, signatures: signatures.length })}</AppText>
       </AppCard>
-      <AppButton title={pdf ? 'Regenerar PDF' : 'Gerar PDF'} loading={loading} onPress={generate} />
-      <AppButton title="Compartilhar PDF" variant="secondary" onPress={share} />
+      <AppButton title={pdf ? t('pdf.updated') : t('pdf.title')} loading={loading} onPress={generate} />
+      <AppButton title={t('pdf.share')} variant="secondary" onPress={share} />
     </ScreenContainer>
   );
 }

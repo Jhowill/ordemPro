@@ -2,6 +2,7 @@ import { Fragment, ReactNode, useEffect, useMemo, useState } from 'react';
 
 import { AppButton } from '@/components/ui/AppButton';
 import { AppText } from '@/components/ui/AppText';
+import { useI18n } from '@/hooks/useI18n';
 
 type Props<T> = {
   items: T[];
@@ -13,6 +14,7 @@ type Props<T> = {
 };
 
 export function PaginatedList<T>({ items, renderItem, keyExtractor, empty, initialCount = 20, pageSize = 20 }: Props<T>) {
+  const { t } = useI18n();
   const [visibleCount, setVisibleCount] = useState(initialCount);
 
   useEffect(() => {
@@ -30,9 +32,9 @@ export function PaginatedList<T>({ items, renderItem, keyExtractor, empty, initi
         <Fragment key={keyExtractor(item, index)}>{renderItem(item, index)}</Fragment>
       ))}
       {remaining ? (
-        <AppButton title={`Carregar mais ${Math.min(pageSize, remaining)}`} variant="secondary" compact onPress={() => setVisibleCount((current) => current + pageSize)} />
+        <AppButton title={t('pagination.loadMore', { count: Math.min(pageSize, remaining) })} variant="secondary" compact onPress={() => setVisibleCount((current) => current + pageSize)} />
       ) : items.length > initialCount ? (
-        <AppText variant="caption" muted>{items.length} itens carregados.</AppText>
+        <AppText variant="caption" muted>{t('pagination.loaded', { count: items.length })}</AppText>
       ) : null}
     </>
   );

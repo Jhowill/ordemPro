@@ -4,11 +4,16 @@ import { StyleSheet, View } from 'react-native';
 import { AppButton } from '@/components/ui/AppButton';
 import { AppText } from '@/components/ui/AppText';
 import { spacing, ThemeColors } from '@/constants/theme';
+import { useI18n } from '@/hooks/useI18n';
 import { useThemeColors } from '@/hooks/useThemeColors';
 
 type Props = {
   children: ReactNode;
   colors: ThemeColors;
+  title: string;
+  description: string;
+  buttonLabel: string;
+  fallbackMessage: string;
 };
 
 type State = {
@@ -40,12 +45,10 @@ class AppErrorBoundaryBase extends Component<Props, State> {
 
     return (
       <View style={[styles.root, { backgroundColor: colors.background }]}>
-        <AppText variant="title" style={styles.center}>Algo saiu do eixo</AppText>
-        <AppText muted style={styles.center}>
-          O OrdemPro evitou fechar sozinho. Tente novamente e, se continuar, reinicie o app.
-        </AppText>
-        <AppText variant="caption" color={colors.muted} style={styles.center}>{this.state.message}</AppText>
-        <AppButton title="Tentar novamente" onPress={this.reset} />
+        <AppText variant="title" style={styles.center}>{this.props.title}</AppText>
+        <AppText muted style={styles.center}>{this.props.description}</AppText>
+        <AppText variant="caption" color={colors.muted} style={styles.center}>{this.state.message || this.props.fallbackMessage}</AppText>
+        <AppButton title={this.props.buttonLabel} onPress={this.reset} />
       </View>
     );
   }
@@ -53,8 +56,9 @@ class AppErrorBoundaryBase extends Component<Props, State> {
 
 export function AppErrorBoundary({ children }: { children: ReactNode }) {
   const colors = useThemeColors();
+  const { t } = useI18n();
 
-  return <AppErrorBoundaryBase colors={colors}>{children}</AppErrorBoundaryBase>;
+  return <AppErrorBoundaryBase colors={colors} title={t('common.errorBoundaryTitle')} description={t('common.errorBoundaryDesc')} buttonLabel={t('common.retry')} fallbackMessage={t('common.errorBoundaryMessage')}>{children}</AppErrorBoundaryBase>;
 }
 
 const styles = StyleSheet.create({

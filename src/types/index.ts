@@ -11,6 +11,7 @@ export type BaseEntity = {
 
 export type EntityStatus = 'active' | 'inactive' | 'blocked' | 'archived';
 export type ThemeMode = 'system' | 'light' | 'dark';
+export type AppLocale = 'pt' | 'en' | 'fr' | 'es';
 
 export type CompanyProfile = BaseEntity & {
   name: string;
@@ -244,5 +245,6 @@ export type AppData = {
   backup: BackupMetadata;
   security: SecuritySettings;
   themeMode: ThemeMode;
+  locale: AppLocale;
   lastOrderNumber: number;
 };

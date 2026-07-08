@@ -6,6 +6,7 @@ import { AppCard } from '@/components/ui/AppCard';
 import { AppText } from '@/components/ui/AppText';
 import { InputField } from '@/components/ui/InputField';
 import { spacing } from '@/constants/theme';
+import { useI18n } from '@/hooks/useI18n';
 import { useThemeColors } from '@/hooks/useThemeColors';
 import { SecuritySettings } from '@/types';
 import { normalizePinInput } from '@/utils/pinSecurity';
@@ -18,6 +19,7 @@ type Props = {
 
 export function AppLock({ security, onUnlock }: Props) {
   const colors = useThemeColors();
+  const { t } = useI18n();
   const [pin, setPin] = useState('');
   const [failedAttempts, setFailedAttempts] = useState(0);
   const [lockedUntil, setLockedUntil] = useState<number | null>(null);
@@ -37,7 +39,7 @@ export function AppLock({ security, onUnlock }: Props) {
 
   async function unlock() {
     if (lockedUntil && Date.now() < lockedUntil) {
-      Alert.alert('Aguarde', `Tente novamente em ${secondsLeft}s.`);
+      Alert.alert(t('security.alerts.lockWait'), t('security.alerts.lockWaitDesc', { seconds: secondsLeft }));
       return;
     }
 
@@ -51,7 +53,7 @@ export function AppLock({ security, onUnlock }: Props) {
         return;
       }
     } catch {
-      Alert.alert('Falha ao validar PIN', 'Tente novamente.');
+      Alert.alert(t('security.alerts.lockFailTitle'), t('security.alerts.lockFailDesc'));
       return;
     } finally {
       setChecking(false);
@@ -64,18 +66,18 @@ export function AppLock({ security, onUnlock }: Props) {
       setNow(Date.now());
       setLockedUntil(Date.now() + 30000);
       setFailedAttempts(0);
-      Alert.alert('PIN bloqueado', 'Aguarde 30 segundos para tentar novamente.');
+      Alert.alert(t('security.alerts.lockBlockedTitle'), t('security.alerts.lockBlockedDesc'));
       return;
     }
-    Alert.alert('PIN incorreto', `Tentativa ${nextAttempts} de 5.`);
+    Alert.alert(t('security.alerts.lockWrong'), t('security.alerts.lockAttempt', { current: nextAttempts }));
   }
 
   return (
     <View style={[styles.root, { backgroundColor: colors.background }]}>
       <AppCard>
         <View style={styles.header}>
-          <AppText variant="title">OrdemPro bloqueado</AppText>
-          <AppText muted>Informe o PIN para acessar os dados locais.</AppText>
+          <AppText variant="title">{t('common.appLockTitle')}</AppText>
+          <AppText muted>{t('common.appLockDesc')}</AppText>
         </View>
         <InputField
           label="PIN"
@@ -87,8 +89,8 @@ export function AppLock({ security, onUnlock }: Props) {
           autoFocus
           onSubmitEditing={unlock}
         />
-        {secondsLeft ? <AppText muted>Aguarde {secondsLeft}s para nova tentativa.</AppText> : null}
-        <AppButton title="Desbloquear" loading={checking} onPress={unlock} />
+        {secondsLeft ? <AppText muted>{t('common.appLockRetry', { seconds: secondsLeft })}</AppText> : null}
+        <AppButton title={t('common.appLockUnlock')} loading={checking} onPress={unlock} />
       </AppCard>
     </View>
   );

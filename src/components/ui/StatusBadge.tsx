@@ -1,16 +1,19 @@
 import { StyleSheet, View } from 'react-native';
 
 import { radius, spacing } from '@/constants/theme';
+import { useI18n } from '@/hooks/useI18n';
 import { useIsDarkTheme } from '@/hooks/useThemeColors';
+import type { ServiceOrderStatus } from '@/types';
 import { AppText } from './AppText';
-import { statusColors, statusLabel } from '@/utils/formatters';
+import { statusColors } from '@/utils/formatters';
 
 type Props = {
-  status: string;
+  status: ServiceOrderStatus;
 };
 
 export function StatusBadge({ status }: Props) {
   const isDarkTheme = useIsDarkTheme();
+  const { statusLabel } = useI18n();
   const { color, backgroundColor, borderColor } = statusColors(status, isDarkTheme);
   return (
     <View style={[styles.badge, { backgroundColor, borderColor }]}>

@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, Pressable, StyleSheet, View } from 'react-native';
 
 import { radius, spacing } from '@/constants/theme';
+import { useI18n } from '@/hooks/useI18n';
 import { useThemeColors } from '@/hooks/useThemeColors';
 import { AppText } from './AppText';
 
@@ -14,8 +15,9 @@ type Props = {
   onConfirm: () => void | Promise<void>;
 };
 
-export function HoldToConfirmButton({ title, holdTitle, completedTitle = 'Confirmado', durationMs = 3000, loading, onConfirm }: Props) {
+export function HoldToConfirmButton({ title, holdTitle, completedTitle, durationMs = 3000, loading, onConfirm }: Props) {
   const colors = useThemeColors();
+  const { t } = useI18n();
   const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const startedAtRef = useRef(0);
@@ -67,7 +69,7 @@ export function HoldToConfirmButton({ title, holdTitle, completedTitle = 'Confir
 
   useEffect(() => () => clearTimers(true), []);
 
-  const label = loading ? 'Limpando...' : progress >= 1 ? completedTitle : holding ? (holdTitle ?? 'Continue segurando...') : title;
+  const label = loading ? t('common.loading') : progress >= 1 ? (completedTitle ?? t('common.confirm')) : holding ? (holdTitle ?? t('security.clearHoldActive')) : title;
 
   return (
     <Pressable

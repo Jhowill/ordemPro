@@ -5,7 +5,7 @@ import type { SQLiteDatabase } from 'expo-sqlite';
 import { initialData } from '@/data/seed';
 import { normalizeAppData } from '@/data/normalizeAppData';
 import { createSchemaSql, CURRENT_SCHEMA_VERSION } from '@/database/schema';
-import { AppData, CatalogPart, CatalogService, CompanyProfile, Customer, DefaultTerms, Equipment, Payment, PdfSettings, PhotoAttachment, SecuritySettings, ServiceOrder, ServiceOrderItem, ServiceOrderPdf, ServiceOrderStatusHistory, SignatureRecord, TechnicianProfile } from '@/types';
+import { AppData, AppLocale, CatalogPart, CatalogService, CompanyProfile, Customer, DefaultTerms, Equipment, Payment, PdfSettings, PhotoAttachment, SecuritySettings, ServiceOrder, ServiceOrderItem, ServiceOrderPdf, ServiceOrderStatusHistory, SignatureRecord, TechnicianProfile } from '@/types';
 import { nowIso } from '@/utils/formatters';
 
 const DATABASE_NAME = 'ordempro.db';
@@ -19,6 +19,8 @@ let databasePromise: Promise<SQLiteDatabase> | null = null;
 const toNullable = (value?: string | null) => (value && value.trim() ? value : null);
 const toBoolean = (value: unknown) => Number(value) === 1;
 const toInteger = (value: unknown) => Number(value ?? 0);
+const themeModes = new Set<AppData['themeMode']>(['system', 'light', 'dark']);
+const locales = new Set<AppLocale>(['pt', 'en', 'fr', 'es']);
 const toStringArray = (value: unknown): string[] | undefined => {
   if (!value || typeof value !== 'string') return undefined;
   try {
@@ -146,7 +148,7 @@ export async function loadAppData(): Promise<AppData> {
   }
 
   const db = await getDatabase();
-  const [companyRows, pdfRows, termRows, customerRows, equipmentRows, technicianRows, serviceRows, partRows, orderRows, itemRows, paymentRows, photoRows, signatureRows, pdfRecordRows, statusHistoryRows, backupRows, lastOrderRow, themeRow, securityRow] = await Promise.all([
+  const [companyRows, pdfRows, termRows, customerRows, equipmentRows, technicianRows, serviceRows, partRows, orderRows, itemRows, paymentRows, photoRows, signatureRows, pdfRecordRows, statusHistoryRows, backupRows, lastOrderRow, themeRow, localeRow, securityRow] = await Promise.all([
     db.getAllAsync<DbRow>('SELECT * FROM company_profile WHERE deleted_at IS NULL ORDER BY updated_at DESC LIMIT 1'),
     db.getAllAsync<DbRow>('SELECT * FROM pdf_settings WHERE deleted_at IS NULL LIMIT 1'),
     db.getAllAsync<DbRow>('SELECT * FROM default_terms WHERE deleted_at IS NULL LIMIT 1'),
@@ -165,6 +167,7 @@ export async function loadAppData(): Promise<AppData> {
     db.getAllAsync<DbRow>('SELECT * FROM backup_metadata LIMIT 1'),
     db.getFirstAsync<{ value: string }>("SELECT value FROM app_meta WHERE key = 'last_order_number'"),
     db.getFirstAsync<{ value: string }>("SELECT value FROM app_meta WHERE key = 'theme_mode'"),
+    db.getFirstAsync<{ value: string }>("SELECT value FROM app_meta WHERE key = 'locale'"),
     db.getFirstAsync<{ value: string }>("SELECT value FROM app_meta WHERE key = 'security_settings'"),
   ]);
 
@@ -189,7 +192,8 @@ export async function loadAppData(): Promise<AppData> {
       lastBackupJson: null,
     },
     security: parseSecuritySettings(securityRow?.value),
-    themeMode: (themeRow?.value as AppData['themeMode']) ?? initialData.themeMode,
+    themeMode: themeModes.has(themeRow?.value as AppData['themeMode']) ? (themeRow?.value as AppData['themeMode']) : initialData.themeMode,
+    locale: locales.has(localeRow?.value as AppLocale) ? (localeRow?.value as AppLocale) : initialData.locale,
     lastOrderNumber: Number(lastOrderRow?.value ?? Math.max(0, ...orderRows.map((order) => Number(order.number)))),
   };
 }
@@ -226,6 +230,7 @@ export async function replaceAppData(data: AppData) {
     await setMeta(db, 'schema_version', String(CURRENT_SCHEMA_VERSION));
     await setMeta(db, 'last_order_number', String(normalizedData.lastOrderNumber));
     await setMeta(db, 'theme_mode', normalizedData.themeMode);
+    await setMeta(db, 'locale', normalizedData.locale);
     await setMeta(db, 'security_settings', JSON.stringify(normalizedData.security));
   });
 }

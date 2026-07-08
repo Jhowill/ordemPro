@@ -2,6 +2,7 @@ import { useMemo, useRef, useState } from 'react';
 import { LayoutChangeEvent, PanResponder, StyleSheet, View } from 'react-native';
 
 import { radius, spacing } from '@/constants/theme';
+import { useI18n } from '@/hooks/useI18n';
 import { useThemeColors } from '@/hooks/useThemeColors';
 import { AppButton } from './AppButton';
 import { AppText } from './AppText';
@@ -78,8 +79,9 @@ export function buildSignatureSvgUri(paths: string[], width: number, height: num
   return encodeSvg(svg);
 }
 
-export function SignaturePad({ title = 'Assinar na tela', onSave, onCancel, onSigningChange }: Props) {
+export function SignaturePad({ title, onSave, onCancel, onSigningChange }: Props) {
   const colors = useThemeColors();
+  const { t } = useI18n();
   const [strokes, setStrokes] = useState<Stroke[]>([]);
   const [size, setSize] = useState({ width: 320, height: 220 });
   const strokesRef = useRef<Stroke[]>([]);
@@ -147,13 +149,13 @@ export function SignaturePad({ title = 'Assinar na tela', onSave, onCancel, onSi
 
   return (
     <View style={styles.wrap}>
-      <AppText variant="subtitle">{title}</AppText>
+      <AppText variant="subtitle">{title ?? t('signaturePad.title')}</AppText>
       <View
         onLayout={onLayout}
         style={[styles.canvas, { backgroundColor: colors.surface, borderColor: hasSignature ? colors.primary : colors.border }]}
         {...panResponder.panHandlers}
       >
-        {!hasSignature ? <AppText variant="caption" color={colors.muted} style={styles.hint}>Assine dentro do quadro</AppText> : null}
+        {!hasSignature ? <AppText variant="caption" color={colors.muted} style={styles.hint}>{t('signaturePad.hint')}</AppText> : null}
         {segments.map((segment) => (
           <View
             key={segment.id}
@@ -190,9 +192,9 @@ export function SignaturePad({ title = 'Assinar na tela', onSave, onCancel, onSi
         )}
       </View>
       <View style={styles.row}>
-        <AppButton title="Limpar" variant="secondary" compact onPress={clear} />
-        {onCancel ? <AppButton title="Cancelar" variant="secondary" compact onPress={onCancel} /> : null}
-        <AppButton title="Salvar assinatura" compact onPress={save} />
+        <AppButton title={t('common.clear')} variant="secondary" compact onPress={clear} />
+        {onCancel ? <AppButton title={t('common.cancel')} variant="secondary" compact onPress={onCancel} /> : null}
+        <AppButton title={t('signaturePad.save')} compact onPress={save} />
       </View>
     </View>
   );

@@ -10,11 +10,13 @@ import { AppHeader } from '@/components/ui/AppHeader';
 import { AppText } from '@/components/ui/AppText';
 import { InputField } from '@/components/ui/InputField';
 import { ScreenContainer } from '@/components/ui/ScreenContainer';
+import { useI18n } from '@/hooks/useI18n';
 import { useAppData } from '@/services/storage';
 import { formatDate } from '@/utils/formatters';
 
 export default function BackupSettingsScreen() {
   const { data, exportBackup, importBackup, resetDemo } = useAppData();
+  const { t } = useI18n();
   const [json, setJson] = useState('');
 
   async function exportJson() {
@@ -26,16 +28,16 @@ export default function BackupSettingsScreen() {
       await FileSystem.writeAsStringAsync(uri, backup);
       if (await Sharing.isAvailableAsync()) await Sharing.shareAsync(uri);
     } catch (error) {
-      Alert.alert('Falha no backup', error instanceof Error ? error.message : 'Nao foi possivel gerar o arquivo de backup.');
+      Alert.alert(t('backup.alert.exportFail'), error instanceof Error ? error.message : t('backup.alert.exportFailDesc'));
     }
   }
 
   async function importJson() {
     try {
       await importBackup(json);
-      Alert.alert('Backup importado');
+      Alert.alert(t('backup.alert.imported'));
     } catch (error) {
-      Alert.alert('Backup invalido', error instanceof Error ? error.message : 'Verifique o conteudo.');
+      Alert.alert(t('backup.alert.invalid'), error instanceof Error ? error.message : t('backup.alert.invalidDesc'));
     }
   }
 
@@ -46,33 +48,33 @@ export default function BackupSettingsScreen() {
       const content = await FileSystem.readAsStringAsync(result.assets[0].uri);
       setJson(content);
       await importBackup(content);
-      Alert.alert('Backup importado');
+      Alert.alert(t('backup.alert.imported'));
     } catch (error) {
-      Alert.alert('Backup invalido', error instanceof Error ? error.message : 'Verifique o arquivo selecionado.');
+      Alert.alert(t('backup.alert.invalidFile'), error instanceof Error ? error.message : t('backup.alert.invalidFileDesc'));
     }
   }
 
   async function handleResetDemo() {
     try {
       await resetDemo();
-      Alert.alert('Dados restaurados', 'Os dados de demonstracao foram carregados.');
+      Alert.alert(t('backup.alert.restored'), t('backup.alert.restoredDesc'));
     } catch (error) {
-      Alert.alert('Falha ao restaurar', error instanceof Error ? error.message : 'Tente novamente.');
+      Alert.alert(t('backup.alert.restoreFail'), error instanceof Error ? error.message : t('common.retry'));
     }
   }
 
   return (
     <ScreenContainer>
-      <AppHeader title="Backup" subtitle="Exportacao manual offline" back />
+      <AppHeader title={t('backup.title')} subtitle={t('backup.subtitle')} back />
       <AppCard>
-        <AppText variant="subtitle">Ultimo backup</AppText>
-        <AppText muted>{data.backup.lastBackupAt ? formatDate(data.backup.lastBackupAt) : 'Nenhum backup realizado'}</AppText>
+        <AppText variant="subtitle">{t('backup.lastBackup')}</AppText>
+        <AppText muted>{data.backup.lastBackupAt ? formatDate(data.backup.lastBackupAt, data.locale) : t('backup.none')}</AppText>
       </AppCard>
-      <AppButton title="Fazer backup agora" onPress={exportJson} />
-      <InputField label="Importar JSON de backup" value={json} onChangeText={setJson} multiline style={{ minHeight: 120 }} />
-      <AppButton title="Selecionar arquivo JSON" variant="secondary" onPress={pickBackupFile} />
-      <AppButton title="Restaurar backup" variant="secondary" onPress={importJson} />
-      <AppButton title="Restaurar dados de demonstracao" variant="danger" onPress={handleResetDemo} />
+      <AppButton title={t('backup.now')} onPress={exportJson} />
+      <InputField label={t('backup.importTitle')} value={json} onChangeText={setJson} multiline style={{ minHeight: 120 }} />
+      <AppButton title={t('backup.selectFile')} variant="secondary" onPress={pickBackupFile} />
+      <AppButton title={t('backup.restore')} variant="secondary" onPress={importJson} />
+      <AppButton title={t('backup.restoreDemo')} variant="danger" onPress={handleResetDemo} />
     </ScreenContainer>
   );
 }

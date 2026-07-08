@@ -10,6 +10,7 @@ import { InputField } from '@/components/ui/InputField';
 import { ScreenContainer } from '@/components/ui/ScreenContainer';
 import { SectionTitle } from '@/components/ui/SectionTitle';
 import { spacing } from '@/constants/theme';
+import { useI18n } from '@/hooks/useI18n';
 import { useThemeColors } from '@/hooks/useThemeColors';
 import { pickAndStoreImage } from '@/services/media';
 import { useAppData } from '@/services/storage';
@@ -17,6 +18,7 @@ import { formatCpfCnpjInput, formatPhoneInput } from '@/utils/formatters';
 
 export default function CompanyOnboardingScreen() {
   const { data, saveCompany, saveTerms } = useAppData();
+  const { t } = useI18n();
   const colors = useThemeColors();
   const [step, setStep] = useState(0);
   const [form, setForm] = useState({
@@ -56,13 +58,13 @@ export default function CompanyOnboardingScreen() {
       const image = await pickAndStoreImage('logos');
       if (image) update('logoUri', image.localUri);
     } catch (error) {
-      Alert.alert('Logo nao selecionada', error instanceof Error ? error.message : 'Tente novamente.');
+      Alert.alert(t('onboarding.logo.title'), error instanceof Error ? error.message : t('common.retry'));
     }
   }
 
   async function finish() {
     if (!form.name.trim() || (!form.phone.trim() && !form.whatsapp.trim())) {
-      Alert.alert('Dados obrigatorios', 'Informe o nome da empresa e um telefone ou WhatsApp.');
+      Alert.alert(t('onboarding.required'), t('onboarding.requiredDesc'));
       return;
     }
     try {
@@ -76,7 +78,7 @@ export default function CompanyOnboardingScreen() {
       await saveCompany(form);
       router.replace('/(tabs)');
     } catch (error) {
-      Alert.alert('Nao foi possivel finalizar', error instanceof Error ? error.message : 'Tente novamente.');
+      Alert.alert(t('common.saveChanges'), error instanceof Error ? error.message : t('common.retry'));
     }
   }
 
@@ -84,93 +86,75 @@ export default function CompanyOnboardingScreen() {
     <ScreenContainer
       footer={
         <View style={styles.footer}>
-          {step > 0 ? <AppButton title="Voltar" variant="secondary" onPress={() => setStep((value) => value - 1)} /> : null}
-          <AppButton title={step === 4 ? 'Ir para a Home' : 'Proximo'} onPress={() => (step === 4 ? finish() : setStep((value) => value + 1))} />
+          {step > 0 ? <AppButton title={t('common.back')} variant="secondary" onPress={() => setStep((value) => value - 1)} /> : null}
+          <AppButton title={step === 4 ? t('onboarding.finish') : t('onboarding.next')} onPress={() => (step === 4 ? finish() : setStep((value) => value + 1))} />
         </View>
       }
     >
       <StepDots current={step} total={5} />
       {step === 0 ? (
         <View style={styles.welcome}>
-          <AppText variant="h1" style={styles.center}>OrdemPro</AppText>
-          <AppText muted style={styles.center}>Crie ordens de servico profissionais mesmo sem internet.</AppText>
-          <AppCard><AppText>Funciona 100% offline</AppText></AppCard>
-          <AppCard><AppText>PDF profissional com logo e assinaturas</AppText></AppCard>
-          <AppCard><AppText>Organize clientes, equipamentos, pecas e servicos</AppText></AppCard>
+          <AppText variant="h1" style={styles.center}>{t('onboarding.title')}</AppText>
+          <AppText muted style={styles.center}>{t('onboarding.subtitle')}</AppText>
+          {[t('onboarding.card1'), t('onboarding.card2'), t('onboarding.card3')].map((item) => <AppCard key={item}><AppText>{item}</AppText></AppCard>)}
         </View>
       ) : null}
 
       {step === 1 ? (
         <>
-          <AppHeader title="Dados da empresa" subtitle="Usados no cabecalho do PDF" />
-          <InputField label="Nome da empresa" value={form.name} onChangeText={(value) => update('name', value)} />
-          <InputField label="Nome fantasia" value={form.tradeName} onChangeText={(value) => update('tradeName', value)} />
-          <InputField label="CPF/CNPJ" value={form.document} onChangeText={(value) => update('document', formatCpfCnpjInput(value))} keyboardType="numeric" />
-          <InputField label="Responsavel" value={form.responsibleName} onChangeText={(value) => update('responsibleName', value)} />
-          <InputField label="Telefone" value={form.phone} onChangeText={(value) => update('phone', formatPhoneInput(value))} keyboardType="phone-pad" />
-          <InputField label="WhatsApp" value={form.whatsapp} onChangeText={(value) => update('whatsapp', formatPhoneInput(value))} keyboardType="phone-pad" />
-          <InputField label="E-mail" value={form.email} onChangeText={(value) => update('email', value)} keyboardType="email-address" />
+          <AppHeader title={t('onboarding.steps.company')} subtitle={t('onboarding.subtitle')} />
+          <InputField label={t('company.fields.name')} value={form.name} onChangeText={(value) => update('name', value)} />
+          <InputField label={t('company.fields.tradeName')} value={form.tradeName} onChangeText={(value) => update('tradeName', value)} />
+          <InputField label={t('company.fields.document')} value={form.document} onChangeText={(value) => update('document', formatCpfCnpjInput(value))} keyboardType="numeric" />
+          <InputField label={t('company.fields.responsibleName')} value={form.responsibleName} onChangeText={(value) => update('responsibleName', value)} />
+          <InputField label={t('company.fields.phone')} value={form.phone} onChangeText={(value) => update('phone', formatPhoneInput(value))} keyboardType="phone-pad" />
+          <InputField label={t('company.fields.whatsapp')} value={form.whatsapp} onChangeText={(value) => update('whatsapp', formatPhoneInput(value))} keyboardType="phone-pad" />
+          <InputField label={t('company.fields.email')} value={form.email} onChangeText={(value) => update('email', value)} keyboardType="email-address" />
         </>
       ) : null}
 
       {step === 2 ? (
         <>
-          <AppHeader title="Endereco e logo" subtitle="Campos opcionais para enriquecer o PDF" />
+          <AppHeader title={t('onboarding.steps.address')} subtitle={t('onboarding.addressOptional')} />
           <AppCard>
-            <AppText variant="subtitle">Logo da empresa</AppText>
-            {form.logoUri ? <Image source={{ uri: form.logoUri }} style={[styles.logoPreview, { backgroundColor: colors.surfaceAlt }]} resizeMode="contain" /> : <AppText muted>Nenhuma logo selecionada.</AppText>}
+            <AppText variant="subtitle">{t('onboarding.logo.title')}</AppText>
+            {form.logoUri ? <Image source={{ uri: form.logoUri }} style={[styles.logoPreview, { backgroundColor: colors.surfaceAlt }]} resizeMode="contain" /> : <AppText muted>{t('onboarding.logo.noLogo')}</AppText>}
             <View style={styles.footer}>
-              <AppButton title={form.logoUri ? 'Trocar logo' : 'Adicionar logo'} variant="secondary" onPress={chooseLogo} />
-              {form.logoUri ? <AppButton title="Remover" variant="danger" onPress={() => update('logoUri', '')} /> : null}
+              <AppButton title={form.logoUri ? t('onboarding.logo.replace') : t('onboarding.logo.add')} variant="secondary" onPress={chooseLogo} />
+              {form.logoUri ? <AppButton title={t('onboarding.logo.remove')} variant="danger" onPress={() => update('logoUri', '')} /> : null}
             </View>
           </AppCard>
-          <InputField label="Endereco" value={form.addressLine} onChangeText={(value) => update('addressLine', value)} />
-          <InputField label="Cidade" value={form.city} onChangeText={(value) => update('city', value)} />
-          <InputField label="Estado" value={form.state} onChangeText={(value) => update('state', value)} />
-          <InputField label="CEP" value={form.zipCode} onChangeText={(value) => update('zipCode', value)} />
+          <InputField label={t('company.fields.addressLine')} value={form.addressLine} onChangeText={(value) => update('addressLine', value)} />
+          <InputField label={t('company.fields.city')} value={form.city} onChangeText={(value) => update('city', value)} />
+          <InputField label={t('company.fields.state')} value={form.state} onChangeText={(value) => update('state', value)} />
+          <InputField label={t('common.zipCode')} value={form.zipCode} onChangeText={(value) => update('zipCode', value)} />
         </>
       ) : null}
 
       {step === 3 ? (
         <>
-          <AppHeader title="Termos padrao" subtitle="Textos exibidos no PDF da OS" />
-          <TermToggle
-            label="Garantia padrao"
-            enabled={enabledTerms.warrantyText}
-            onToggle={() => setEnabledTerms((current) => ({ ...current, warrantyText: !current.warrantyText }))}
-          />
-          {enabledTerms.warrantyText ? <InputField label="Texto da garantia" value={terms.warrantyText} onChangeText={(value) => updateTerm('warrantyText', value)} multiline style={styles.textArea} /> : null}
-          <TermToggle
-            label="Autorizacao de servico"
-            enabled={enabledTerms.serviceAuthorizationText}
-            onToggle={() => setEnabledTerms((current) => ({ ...current, serviceAuthorizationText: !current.serviceAuthorizationText }))}
-          />
-          {enabledTerms.serviceAuthorizationText ? <InputField label="Texto de autorizacao" value={terms.serviceAuthorizationText} onChangeText={(value) => updateTerm('serviceAuthorizationText', value)} multiline style={styles.textArea} /> : null}
-          <TermToggle
-            label="Termo de retirada"
-            enabled={enabledTerms.withdrawalText}
-            onToggle={() => setEnabledTerms((current) => ({ ...current, withdrawalText: !current.withdrawalText }))}
-          />
-          <TermToggle
-            label="Responsabilidade sobre dados"
-            enabled={enabledTerms.dataResponsibilityText}
-            onToggle={() => setEnabledTerms((current) => ({ ...current, dataResponsibilityText: !current.dataResponsibilityText }))}
-          />
+          <AppHeader title={t('onboarding.steps.terms')} subtitle={t('pdf.termsTitle')} />
+          <TermToggle label={t('onboarding.terms.warranty')} enabled={enabledTerms.warrantyText} onToggle={() => setEnabledTerms((current) => ({ ...current, warrantyText: !current.warrantyText }))} />
+          {enabledTerms.warrantyText ? <InputField label={t('pdf.warranty')} value={terms.warrantyText} onChangeText={(value) => updateTerm('warrantyText', value)} multiline style={styles.textArea} /> : null}
+          <TermToggle label={t('onboarding.terms.serviceAuthorization')} enabled={enabledTerms.serviceAuthorizationText} onToggle={() => setEnabledTerms((current) => ({ ...current, serviceAuthorizationText: !current.serviceAuthorizationText }))} />
+          {enabledTerms.serviceAuthorizationText ? <InputField label={t('pdf.authorization')} value={terms.serviceAuthorizationText} onChangeText={(value) => updateTerm('serviceAuthorizationText', value)} multiline style={styles.textArea} /> : null}
+          <TermToggle label={t('onboarding.terms.withdrawal')} enabled={enabledTerms.withdrawalText} onToggle={() => setEnabledTerms((current) => ({ ...current, withdrawalText: !current.withdrawalText }))} />
+          <TermToggle label={t('onboarding.terms.dataResponsibility')} enabled={enabledTerms.dataResponsibilityText} onToggle={() => setEnabledTerms((current) => ({ ...current, dataResponsibilityText: !current.dataResponsibilityText }))} />
         </>
       ) : null}
 
       {step === 4 ? (
         <>
-          <AppHeader title="Conclusao" subtitle="Empresa pronta para gerar OS" />
+          <AppHeader title={t('onboarding.steps.done')} subtitle={t('onboarding.summaryTerms')} />
           <AppCard>
-            <SectionTitle title="Resumo" />
+            <SectionTitle title={t('onboarding.summary')} />
             <AppText variant="subtitle">{form.name}</AppText>
             <AppText muted>{form.phone || form.whatsapp}</AppText>
-            <AppText muted>{form.city ? `${form.city}/${form.state}` : 'Endereco opcional'}</AppText>
+            <AppText muted>{form.city ? `${form.city}/${form.state}` : t('onboarding.addressOptional')}</AppText>
           </AppCard>
           <AppCard>
-            <AppText variant="subtitle">Termos padrao configurados</AppText>
-            <AppText muted>Garantia, autorizacao de servico, retirada e responsabilidade sobre dados podem ser ajustados depois.</AppText>
+            <AppText variant="subtitle">{t('onboarding.summaryTerms')}</AppText>
+            <AppText muted>{t('onboarding.summaryTermsDesc')}</AppText>
           </AppCard>
         </>
       ) : null}
@@ -191,13 +175,14 @@ function StepDots({ current, total }: { current: number; total: number }) {
 
 function TermToggle({ label, enabled, onToggle }: { label: string; enabled: boolean; onToggle: () => void }) {
   const colors = useThemeColors();
+  const { t } = useI18n();
   return (
     <Pressable onPress={onToggle}>
       <AppCard>
         <View style={styles.termRow}>
           <View style={{ flex: 1 }}>
             <AppText variant="subtitle">{label}</AppText>
-            <AppText muted>{enabled ? 'Sera exibido nos PDFs futuros' : 'Oculto nos PDFs futuros'}</AppText>
+            <AppText muted>{enabled ? t('onboarding.terms.visible') : t('onboarding.terms.hidden')}</AppText>
           </View>
           <Switch value={enabled} onValueChange={onToggle} trackColor={{ true: colors.primarySoft, false: colors.border }} thumbColor={enabled ? colors.primary : colors.disabled} ios_backgroundColor={colors.border} />
         </View>

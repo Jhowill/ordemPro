@@ -12,6 +12,7 @@ import { ScreenContainer } from '@/components/ui/ScreenContainer';
 import { SectionTitle } from '@/components/ui/SectionTitle';
 import { SignaturePad } from '@/components/ui/SignaturePad';
 import { spacing } from '@/constants/theme';
+import { useI18n } from '@/hooks/useI18n';
 import { useThemeColors } from '@/hooks/useThemeColors';
 import { pickAndStoreImage } from '@/services/media';
 import { useAppData } from '@/services/storage';
@@ -20,11 +21,12 @@ import { formatCpfCnpjInput, formatPhoneInput } from '@/utils/formatters';
 
 export default function TechnicianSettingsScreen() {
   const colors = useThemeColors();
+  const { t } = useI18n();
   const { data, saveTechnician, removeTechnician } = useAppData();
   const [editing, setEditing] = useState<TechnicianProfile | null>(null);
   const [showForm, setShowForm] = useState(false);
   const [name, setName] = useState('');
-  const [role, setRole] = useState('Tecnico responsavel');
+  const [role, setRole] = useState(t('technician.roleDefault'));
   const [document, setDocument] = useState('');
   const [phone, setPhone] = useState('');
   const [email, setEmail] = useState('');
@@ -36,7 +38,7 @@ export default function TechnicianSettingsScreen() {
   function openNew() {
     setEditing(null);
     setName(data.company?.responsibleName ?? '');
-    setRole('Tecnico responsavel');
+    setRole(t('technician.roleDefault'));
     setDocument('');
     setPhone(formatPhoneInput(data.company?.phone ?? ''));
     setEmail(data.company?.email ?? '');
@@ -49,7 +51,7 @@ export default function TechnicianSettingsScreen() {
   function openEdit(technician: TechnicianProfile) {
     setEditing(technician);
     setName(technician.name);
-    setRole(technician.role ?? 'Tecnico responsavel');
+    setRole(technician.role ?? t('technician.roleDefault'));
     setDocument(formatCpfCnpjInput(technician.document ?? ''));
     setPhone(formatPhoneInput(technician.phone ?? ''));
     setEmail(technician.email ?? '');
@@ -62,7 +64,7 @@ export default function TechnicianSettingsScreen() {
   function closeForm() {
     setEditing(null);
     setName('');
-    setRole('Tecnico responsavel');
+    setRole(t('technician.roleDefault'));
     setDocument('');
     setPhone('');
     setEmail('');
@@ -77,13 +79,13 @@ export default function TechnicianSettingsScreen() {
       const image = await pickAndStoreImage('signatures', source);
       if (image?.localUri) setSignatureUri(image.localUri);
     } catch (error) {
-      Alert.alert('Assinatura nao adicionada', error instanceof Error ? error.message : 'Tente novamente.');
+      Alert.alert(t('technician.signatureTitle'), error instanceof Error ? error.message : t('common.retry'));
     }
   }
 
   async function save() {
     if (!name.trim()) {
-      Alert.alert('Informe o nome do tecnico.');
+      Alert.alert(t('technician.nameRequired'));
       return;
     }
     try {
@@ -101,23 +103,23 @@ export default function TechnicianSettingsScreen() {
       });
       closeForm();
     } catch (error) {
-      Alert.alert('Nao foi possivel salvar', error instanceof Error ? error.message : 'Tente novamente.');
+      Alert.alert(t('technician.saveFail'), error instanceof Error ? error.message : t('common.retry'));
     } finally {
       setSaving(false);
     }
   }
 
   function confirmRemove(technician: TechnicianProfile) {
-    Alert.alert('Excluir tecnico', `Deseja excluir "${technician.name}"? As OS vinculadas serao atualizadas para outro tecnico padrao quando houver.`, [
-      { text: 'Cancelar', style: 'cancel' },
+    Alert.alert(t('technician.deleteTitle'), t('technician.confirmDelete', { name: technician.name }), [
+      { text: t('common.cancel'), style: 'cancel' },
       {
-        text: 'Excluir',
+        text: t('common.remove'),
         style: 'destructive',
         onPress: async () => {
           try {
             await removeTechnician(technician.id);
           } catch (error) {
-            Alert.alert('Nao foi possivel excluir', error instanceof Error ? error.message : 'Tente novamente.');
+            Alert.alert(t('technician.deleteFail'), error instanceof Error ? error.message : t('common.retry'));
           }
         },
       },
@@ -127,32 +129,28 @@ export default function TechnicianSettingsScreen() {
   return (
     <ScreenContainer
       scrollEnabled={!isSigning}
-      footer={showForm ? <AppButton title={editing ? 'Salvar alteracoes' : 'Salvar tecnico'} loading={saving} onPress={save} /> : <AppButton title="Novo tecnico" onPress={openNew} />}
+      footer={showForm ? <AppButton title={editing ? t('technician.saveEdit') : t('technician.saveNew')} loading={saving} onPress={save} /> : <AppButton title={t('technician.new')} onPress={openNew} />}
     >
-      <AppHeader title="Tecnicos" subtitle="Perfis e assinaturas para OS e PDF" back />
+      <AppHeader title={t('technician.title')} subtitle={t('technician.subtitle')} back />
 
       {!showForm ? (
         <>
-          <SectionTitle title="Tecnicos cadastrados" description={`${data.technicians.length} tecnico${data.technicians.length === 1 ? '' : 's'}`} />
+          <SectionTitle title={t('technician.listTitle')} description={t('technician.count', { count: data.technicians.length })} />
           <PaginatedList
             items={data.technicians}
             keyExtractor={(technician) => technician.id}
-            empty={<AppText muted>Nenhum tecnico cadastrado.</AppText>}
+            empty={<AppText muted>{t('technician.empty')}</AppText>}
             renderItem={(technician) => (
               <AppCard key={technician.id}>
                 <View style={styles.itemRow}>
                   <View style={styles.itemInfo}>
                     <AppText variant="subtitle">{technician.name}</AppText>
-                    <AppText muted>{technician.role ?? 'Tecnico'}{technician.isDefault ? ' - Padrao' : ''}</AppText>
-                    <AppText muted>{technician.signatureUri ? 'Assinatura salva para PDF' : 'Sem assinatura cadastrada'}</AppText>
+                    <AppText muted>{technician.role ?? t('technician.roleDefault')}{technician.isDefault ? ` - ${t('common.default')}` : ''}</AppText>
+                    <AppText muted>{technician.signatureUri ? t('technician.signatureReady') : t('technician.signatureMissing')}</AppText>
                   </View>
                   <View style={styles.actions}>
-                    <Pressable onPress={() => openEdit(technician)} style={[styles.iconButton, { backgroundColor: colors.primarySoft }]}>
-                      <Ionicons name="create-outline" size={20} color={colors.primary} />
-                    </Pressable>
-                    <Pressable onPress={() => confirmRemove(technician)} style={[styles.iconButton, { backgroundColor: colors.dangerSoft }]}>
-                      <Ionicons name="trash-outline" size={20} color={colors.danger} />
-                    </Pressable>
+                    <Pressable onPress={() => openEdit(technician)} style={[styles.iconButton, { backgroundColor: colors.primarySoft }]}><Ionicons name="create-outline" size={20} color={colors.primary} /></Pressable>
+                    <Pressable onPress={() => confirmRemove(technician)} style={[styles.iconButton, { backgroundColor: colors.dangerSoft }]}><Ionicons name="trash-outline" size={20} color={colors.danger} /></Pressable>
                   </View>
                 </View>
               </AppCard>
@@ -162,20 +160,20 @@ export default function TechnicianSettingsScreen() {
       ) : (
         <>
           <AppCard>
-            <SectionTitle title={editing ? 'Dados do tecnico' : 'Novo tecnico'} />
-            <InputField label="Nome" value={name} onChangeText={setName} />
-            <InputField label="Funcao" value={role} onChangeText={setRole} />
-            <InputField label="Documento" value={document} onChangeText={(value) => setDocument(formatCpfCnpjInput(value))} keyboardType="numeric" />
-            <InputField label="Telefone" value={phone} onChangeText={(value) => setPhone(formatPhoneInput(value))} keyboardType="phone-pad" />
-            <InputField label="E-mail" value={email} onChangeText={setEmail} keyboardType="email-address" autoCapitalize="none" />
-            <AppButton title="Cancelar" variant="secondary" compact onPress={closeForm} />
+            <SectionTitle title={editing ? t('technician.formTitleEdit') : t('technician.formTitleNew')} />
+            <InputField label={t('technician.fields.name')} value={name} onChangeText={setName} />
+            <InputField label={t('technician.fields.role')} value={role} onChangeText={setRole} />
+            <InputField label={t('technician.fields.document')} value={document} onChangeText={(value) => setDocument(formatCpfCnpjInput(value))} keyboardType="numeric" />
+            <InputField label={t('technician.fields.phone')} value={phone} onChangeText={(value) => setPhone(formatPhoneInput(value))} keyboardType="phone-pad" />
+            <InputField label={t('technician.fields.email')} value={email} onChangeText={setEmail} keyboardType="email-address" autoCapitalize="none" />
+            <AppButton title={t('common.cancel')} variant="secondary" compact onPress={closeForm} />
           </AppCard>
 
           <AppCard>
-            <SectionTitle title="Assinatura do tecnico" description="Imagem salva no perfil e aplicada automaticamente ao PDF" />
+            <SectionTitle title={t('technician.signatureTitle')} description={t('technician.signatureDesc')} />
             {showSignaturePad ? (
               <SignaturePad
-                title="Assinatura do tecnico"
+                title={t('technician.signatureTitle')}
                 onSigningChange={setIsSigning}
                 onSave={(uri) => {
                   setSignatureUri(uri);
@@ -190,13 +188,13 @@ export default function TechnicianSettingsScreen() {
             ) : (
               <>
                 {signatureUri ? (
-                  signatureUri.startsWith('data:image/svg+xml') ? <View style={[styles.signature, { backgroundColor: colors.surfaceAlt }]}><AppText muted>Assinatura desenhada salva.</AppText></View> : <Image source={{ uri: signatureUri }} style={[styles.signature, { backgroundColor: colors.surfaceAlt }]} />
-                ) : <AppText muted>Nenhuma assinatura salva.</AppText>}
+                  signatureUri.startsWith('data:image/svg+xml') ? <View style={[styles.signature, { backgroundColor: colors.surfaceAlt }]}><AppText muted>{t('technician.signatureCaption')}</AppText></View> : <Image source={{ uri: signatureUri }} style={[styles.signature, { backgroundColor: colors.surfaceAlt }]} />
+                ) : <AppText muted>{t('technician.signatureNone')}</AppText>}
                 <View style={styles.row}>
-                  <AppButton title="Assinar na tela" variant="secondary" compact onPress={() => setShowSignaturePad(true)} />
-                  <AppButton title="Galeria" variant="secondary" compact onPress={() => selectSignature('library')} />
-                  <AppButton title="Camera" variant="secondary" compact onPress={() => selectSignature('camera')} />
-                  {signatureUri ? <AppButton title="Remover" variant="danger" compact onPress={() => setSignatureUri('')} /> : null}
+                  <AppButton title={t('technician.signOnScreen')} variant="secondary" compact onPress={() => setShowSignaturePad(true)} />
+                  <AppButton title={t('technician.chooseLibrary')} variant="secondary" compact onPress={() => selectSignature('library')} />
+                  <AppButton title={t('technician.chooseCamera')} variant="secondary" compact onPress={() => selectSignature('camera')} />
+                  {signatureUri ? <AppButton title={t('technician.remove')} variant="danger" compact onPress={() => setSignatureUri('')} /> : null}
                 </View>
               </>
             )}

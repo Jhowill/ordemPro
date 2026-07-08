@@ -8,6 +8,7 @@ import { AppText } from '@/components/ui/AppText';
 import { InputField } from '@/components/ui/InputField';
 import { ScreenContainer } from '@/components/ui/ScreenContainer';
 import { spacing } from '@/constants/theme';
+import { useI18n } from '@/hooks/useI18n';
 import { useThemeColors } from '@/hooks/useThemeColors';
 import { useAppData } from '@/services/storage';
 
@@ -16,6 +17,7 @@ const colorOptions = ['#1E4FD7', '#0F766E', '#16A34A', '#F59E0B', '#DC2626', '#7
 export default function PdfSettingsScreen() {
   const { data, savePdfSettings, saveTerms } = useAppData();
   const colors = useThemeColors();
+  const { t } = useI18n();
   const [settings, setSettings] = useState({
     primaryColor: data.pdfSettings.primaryColor,
     showPhotos: data.pdfSettings.showPhotos,
@@ -36,17 +38,17 @@ export default function PdfSettingsScreen() {
     try {
       await savePdfSettings({ ...settings, documentModel: data.pdfSettings.documentModel });
       await saveTerms(terms);
-      Alert.alert('PDF atualizado', 'As alteracoes serao usadas nos novos PDFs ou em PDFs regenerados.');
+      Alert.alert(t('pdf.updated'), t('pdf.updatedDesc'));
     } catch (error) {
-      Alert.alert('Nao foi possivel salvar', error instanceof Error ? error.message : 'Tente novamente.');
+      Alert.alert(t('pdf.saveFail'), error instanceof Error ? error.message : t('common.retry'));
     }
   }
 
   return (
-    <ScreenContainer footer={<AppButton title="Salvar configuracoes" onPress={save} />}>
-      <AppHeader title="PDF e termos" subtitle="Modelo classico da V1" back />
+    <ScreenContainer footer={<AppButton title={t('pdf.save')} onPress={save} />}>
+      <AppHeader title={t('pdf.title')} subtitle={t('pdf.subtitle')} back />
       <AppCard>
-        <AppText variant="subtitle">Cor principal do PDF</AppText>
+        <AppText variant="subtitle">{t('pdf.color')}</AppText>
         <View style={styles.swatches}>
           {colorOptions.map((option) => (
             <Pressable
@@ -57,17 +59,17 @@ export default function PdfSettingsScreen() {
           ))}
         </View>
       </AppCard>
-      <SettingSwitch label="Exibir fotos no PDF" value={settings.showPhotos} onValueChange={(showPhotos) => setSettings((current) => ({ ...current, showPhotos }))} />
-      <SettingSwitch label="Exibir assinaturas no PDF" value={settings.showSignatures} onValueChange={(showSignatures) => setSettings((current) => ({ ...current, showSignatures }))} />
-      <SettingSwitch label="Exibir valores no PDF" value={settings.showValues} onValueChange={(showValues) => setSettings((current) => ({ ...current, showValues }))} />
-      <SettingSwitch label="Exibir marca OrdemPro" value={settings.showAppBranding} onValueChange={(showAppBranding) => setSettings((current) => ({ ...current, showAppBranding }))} />
-      <InputField label="Rodape do PDF" value={settings.footerText} onChangeText={(footerText) => setSettings((current) => ({ ...current, footerText }))} />
+      <SettingSwitch label={t('pdf.showPhotos')} value={settings.showPhotos} onValueChange={(showPhotos) => setSettings((current) => ({ ...current, showPhotos }))} />
+      <SettingSwitch label={t('pdf.showSignatures')} value={settings.showSignatures} onValueChange={(showSignatures) => setSettings((current) => ({ ...current, showSignatures }))} />
+      <SettingSwitch label={t('pdf.showValues')} value={settings.showValues} onValueChange={(showValues) => setSettings((current) => ({ ...current, showValues }))} />
+      <SettingSwitch label={t('pdf.showBranding')} value={settings.showAppBranding} onValueChange={(showAppBranding) => setSettings((current) => ({ ...current, showAppBranding }))} />
+      <InputField label={t('pdf.footer')} value={settings.footerText} onChangeText={(footerText) => setSettings((current) => ({ ...current, footerText }))} />
       <AppCard>
-        <AppText variant="subtitle">Termos padrao</AppText>
-        <InputField label="Garantia" value={terms.warrantyText} onChangeText={(warrantyText) => setTerms((current) => ({ ...current, warrantyText }))} multiline style={styles.textArea} />
-        <InputField label="Autorizacao" value={terms.serviceAuthorizationText} onChangeText={(serviceAuthorizationText) => setTerms((current) => ({ ...current, serviceAuthorizationText }))} multiline style={styles.textArea} />
-        <InputField label="Retirada" value={terms.withdrawalText} onChangeText={(withdrawalText) => setTerms((current) => ({ ...current, withdrawalText }))} multiline style={styles.textArea} />
-        <InputField label="Responsabilidade sobre dados" value={terms.dataResponsibilityText} onChangeText={(dataResponsibilityText) => setTerms((current) => ({ ...current, dataResponsibilityText }))} multiline style={styles.textArea} />
+        <AppText variant="subtitle">{t('pdf.termsTitle')}</AppText>
+        <InputField label={t('pdf.warranty')} value={terms.warrantyText} onChangeText={(warrantyText) => setTerms((current) => ({ ...current, warrantyText }))} multiline style={styles.textArea} />
+        <InputField label={t('pdf.authorization')} value={terms.serviceAuthorizationText} onChangeText={(serviceAuthorizationText) => setTerms((current) => ({ ...current, serviceAuthorizationText }))} multiline style={styles.textArea} />
+        <InputField label={t('pdf.withdrawal')} value={terms.withdrawalText} onChangeText={(withdrawalText) => setTerms((current) => ({ ...current, withdrawalText }))} multiline style={styles.textArea} />
+        <InputField label={t('pdf.dataResponsibility')} value={terms.dataResponsibilityText} onChangeText={(dataResponsibilityText) => setTerms((current) => ({ ...current, dataResponsibilityText }))} multiline style={styles.textArea} />
       </AppCard>
     </ScreenContainer>
   );

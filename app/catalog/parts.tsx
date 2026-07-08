@@ -11,6 +11,7 @@ import { PaginatedList } from '@/components/ui/PaginatedList';
 import { ScreenContainer } from '@/components/ui/ScreenContainer';
 import { SectionTitle } from '@/components/ui/SectionTitle';
 import { spacing } from '@/constants/theme';
+import { useI18n } from '@/hooks/useI18n';
 import { useThemeColors } from '@/hooks/useThemeColors';
 import { useAppData } from '@/services/storage';
 import { CatalogPart } from '@/types';
@@ -18,6 +19,7 @@ import { formatMoney, formatMoneyInput, moneyFromText } from '@/utils/formatters
 
 export default function PartsCatalogScreen() {
   const colors = useThemeColors();
+  const { t } = useI18n();
   const { data, saveCatalogPart, removeCatalogPart } = useAppData();
   const [editing, setEditing] = useState<CatalogPart | null>(null);
   const [showForm, setShowForm] = useState(false);
@@ -52,7 +54,7 @@ export default function PartsCatalogScreen() {
 
   async function save() {
     if (!name.trim()) {
-      Alert.alert('Informe o nome da peca.');
+      Alert.alert(t('catalog.partName'));
       return;
     }
     try {
@@ -65,23 +67,23 @@ export default function PartsCatalogScreen() {
       });
       closeForm();
     } catch (error) {
-      Alert.alert('Peca nao salva', error instanceof Error ? error.message : 'Tente novamente.');
+      Alert.alert(t('catalog.savingPart'), error instanceof Error ? error.message : t('common.retry'));
     } finally {
       setSaving(false);
     }
   }
 
   function confirmRemove(part: CatalogPart) {
-    Alert.alert('Excluir peca', `Deseja excluir "${part.name}" do catalogo?`, [
-      { text: 'Cancelar', style: 'cancel' },
+    Alert.alert(t('catalog.deletePart'), t('catalog.deletePartConfirm', { name: part.name }), [
+      { text: t('common.cancel'), style: 'cancel' },
       {
-        text: 'Excluir',
+        text: t('common.remove'),
         style: 'destructive',
         onPress: async () => {
           try {
             await removeCatalogPart(part.id);
           } catch (error) {
-            Alert.alert('Peca nao excluida', error instanceof Error ? error.message : 'Tente novamente.');
+            Alert.alert(t('catalog.deletePartFail'), error instanceof Error ? error.message : t('common.retry'));
           }
         },
       },
@@ -89,37 +91,33 @@ export default function PartsCatalogScreen() {
   }
 
   return (
-    <ScreenContainer footer={showForm ? <AppButton title={editing ? 'Salvar alteracoes' : 'Adicionar peca'} loading={saving} onPress={save} /> : <AppButton title="Nova peca" onPress={openNew} />}>
-      <AppHeader title="Catalogo de pecas" subtitle="Sem controle de estoque na V1" back />
+    <ScreenContainer footer={showForm ? <AppButton title={editing ? t('common.saveChanges') : t('catalog.savePart')} loading={saving} onPress={save} /> : <AppButton title={t('catalog.newPart')} onPress={openNew} />}>
+      <AppHeader title={t('catalog.partsTitle')} subtitle={t('catalog.partsSubtitle')} back />
       {showForm ? (
         <AppCard>
-          <SectionTitle title={editing ? 'Editar peca' : 'Nova peca'} />
-          <InputField label="Nome da peca" value={name} onChangeText={setName} />
-          <InputField label="Categoria" value={category} onChangeText={setCategory} />
-          <InputField label="Preco de venda" value={price} onChangeText={(value) => setPrice(formatMoneyInput(value))} keyboardType="numeric" placeholder="R$ 0,00" />
-          <AppButton title="Cancelar" variant="secondary" compact onPress={closeForm} />
+          <SectionTitle title={editing ? t('catalog.editPart') : t('catalog.newPart')} />
+          <InputField label={t('catalog.partName')} value={name} onChangeText={setName} />
+          <InputField label={t('catalog.category')} value={category} onChangeText={setCategory} />
+          <InputField label={t('catalog.saleValue')} value={price} onChangeText={(value) => setPrice(formatMoneyInput(value))} keyboardType="numeric" placeholder="R$ 0,00" />
+          <AppButton title={t('common.cancel')} variant="secondary" compact onPress={closeForm} />
         </AppCard>
       ) : null}
 
-      <SectionTitle title="Pecas cadastradas" description={`${data.parts.length} item${data.parts.length === 1 ? '' : 's'}`} />
+      <SectionTitle title={t('catalog.partsListTitle')} description={t('catalog.itemCount', { count: data.parts.length })} />
       <PaginatedList
         items={data.parts}
         keyExtractor={(part) => part.id}
-        empty={<AppText muted>Nenhuma peca cadastrada.</AppText>}
+        empty={<AppText muted>{t('catalog.partsEmpty')}</AppText>}
         renderItem={(part) => (
           <AppCard key={part.id}>
             <View style={styles.itemRow}>
               <View style={styles.itemInfo}>
                 <AppText variant="subtitle">{part.name}</AppText>
-                <AppText muted>{part.category ?? 'Geral'} - {formatMoney(part.salePriceCents)}</AppText>
+                <AppText muted>{part.category ?? t('catalog.category')} - {formatMoney(part.salePriceCents)}</AppText>
               </View>
               <View style={styles.actions}>
-                <Pressable onPress={() => openEdit(part)} style={[styles.iconButton, { backgroundColor: colors.primarySoft }]}>
-                  <Ionicons name="create-outline" size={20} color={colors.primary} />
-                </Pressable>
-                <Pressable onPress={() => confirmRemove(part)} style={[styles.iconButton, { backgroundColor: colors.dangerSoft }]}>
-                  <Ionicons name="trash-outline" size={20} color={colors.danger} />
-                </Pressable>
+                <Pressable onPress={() => openEdit(part)} style={[styles.iconButton, { backgroundColor: colors.primarySoft }]}><Ionicons name="create-outline" size={20} color={colors.primary} /></Pressable>
+                <Pressable onPress={() => confirmRemove(part)} style={[styles.iconButton, { backgroundColor: colors.dangerSoft }]}><Ionicons name="trash-outline" size={20} color={colors.danger} /></Pressable>
               </View>
             </View>
           </AppCard>

@@ -9,6 +9,7 @@ import { AppButton } from '@/components/ui/AppButton';
 import { AppText } from '@/components/ui/AppText';
 import { AppLock } from '@/components/security/AppLock';
 import { AppErrorBoundary } from '@/components/system/AppErrorBoundary';
+import { useI18n } from '@/hooks/useI18n';
 import { AppDataProvider, useAppData } from '@/services/storage';
 import { useIsDarkTheme, useThemeColors } from '@/hooks/useThemeColors';
 
@@ -17,6 +18,7 @@ function RootNavigator() {
   const segments = useSegments();
   const colors = useThemeColors();
   const isDarkTheme = useIsDarkTheme();
+  const { t } = useI18n();
   const didEvaluatePin = useRef(false);
   const appState = useRef<AppStateStatus>(AppState.currentState);
   const backgroundedAt = useRef<number | null>(null);
@@ -66,8 +68,8 @@ function RootNavigator() {
     return (
       <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', gap: 14, padding: 24, backgroundColor: colors.background }}>
         <ActivityIndicator color={colors.primary} />
-        <AppText variant="subtitle">OrdemPro</AppText>
-        <AppText muted>Carregando dados locais...</AppText>
+        <AppText variant="subtitle">{t('common.appName')}</AppText>
+        <AppText muted>{t('common.loadingData')}</AppText>
       </View>
     );
   }
@@ -75,9 +77,9 @@ function RootNavigator() {
   if (loadError) {
     return (
       <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', gap: 14, padding: 24, backgroundColor: colors.background }}>
-        <AppText variant="title" style={{ textAlign: 'center' }}>Algo deu errado</AppText>
+        <AppText variant="title" style={{ textAlign: 'center' }}>{t('common.somethingWentWrong')}</AppText>
         <AppText muted style={{ textAlign: 'center' }}>{loadError}</AppText>
-        <AppButton title="Tentar novamente" onPress={() => router.replace('/')} />
+        <AppButton title={t('common.retry')} onPress={() => router.replace('/')} />
       </View>
     );
   }

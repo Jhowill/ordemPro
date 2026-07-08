@@ -1,4 +1,5 @@
 import { AppData, ServiceOrder } from '@/types';
+import { createTranslator } from '@/i18n/translations';
 import { formatDate, formatMoney, statusLabel } from '@/utils/formatters';
 
 export const PDF_PAGE_MARGINS = {
@@ -26,6 +27,7 @@ function safeColor(value: string) {
 }
 
 export function buildOrderPdfHtml(data: AppData, order: ServiceOrder, options: PdfTemplateOptions = {}) {
+  const t = createTranslator(data.locale);
   const company = data.company;
   const customer = data.customers.find((item) => item.id === order.customerId);
   const equipment = data.equipments.find((item) => item.id === order.equipmentId);
@@ -36,7 +38,7 @@ export function buildOrderPdfHtml(data: AppData, order: ServiceOrder, options: P
   const photos = data.photos.filter((item) => item.orderId === order.id && item.includeInPdf);
   const customerSignature = data.signatures.find((item) => item.orderId === order.id && item.kind === 'customer');
   const primary = safeColor(data.pdfSettings.primaryColor);
-  const technicianName = technician?.name ?? company?.responsibleName ?? 'Responsavel';
+  const technicianName = technician?.name ?? company?.responsibleName ?? t('common.responsible');
   const bodyMargin = options.useBodyMargins === false
     ? '0'
     : `${PDF_PAGE_MARGINS.top}px ${PDF_PAGE_MARGINS.right}px ${PDF_PAGE_MARGINS.bottom}px ${PDF_PAGE_MARGINS.left}px`;
@@ -107,84 +109,85 @@ export function buildOrderPdfHtml(data: AppData, order: ServiceOrder, options: P
               : '<div class="logo">OP</div>'
           }
           <div>
-            <h1>${escapeHtml(company?.name ?? 'OrdemPro')}</h1>
+            <h1>${escapeHtml(company?.name ?? t('common.appName'))}</h1>
             <p>${escapeHtml(company?.document ?? '')}</p>
             <p>${escapeHtml(company?.addressLine ?? '')} ${company?.city ? `- ${escapeHtml(company.city)}/${escapeHtml(company.state ?? '')}` : ''}</p>
-            <p>Tel: ${escapeHtml(company?.phone ?? '-')} | WhatsApp: ${escapeHtml(company?.whatsapp ?? '-')}</p>
+            <p>${escapeHtml(t('common.responsible'))}: ${escapeHtml(company?.responsibleName ?? '-')}</p>
+            <p>${escapeHtml(t('company.fields.phone'))}: ${escapeHtml(company?.phone ?? '-')} | ${escapeHtml(t('company.fields.whatsapp'))}: ${escapeHtml(company?.whatsapp ?? '-')}</p>
             <p>${escapeHtml(company?.email ?? '')}</p>
           </div>
         </div>
         <div class="order-box">
-          ORDEM DE SERVICO<br />No. ${order.shortCode.replace('OS-', '')}<br />
-          <span style="font-size: 11px; font-weight: 400;">${escapeHtml(statusLabel(order.status))}</span>
+          ${escapeHtml(t('orders.title').toUpperCase())}<br />No. ${order.shortCode.replace('OS-', '')}<br />
+          <span style="font-size: 11px; font-weight: 400;">${escapeHtml(statusLabel(order.status, data.locale))}</span>
         </div>
       </section>
 
       <section class="grid section">
         <div>
-          <h2>DADOS DO CLIENTE</h2>
-          <p><span class="label">Nome:</span> ${escapeHtml(customer?.name ?? '-')}</p>
-          <p><span class="label">Telefone:</span> ${escapeHtml(customer?.phone ?? customer?.whatsapp ?? '-')}</p>
-          <p><span class="label">E-mail:</span> ${escapeHtml(customer?.email ?? '-')}</p>
-          <p><span class="label">Endereco:</span> ${escapeHtml(customer?.city ? `${customer.city}/${customer.state ?? ''}` : '-')}</p>
+          <h2>${escapeHtml(t('details.customerTitle').toUpperCase())}</h2>
+          <p><span class="label">${escapeHtml(t('common.customer'))}:</span> ${escapeHtml(customer?.name ?? '-')}</p>
+          <p><span class="label">${escapeHtml(t('common.phone'))}:</span> ${escapeHtml(customer?.phone ?? customer?.whatsapp ?? '-')}</p>
+          <p><span class="label">${escapeHtml(t('common.email'))}:</span> ${escapeHtml(customer?.email ?? '-')}</p>
+          <p><span class="label">${escapeHtml(t('common.address'))}:</span> ${escapeHtml(customer?.city ? `${customer.city}/${customer.state ?? ''}` : '-')}</p>
         </div>
         <div>
-          <h2>DADOS DO EQUIPAMENTO</h2>
-          <p><span class="label">Tipo:</span> ${escapeHtml(equipment?.type ?? (order.isServiceWithoutEquipment ? 'Servico sem equipamento' : '-'))}</p>
-          <p><span class="label">Marca:</span> ${escapeHtml(equipment?.brand ?? '-')}</p>
-          <p><span class="label">Modelo:</span> ${escapeHtml(equipment?.model ?? '-')}</p>
-          <p><span class="label">Serie:</span> ${escapeHtml(equipment?.serialNumber ?? '-')}</p>
-          <p><span class="label">Tecnico:</span> ${escapeHtml(technicianName)}</p>
+          <h2>${escapeHtml(t('details.equipmentTitle').toUpperCase())}</h2>
+          <p><span class="label">${escapeHtml(t('common.equipment'))}:</span> ${escapeHtml(equipment?.type ?? (order.isServiceWithoutEquipment ? t('common.serviceWithoutEquipment') : '-'))}</p>
+          <p><span class="label">${escapeHtml(t('common.brand'))}:</span> ${escapeHtml(equipment?.brand ?? '-')}</p>
+          <p><span class="label">${escapeHtml(t('details.model'))}</span> ${escapeHtml(equipment?.model ?? '-')}</p>
+          <p><span class="label">${escapeHtml(t('details.serial'))}</span> ${escapeHtml(equipment?.serialNumber ?? '-')}</p>
+          <p><span class="label">${escapeHtml(t('common.technician'))}:</span> ${escapeHtml(technicianName)}</p>
         </div>
       </section>
 
       <section class="section">
-        <h2>DEFEITO RELATADO</h2>
+        <h2>${escapeHtml(t('orderEdit.reportedIssue').toUpperCase())}</h2>
         <p>${escapeHtml(order.reportedIssue)}</p>
       </section>
 
       <section class="section">
-        <h2>DIAGNOSTICO</h2>
+        <h2>${escapeHtml(t('orderEdit.diagnosis').toUpperCase())}</h2>
         <p>${escapeHtml(order.diagnosis ?? '-')}</p>
       </section>
 
       <section class="section">
-        <h2>SERVICO EXECUTADO</h2>
+        <h2>${escapeHtml(t('orderEdit.performedService').toUpperCase())}</h2>
         <p>${escapeHtml(order.performedService ?? '-')}</p>
       </section>
 
       <section class="flow-section">
-        <h2>SERVICOS</h2>
-        <table><thead><tr><th>Descricao</th><th>Qtd</th><th>Valor Unit.</th><th>Total</th></tr></thead><tbody>${rows(services) || '<tr><td colspan="4">Nenhum servico informado.</td></tr>'}</tbody></table>
+        <h2>${escapeHtml(t('orderEdit.serviceCatalog').toUpperCase())}</h2>
+        <table><thead><tr><th>${escapeHtml(t('catalog.serviceName'))}</th><th>${escapeHtml(t('orderEdit.quantity'))}</th><th>${escapeHtml(t('common.unitValue'))}</th><th>${escapeHtml(t('common.total'))}</th></tr></thead><tbody>${rows(services) || `<tr><td colspan="4">${escapeHtml(t('catalog.servicesEmpty'))}</td></tr>`}</tbody></table>
       </section>
 
       <section class="flow-section">
-        <h2>PECAS</h2>
-        <table><thead><tr><th>Descricao</th><th>Qtd</th><th>Valor Unit.</th><th>Total</th></tr></thead><tbody>${rows(parts) || '<tr><td colspan="4">Nenhuma peca informada.</td></tr>'}</tbody></table>
+        <h2>${escapeHtml(t('orderEdit.partCatalog').toUpperCase())}</h2>
+        <table><thead><tr><th>${escapeHtml(t('catalog.partName'))}</th><th>${escapeHtml(t('orderEdit.quantity'))}</th><th>${escapeHtml(t('common.unitValue'))}</th><th>${escapeHtml(t('common.total'))}</th></tr></thead><tbody>${rows(parts) || `<tr><td colspan="4">${escapeHtml(t('catalog.partsEmpty'))}</td></tr>`}</tbody></table>
       </section>
 
       ${
         data.pdfSettings.showPhotos && photos.length
-          ? `<section class="final-section"><h2>FOTOS DO SERVICO</h2><div class="photo-grid">${photos.map((photo) => `<img class="photo" src="${escapeHtml(photo.localUri)}" />`).join('')}</div></section>`
+          ? `<section class="final-section"><h2>${escapeHtml(t('orderDetail.photos').toUpperCase())}</h2><div class="photo-grid">${photos.map((photo) => `<img class="photo" src="${escapeHtml(photo.localUri)}" />`).join('')}</div></section>`
           : ''
       }
 
       ${
         data.pdfSettings.showValues
-          ? `<section class="final-section"><h2>VALORES</h2>
+          ? `<section class="final-section"><h2>${escapeHtml(t('common.total').toUpperCase())}</h2>
             <table class="summary">
-              <tr><td>Subtotal servicos</td><td class="right">${formatMoney(order.laborTotalCents)}</td></tr>
-              <tr><td>Subtotal pecas</td><td class="right">${formatMoney(order.partsTotalCents)}</td></tr>
-              <tr><td><strong>Total</strong></td><td class="right"><strong>${formatMoney(order.totalCents)}</strong></td></tr>
-              <tr><td>Pago</td><td class="right">${formatMoney(order.paidCents)}</td></tr>
-              <tr><td>Pendente</td><td class="right">${formatMoney(order.pendingCents)}</td></tr>
+              <tr><td>${escapeHtml(t('orderEdit.serviceCatalog'))}</td><td class="right">${formatMoney(order.laborTotalCents)}</td></tr>
+              <tr><td>${escapeHtml(t('orderEdit.partCatalog'))}</td><td class="right">${formatMoney(order.partsTotalCents)}</td></tr>
+              <tr><td><strong>${escapeHtml(t('common.total'))}</strong></td><td class="right"><strong>${formatMoney(order.totalCents)}</strong></td></tr>
+              <tr><td>${escapeHtml(t('orderDetail.paid'))}</td><td class="right">${formatMoney(order.paidCents)}</td></tr>
+              <tr><td>${escapeHtml(t('orderDetail.pending'))}</td><td class="right">${formatMoney(order.pendingCents)}</td></tr>
             </table></section>`
           : ''
       }
 
       <section class="final-section">
         <div>
-          <h2>TERMOS E CONDICOES</h2>
+          <h2>${escapeHtml(t('pdf.termsTitle').toUpperCase())}</h2>
           <div class="terms">
             <p>${escapeHtml(data.terms.warrantyText)}</p>
             <p>${escapeHtml(data.terms.serviceAuthorizationText)}</p>
@@ -195,15 +198,15 @@ export function buildOrderPdfHtml(data: AppData, order: ServiceOrder, options: P
         ${
           data.pdfSettings.showSignatures
             ? `<section class="signature-section">
-              <h2>ASSINATURAS</h2>
+              <h2>${escapeHtml(t('orderDetail.signatures').toUpperCase())}</h2>
               <div class="signatures">
                 <div class="signature">
                   <div class="signature-image-wrap">${customerSignature?.localUri ? `<img class="signature-img" src="${escapeHtml(customerSignature.localUri)}" />` : ''}</div>
-                  <div class="signature-line">${escapeHtml(customerSignature?.signerName ?? customer?.name ?? 'Cliente')}<br />Cliente</div>
+                  <div class="signature-line">${escapeHtml(customerSignature?.signerName ?? customer?.name ?? t('common.customer'))}<br />${escapeHtml(t('common.customer'))}</div>
                 </div>
                 <div class="signature">
                   <div class="signature-image-wrap">${technician?.signatureUri ? `<img class="signature-img" src="${escapeHtml(technician.signatureUri)}" />` : ''}</div>
-                  <div class="signature-line">${escapeHtml(technicianName)}<br />Tecnico/Responsavel</div>
+                  <div class="signature-line">${escapeHtml(technicianName)}<br />${escapeHtml(t('common.technician'))}/${escapeHtml(t('common.responsible'))}</div>
                 </div>
               </div>
             </section>
@@ -212,7 +215,7 @@ export function buildOrderPdfHtml(data: AppData, order: ServiceOrder, options: P
         }
 
       <div class="footer">
-        ${escapeHtml(data.pdfSettings.footerText ?? 'Documento gerado pelo OrdemPro.')} - ${escapeHtml(formatDate(order.openedAt))}
+        ${escapeHtml(data.pdfSettings.footerText ?? t('common.appName'))} - ${escapeHtml(formatDate(order.openedAt, data.locale))}
       </div>
     </body>
   </html>`;

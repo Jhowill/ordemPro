@@ -3,7 +3,7 @@ import { createContext, ReactNode, useCallback, useContext, useEffect, useMemo, 
 import { createEmptyAppData, initialData } from '@/data/seed';
 import { normalizeAppData } from '@/data/normalizeAppData';
 import { checkDatabaseIntegrity, loadAppData, replaceAppData } from '@/database/appDatabase';
-import { AppData, CatalogPart, CatalogService, CompanyProfile, Customer, DefaultTerms, Equipment, Payment, PdfSettings, PhotoAttachment, SecuritySettings, ServiceOrder, ServiceOrderItem, ServiceOrderPdf, ServiceOrderStatusHistory, SignatureRecord, TechnicianProfile, ThemeMode } from '@/types';
+import { AppData, AppLocale, CatalogPart, CatalogService, CompanyProfile, Customer, DefaultTerms, Equipment, Payment, PdfSettings, PhotoAttachment, SecuritySettings, ServiceOrder, ServiceOrderItem, ServiceOrderPdf, ServiceOrderStatusHistory, SignatureRecord, TechnicianProfile, ThemeMode } from '@/types';
 import { calculateOrderTotals } from '@/services/calculations';
 import { cleanupOrphanMedia, clearStoredMedia, deleteLocalFile } from '@/services/media';
 import { makeId, nowIso } from '@/utils/formatters';
@@ -34,6 +34,7 @@ type AppDataContextValue = {
   saveTerms: (terms: Partial<DefaultTerms>) => Promise<void>;
   savePdfSettings: (settings: Partial<PdfSettings>) => Promise<void>;
   saveThemeMode: (themeMode: ThemeMode) => Promise<void>;
+  saveLocale: (locale: AppLocale) => Promise<void>;
   addCustomer: (input: Omit<Customer, 'id' | 'createdAt' | 'updatedAt' | 'status'>) => Promise<Customer>;
   addEquipment: (input: Omit<Equipment, 'id' | 'createdAt' | 'updatedAt' | 'status'>) => Promise<Equipment>;
   addCatalogService: (input: Pick<CatalogService, 'name' | 'category' | 'defaultPriceCents'>) => Promise<void>;
@@ -141,6 +142,7 @@ async function deleteSecurePinSafely() {
 export function AppDataProvider({ children }: { children: ReactNode }) {
   const [data, setData] = useState<AppData>(initialData);
   const dataRef = useRef<AppData>(initialData);
+  const commitQueueRef = useRef<Promise<void>>(Promise.resolve());
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
 
@@ -159,10 +161,24 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const commit = useCallback(async (updater: (current: AppData) => AppData) => {
-    const nextData = updater(dataRef.current);
-    dataRef.current = nextData;
-    setData(nextData);
-    await replaceAppData(nextData);
+    const runCommit = async () => {
+      const previousData = dataRef.current;
+      const nextData = updater(previousData);
+      dataRef.current = nextData;
+      setData(nextData);
+      try {
+        await replaceAppData(nextData);
+        setLoadError(null);
+      } catch (error) {
+        dataRef.current = previousData;
+        setData(previousData);
+        throw error;
+      }
+    };
+
+    const nextCommit = commitQueueRef.current.then(runCommit, runCommit);
+    commitQueueRef.current = nextCommit.catch(() => undefined);
+    await nextCommit;
   }, []);
 
   const saveCompany = useCallback<AppDataContextValue['saveCompany']>(
@@ -226,6 +242,13 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
   const saveThemeMode = useCallback<AppDataContextValue['saveThemeMode']>(
     async (themeMode) => {
       await commit((current) => ({ ...current, themeMode }));
+    },
+    [commit],
+  );
+
+  const saveLocale = useCallback<AppDataContextValue['saveLocale']>(
+    async (locale) => {
+      await commit((current) => ({ ...current, locale }));
     },
     [commit],
   );
@@ -675,10 +698,11 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
 
   const exportBackup = useCallback(async () => {
     const exportedAt = nowIso();
+    const currentData = dataRef.current;
     const exportData: AppData = {
-      ...data,
+      ...currentData,
       backup: {
-        lastBackupAt: data.backup.lastBackupAt ?? null,
+        lastBackupAt: currentData.backup.lastBackupAt ?? null,
         lastBackupJson: null,
       },
       pdfs: [],
@@ -687,7 +711,7 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
     const json = JSON.stringify({ app: 'OrdemPro', backupVersion: 1, exportedAt, data: exportData }, null, 2);
     await commit((current) => ({ ...current, backup: { lastBackupAt: exportedAt, lastBackupJson: null } }));
     return json;
-  }, [commit, data]);
+  }, [commit]);
 
   const importBackup = useCallback(
     async (json: string) => {
@@ -756,24 +780,20 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
 
   const resetDemo = useCallback(async () => {
     const currentPdfs = dataRef.current.pdfs;
-    dataRef.current = initialData;
-    setData(initialData);
-    await replaceAppData(initialData);
+    await commit(() => initialData);
     await deleteSecurePinSafely();
     await clearStoredMedia();
     await Promise.all(currentPdfs.map((pdf) => deleteLocalFile(pdf.localUri)));
-  }, []);
+  }, [commit]);
 
   const clearAllData = useCallback(async () => {
     const currentPdfs = dataRef.current.pdfs;
     const emptyData = createEmptyAppData();
-    await replaceAppData(emptyData);
+    await commit(() => emptyData);
     await deleteSecurePinSafely();
     await clearStoredMedia();
     await Promise.all(currentPdfs.map((pdf) => deleteLocalFile(pdf.localUri)));
-    dataRef.current = emptyData;
-    setData(emptyData);
-  }, []);
+  }, [commit]);
 
   const value = useMemo(
     () => ({
@@ -784,6 +804,7 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
       saveTerms,
       savePdfSettings,
       saveThemeMode,
+      saveLocale,
       addCustomer,
       addEquipment,
       addCatalogService,
@@ -813,7 +834,7 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
       resetDemo,
       clearAllData,
     }),
-    [addCatalogPart, addCatalogService, addCustomer, addEquipment, addOrderPhoto, addPayment, addSignature, clearAllData, createOrder, data, exportBackup, importBackup, loadError, loading, optimizeStorage, removeCatalogPart, removeCatalogService, removeOrderPhoto, removePayment, removeTechnician, replaceOrderItems, resetDemo, saveCatalogPart, saveCatalogService, saveCompany, savePdfSettings, saveSecuritySettings, saveTechnician, saveTerms, saveThemeMode, updateOrder, updateOrderPhoto, updateOrderStatus, updatePdfRecord, verifyDatabaseIntegrity],
+    [addCatalogPart, addCatalogService, addCustomer, addEquipment, addOrderPhoto, addPayment, addSignature, clearAllData, createOrder, data, exportBackup, importBackup, loadError, loading, optimizeStorage, removeCatalogPart, removeCatalogService, removeOrderPhoto, removePayment, removeTechnician, replaceOrderItems, resetDemo, saveCatalogPart, saveCatalogService, saveCompany, saveLocale, savePdfSettings, saveSecuritySettings, saveTechnician, saveTerms, saveThemeMode, updateOrder, updateOrderPhoto, updateOrderStatus, updatePdfRecord, verifyDatabaseIntegrity],
   );
 
   return <AppDataContext.Provider value={value}>{children}</AppDataContext.Provider>;

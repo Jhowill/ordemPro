@@ -12,6 +12,7 @@ import { ScreenContainer } from '@/components/ui/ScreenContainer';
 import { SectionTitle } from '@/components/ui/SectionTitle';
 import { SignaturePad } from '@/components/ui/SignaturePad';
 import { spacing } from '@/constants/theme';
+import { useI18n } from '@/hooks/useI18n';
 import { useThemeColors } from '@/hooks/useThemeColors';
 import { deleteLocalFile, pickAndStoreImage } from '@/services/media';
 import { useAppData } from '@/services/storage';
@@ -24,6 +25,7 @@ type DraftPhoto = { id: string; localUri: string; caption: string; includeInPdf:
 export default function NewOrderScreen() {
   const { data, addCustomer, createOrder, addEquipment, addOrderPhoto, addSignature } = useAppData();
   const colors = useThemeColors();
+  const { t } = useI18n();
   const [step, setStep] = useState(0);
   const [customerId, setCustomerId] = useState(data.customers[0]?.id ?? '');
   const [showNewCustomer, setShowNewCustomer] = useState(false);
@@ -51,31 +53,11 @@ export default function NewOrderScreen() {
   }
 
   function addCatalogService(service: CatalogService) {
-    setItems((current) => [
-      ...current,
-      {
-        id: makeId('draft_service'),
-        type: 'service',
-        description: service.name,
-        quantity: 1,
-        unitPriceCents: service.defaultPriceCents,
-        discountCents: 0,
-      },
-    ]);
+    setItems((current) => [...current, { id: makeId('draft_service'), type: 'service', description: service.name, quantity: 1, unitPriceCents: service.defaultPriceCents, discountCents: 0 }]);
   }
 
   function addCatalogPart(part: CatalogPart) {
-    setItems((current) => [
-      ...current,
-      {
-        id: makeId('draft_part'),
-        type: 'part',
-        description: part.name,
-        quantity: 1,
-        unitPriceCents: part.salePriceCents,
-        discountCents: 0,
-      },
-    ]);
+    setItems((current) => [...current, { id: makeId('draft_part'), type: 'part', description: part.name, quantity: 1, unitPriceCents: part.salePriceCents, discountCents: 0 }]);
   }
 
   function removeItem(id: string) {
@@ -89,16 +71,7 @@ export default function NewOrderScreen() {
   }
 
   function updateItem(id: string, input: Partial<Pick<DraftItem, 'quantity' | 'unitPriceCents' | 'discountCents'>>) {
-    setItems((current) =>
-      current.map((draft) => (
-        draft.id === id
-          ? {
-              ...draft,
-              ...input,
-            }
-          : draft
-      )),
-    );
+    setItems((current) => current.map((draft) => (draft.id === id ? { ...draft, ...input } : draft)));
   }
 
   function updateItemQuantity(id: string, value: string) {
@@ -108,7 +81,7 @@ export default function NewOrderScreen() {
 
   async function createCustomerInOrder() {
     if (!customerForm.name.trim()) {
-      Alert.alert('Informe o nome do cliente.');
+      Alert.alert(t('orderNew.alerts.customerNameMissing'));
       return;
     }
     try {
@@ -128,7 +101,7 @@ export default function NewOrderScreen() {
       setShowNewCustomer(false);
       setCustomerForm({ name: '', phone: '', whatsapp: '', email: '', document: '', city: '', state: '' });
     } catch (error) {
-      Alert.alert('Cliente nao salvo', error instanceof Error ? error.message : 'Tente novamente.');
+      Alert.alert(t('orderNew.alerts.saveFail'), error instanceof Error ? error.message : t('common.retry'));
     }
   }
 
@@ -136,20 +109,20 @@ export default function NewOrderScreen() {
     try {
       const image = await pickAndStoreImage('orders', source);
       if (!image) return;
-      setPhotos((current) => [...current, { id: makeId('draft_photo'), localUri: image.localUri, caption: 'Foto da OS', includeInPdf: true }]);
+      setPhotos((current) => [...current, { id: makeId('draft_photo'), localUri: image.localUri, caption: t('orderDetail.photos'), includeInPdf: true }]);
     } catch (error) {
-      Alert.alert('Foto nao adicionada', error instanceof Error ? error.message : 'Tente novamente.');
+      Alert.alert(t('orderDetail.photoAddFail'), error instanceof Error ? error.message : t('common.retry'));
     }
   }
 
   async function createEquipmentInOrder() {
     if (!customerId) {
-      Alert.alert('Selecione um cliente antes de adicionar equipamento.');
+      Alert.alert(t('orderNew.alerts.customerMissing'));
       setStep(0);
       return;
     }
     if (!equipmentForm.type.trim() && !equipmentForm.description.trim()) {
-      Alert.alert('Informe o tipo ou descricao do equipamento.');
+      Alert.alert(t('orderNew.alerts.equipmentTypeMissing'));
       return;
     }
     try {
@@ -167,24 +140,24 @@ export default function NewOrderScreen() {
       setShowNewEquipment(false);
       setEquipmentForm({ type: 'Equipamento', brand: '', model: '', serialNumber: '', description: '' });
     } catch (error) {
-      Alert.alert('Equipamento nao salvo', error instanceof Error ? error.message : 'Tente novamente.');
+      Alert.alert(t('orderNew.alerts.saveFail'), error instanceof Error ? error.message : t('common.retry'));
     }
   }
 
   async function save() {
     if (saving) return;
     if (!customerId) {
-      Alert.alert('Selecione um cliente.');
+      Alert.alert(t('orderNew.alerts.customerMissing'));
       setStep(0);
       return;
     }
     if (!withoutEquipment && !equipmentId) {
-      Alert.alert('Selecione um equipamento ou marque servico sem equipamento.');
+      Alert.alert(t('orderNew.alerts.equipmentMissing'));
       setStep(1);
       return;
     }
     if (!reportedIssue.trim()) {
-      Alert.alert('Informe o problema ou servico solicitado.');
+      Alert.alert(t('orderNew.alerts.issueMissing'));
       setStep(2);
       return;
     }
@@ -208,13 +181,13 @@ export default function NewOrderScreen() {
         await addSignature(order.id, {
           kind: 'customer',
           localUri: customerSignatureUri,
-          signerName: customer?.name ?? (customerForm.name || 'Cliente'),
+          signerName: customer?.name ?? (customerForm.name || t('common.customer')),
           signerDocument: customer?.document || customerForm.document,
         });
       }
       router.replace(`/orders/${order.id}`);
     } catch (error) {
-      Alert.alert('Nao foi possivel salvar a OS', error instanceof Error ? error.message : 'Verifique os dados e tente novamente.');
+      Alert.alert(t('orderNew.alerts.saveFail'), error instanceof Error ? error.message : t('common.retry'));
     } finally {
       setSaving(false);
     }
@@ -227,19 +200,19 @@ export default function NewOrderScreen() {
       scrollEnabled={!isSigning}
       footer={
         <View style={styles.footer}>
-          {step > 0 ? <AppButton title="Voltar" variant="secondary" onPress={() => setStep((value) => value - 1)} /> : null}
-          <AppButton title={step === 4 ? 'Salvar OS' : 'Avancar'} loading={saving} onPress={() => (step === 4 ? save() : setStep((value) => value + 1))} />
+          {step > 0 ? <AppButton title={t('orderNew.previous')} variant="secondary" onPress={() => setStep((value) => value - 1)} /> : null}
+          <AppButton title={step === 4 ? t('orderNew.save') : t('orderNew.next')} loading={saving} onPress={() => (step === 4 ? save() : setStep((value) => value + 1))} />
         </View>
       }
     >
-      <AppHeader title="Nova Ordem de Servico" subtitle={`Etapa ${step + 1} de 5`} back />
+      <AppHeader title={t('orderNew.title')} subtitle={t('orderNew.subtitle', { current: step + 1, total: 5 })} back />
       {step === 0 ? (
         <>
-          <SectionTitle title="Cliente" description="Selecione um cliente existente" />
+          <SectionTitle title={t('orderNew.customerStepTitle')} description={t('orderNew.customerStepDesc')} />
           <PaginatedList
             items={data.customers}
             keyExtractor={(customer) => customer.id}
-            empty={<AppText muted>Nenhum cliente cadastrado.</AppText>}
+            empty={<AppText muted>{t('customers.emptyTitle')}</AppText>}
             renderItem={(customer) => (
               <Pressable key={customer.id} onPress={() => {
                 setCustomerId(customer.id);
@@ -253,20 +226,20 @@ export default function NewOrderScreen() {
               </Pressable>
             )}
           />
-          <AppButton title={showNewCustomer ? 'Fechar novo cliente' : 'Adicionar cliente'} variant="secondary" onPress={() => setShowNewCustomer((value) => !value)} />
+          <AppButton title={showNewCustomer ? t('orderNew.closeCustomer') : t('orderNew.addCustomer')} variant="secondary" onPress={() => setShowNewCustomer((value) => !value)} />
           {showNewCustomer ? (
             <AppCard>
-              <SectionTitle title="Novo cliente" description="Sera selecionado para esta OS" />
-              <InputField label="Nome" value={customerForm.name} onChangeText={(value) => setCustomerForm((current) => ({ ...current, name: value }))} />
-              <InputField label="Telefone" value={customerForm.phone} onChangeText={(value) => setCustomerForm((current) => ({ ...current, phone: formatPhoneInput(value) }))} keyboardType="phone-pad" />
-              <InputField label="WhatsApp" value={customerForm.whatsapp} onChangeText={(value) => setCustomerForm((current) => ({ ...current, whatsapp: formatPhoneInput(value) }))} keyboardType="phone-pad" />
-              <InputField label="Documento" value={customerForm.document} onChangeText={(value) => setCustomerForm((current) => ({ ...current, document: formatCpfCnpjInput(value) }))} keyboardType="numeric" />
-              <InputField label="E-mail" value={customerForm.email} onChangeText={(value) => setCustomerForm((current) => ({ ...current, email: value }))} keyboardType="email-address" autoCapitalize="none" />
+              <SectionTitle title={t('orderNew.newCustomerTitle')} description={t('orderNew.newCustomerDesc')} />
+              <InputField label={t('company.fields.name')} value={customerForm.name} onChangeText={(value) => setCustomerForm((current) => ({ ...current, name: value }))} />
+              <InputField label={t('company.fields.phone')} value={customerForm.phone} onChangeText={(value) => setCustomerForm((current) => ({ ...current, phone: formatPhoneInput(value) }))} keyboardType="phone-pad" />
+              <InputField label={t('company.fields.whatsapp')} value={customerForm.whatsapp} onChangeText={(value) => setCustomerForm((current) => ({ ...current, whatsapp: formatPhoneInput(value) }))} keyboardType="phone-pad" />
+              <InputField label={t('company.fields.document')} value={customerForm.document} onChangeText={(value) => setCustomerForm((current) => ({ ...current, document: formatCpfCnpjInput(value) }))} keyboardType="numeric" />
+              <InputField label={t('company.fields.email')} value={customerForm.email} onChangeText={(value) => setCustomerForm((current) => ({ ...current, email: value }))} keyboardType="email-address" autoCapitalize="none" />
               <View style={styles.footer}>
-                <InputField label="Cidade" value={customerForm.city} onChangeText={(value) => setCustomerForm((current) => ({ ...current, city: value }))} style={styles.compactInput} />
-                <InputField label="UF" value={customerForm.state} onChangeText={(value) => setCustomerForm((current) => ({ ...current, state: value }))} style={styles.compactInput} autoCapitalize="characters" />
+                <InputField label={t('company.fields.city')} value={customerForm.city} onChangeText={(value) => setCustomerForm((current) => ({ ...current, city: value }))} style={styles.compactInput} />
+                <InputField label={t('company.fields.state')} value={customerForm.state} onChangeText={(value) => setCustomerForm((current) => ({ ...current, state: value }))} style={styles.compactInput} autoCapitalize="characters" />
               </View>
-              <AppButton title="Salvar e selecionar" onPress={createCustomerInOrder} />
+              <AppButton title={t('orderNew.saveCustomer')} onPress={createCustomerInOrder} />
             </AppCard>
           ) : null}
         </>
@@ -274,37 +247,37 @@ export default function NewOrderScreen() {
 
       {step === 1 ? (
         <>
-          <SectionTitle title="Equipamento" description="Vincule ao cliente ou marque servico sem equipamento" />
+          <SectionTitle title={t('orderNew.equipmentStepTitle')} description={t('orderNew.equipmentStepDesc')} />
           <Pressable onPress={() => setWithoutEquipment((value) => !value)}>
             <AppCard>
-              <AppText variant="subtitle" color={withoutEquipment ? colors.primary : undefined}>Servico sem equipamento</AppText>
+              <AppText variant="subtitle" color={withoutEquipment ? colors.primary : undefined}>{t('orderNew.noEquipment')}</AppText>
             </AppCard>
           </Pressable>
-          <AppButton title={showNewEquipment ? 'Fechar novo equipamento' : 'Adicionar equipamento'} variant="secondary" onPress={() => {
+          <AppButton title={showNewEquipment ? t('orderNew.closeEquipment') : t('orderNew.addEquipment')} variant="secondary" onPress={() => {
             setShowNewEquipment((value) => !value);
             setWithoutEquipment(false);
           }} />
           {showNewEquipment ? (
             <AppCard>
-              <SectionTitle title="Novo equipamento" description="Sera vinculado ao cliente selecionado" />
-              <InputField label="Tipo" value={equipmentForm.type} onChangeText={(value) => setEquipmentForm((current) => ({ ...current, type: value }))} />
-              <InputField label="Marca" value={equipmentForm.brand} onChangeText={(value) => setEquipmentForm((current) => ({ ...current, brand: value }))} />
-              <InputField label="Modelo" value={equipmentForm.model} onChangeText={(value) => setEquipmentForm((current) => ({ ...current, model: value }))} />
-              <InputField label="Numero de serie" value={equipmentForm.serialNumber} onChangeText={(value) => setEquipmentForm((current) => ({ ...current, serialNumber: value }))} />
-              <InputField label="Descricao" value={equipmentForm.description} onChangeText={(value) => setEquipmentForm((current) => ({ ...current, description: value }))} multiline style={styles.textArea} />
-              <AppButton title="Salvar e selecionar" onPress={createEquipmentInOrder} />
+              <SectionTitle title={t('orderNew.newEquipmentTitle')} description={t('orderNew.newEquipmentDesc')} />
+              <InputField label={t('common.equipment')} value={equipmentForm.type} onChangeText={(value) => setEquipmentForm((current) => ({ ...current, type: value }))} />
+              <InputField label={t('common.brand')} value={equipmentForm.brand} onChangeText={(value) => setEquipmentForm((current) => ({ ...current, brand: value }))} />
+              <InputField label={t('details.model')} value={equipmentForm.model} onChangeText={(value) => setEquipmentForm((current) => ({ ...current, model: value }))} />
+              <InputField label={t('details.serial')} value={equipmentForm.serialNumber} onChangeText={(value) => setEquipmentForm((current) => ({ ...current, serialNumber: value }))} />
+              <InputField label={t('company.fields.addressLine')} value={equipmentForm.description} onChangeText={(value) => setEquipmentForm((current) => ({ ...current, description: value }))} multiline style={styles.textArea} />
+              <AppButton title={t('orderNew.saveEquipment')} onPress={createEquipmentInOrder} />
             </AppCard>
           ) : null}
           {!withoutEquipment ? (
             <PaginatedList
               items={data.equipments.filter((equipment) => equipment.customerId === customerId)}
               keyExtractor={(equipment) => equipment.id}
-              empty={<AppText muted>Nenhum equipamento cadastrado para este cliente.</AppText>}
+              empty={<AppText muted>{t('equipments.emptyTitle')}</AppText>}
               renderItem={(equipment) => (
                 <Pressable key={equipment.id} onPress={() => setEquipmentId(equipment.id)}>
                   <AppCard>
                     <AppText variant="subtitle" color={equipmentId === equipment.id ? colors.primary : undefined}>{equipment.type ?? equipment.category} {equipment.brand ?? ''} {equipment.model ?? ''}</AppText>
-                    <AppText muted>{equipment.serialNumber ?? 'Sem serie'}</AppText>
+                    <AppText muted>{equipment.serialNumber ?? t('equipments.noSerial')}</AppText>
                   </AppCard>
                 </Pressable>
               )}
@@ -315,8 +288,8 @@ export default function NewOrderScreen() {
 
       {step === 2 ? (
         <>
-          <SectionTitle title="Problema" description="Descreva o motivo da abertura" />
-          <SectionTitle title="Tecnico responsavel" />
+          <SectionTitle title={t('orderNew.issueStepTitle')} description={t('orderNew.issueStepDesc')} />
+          <SectionTitle title={t('orderNew.technicianStepTitle')} />
           <PaginatedList
             items={data.technicians}
             keyExtractor={(technician) => technician.id}
@@ -324,120 +297,120 @@ export default function NewOrderScreen() {
               <Pressable key={technician.id} onPress={() => setTechnicianId(technician.id)}>
                 <AppCard>
                   <AppText variant="subtitle" color={technicianId === technician.id ? colors.primary : undefined}>{technician.name}</AppText>
-                  <AppText muted>{technician.signatureUri ? 'Assinatura salva para PDF' : 'Sem assinatura cadastrada'}</AppText>
+                  <AppText muted>{technician.signatureUri ? t('orderEdit.technicianReady') : t('orderEdit.technicianMissing')}</AppText>
                 </AppCard>
               </Pressable>
             )}
           />
-          {!data.technicians.length ? <AppButton title="Cadastrar tecnico" variant="secondary" onPress={() => router.push('/settings/technician')} /> : null}
-          <InputField label="Defeito relatado ou servico solicitado" value={reportedIssue} onChangeText={setReportedIssue} multiline style={styles.textArea} />
-          <InputField label="Diagnostico tecnico" value={diagnosis} onChangeText={setDiagnosis} multiline style={styles.textArea} />
-          <InputField label="Servico executado" value={performedService} onChangeText={setPerformedService} multiline style={styles.textArea} />
+          {!data.technicians.length ? <AppButton title={t('technician.new')} variant="secondary" onPress={() => router.push('/settings/technician')} /> : null}
+          <InputField label={t('orderEdit.reportedIssue')} value={reportedIssue} onChangeText={setReportedIssue} multiline style={styles.textArea} />
+          <InputField label={t('orderEdit.diagnosis')} value={diagnosis} onChangeText={setDiagnosis} multiline style={styles.textArea} />
+          <InputField label={t('orderEdit.performedService')} value={performedService} onChangeText={setPerformedService} multiline style={styles.textArea} />
         </>
       ) : null}
 
       {step === 3 ? (
         <>
-          <SectionTitle title="Pecas e servicos" description="Adicione itens cobrados ou descritivos" />
-          <SectionTitle title="Catalogo de servicos" />
+          <SectionTitle title={t('orderNew.partsStepTitle')} description={t('orderNew.partsStepDesc')} />
+          <SectionTitle title={t('orderNew.serviceCatalog')} />
           <PaginatedList
             items={data.services}
             keyExtractor={(service) => service.id}
-            empty={<AppText muted>Nenhum servico cadastrado no catalogo.</AppText>}
+            empty={<AppText muted>{t('catalog.servicesEmpty')}</AppText>}
             renderItem={(service) => (
               <AppCard key={service.id}>
                 <View style={styles.itemRow}>
                   <View style={styles.itemInfo}>
                     <AppText variant="subtitle">{service.name}</AppText>
-                    <AppText muted>{service.category ?? 'Servico'} - {formatMoney(service.defaultPriceCents)}</AppText>
+                    <AppText muted>{service.category ?? t('catalog.category')} - {formatMoney(service.defaultPriceCents)}</AppText>
                   </View>
-                  <AppButton title="Adicionar" variant="secondary" compact onPress={() => addCatalogService(service)} />
+                  <AppButton title={t('common.add')} variant="secondary" compact onPress={() => addCatalogService(service)} />
                 </View>
               </AppCard>
             )}
           />
 
-          <SectionTitle title="Catalogo de pecas" />
+          <SectionTitle title={t('orderNew.partCatalog')} />
           <PaginatedList
             items={data.parts}
             keyExtractor={(part) => part.id}
-            empty={<AppText muted>Nenhuma peca cadastrada no catalogo.</AppText>}
+            empty={<AppText muted>{t('catalog.partsEmpty')}</AppText>}
             renderItem={(part) => (
               <AppCard key={part.id}>
                 <View style={styles.itemRow}>
                   <View style={styles.itemInfo}>
                     <AppText variant="subtitle">{part.name}</AppText>
-                    <AppText muted>{part.category ?? 'Peca'} - {formatMoney(part.salePriceCents)}</AppText>
+                    <AppText muted>{part.category ?? t('catalog.category')} - {formatMoney(part.salePriceCents)}</AppText>
                   </View>
-                  <AppButton title="Adicionar" variant="secondary" compact onPress={() => addCatalogPart(part)} />
+                  <AppButton title={t('common.add')} variant="secondary" compact onPress={() => addCatalogPart(part)} />
                 </View>
               </AppCard>
             )}
           />
 
-          <SectionTitle title="Item manual" />
-          <InputField label="Descricao do item" value={item.description} onChangeText={(value) => setItem((current) => ({ ...current, description: value }))} />
-          <InputField label="Valor" value={item.price} onChangeText={(value) => setItem((current) => ({ ...current, price: formatMoneyInput(value) }))} keyboardType="numeric" placeholder="R$ 0,00" />
+          <SectionTitle title={t('orderNew.manualItem')} />
+          <InputField label={t('orderNew.manualDesc')} value={item.description} onChangeText={(value) => setItem((current) => ({ ...current, description: value }))} />
+          <InputField label={t('orderNew.value')} value={item.price} onChangeText={(value) => setItem((current) => ({ ...current, price: formatMoneyInput(value) }))} keyboardType="numeric" placeholder="R$ 0,00" />
           <View style={styles.footer}>
-            <AppButton title="Servico" variant="secondary" onPress={() => addItem('service')} />
-            <AppButton title="Peca" variant="secondary" onPress={() => addItem('part')} />
+            <AppButton title={t('orderNew.service')} variant="secondary" onPress={() => addItem('service')} />
+            <AppButton title={t('orderNew.part')} variant="secondary" onPress={() => addItem('part')} />
           </View>
-          <SectionTitle title="Itens da OS" description={`${items.length} item${items.length === 1 ? '' : 's'} selecionado${items.length === 1 ? '' : 's'}`} />
+          <SectionTitle title={t('orderNew.itemsTitle')} description={t('orderNew.itemsDesc', { count: items.length, plural: items.length === 1 ? '' : 's' })} />
           {items.length ? items.map((draft) => (
             <AppCard key={draft.id}>
               <View style={styles.itemRow}>
                 <View style={styles.itemInfo}>
                   <AppText variant="subtitle">{draft.description}</AppText>
-                  <AppText muted>{draft.type === 'service' ? 'Servico' : 'Peca'} - Total {formatMoney(Math.max(0, (draft.quantity ?? 0) * draft.unitPriceCents - draft.discountCents))}</AppText>
+                  <AppText muted>{draft.type === 'service' ? t('orderNew.service') : t('orderNew.part')} - {formatMoney(Math.max(0, (draft.quantity ?? 0) * draft.unitPriceCents - draft.discountCents))}</AppText>
                   <View style={styles.compactFields}>
-                    <InputField label="Qtd" value={draft.quantity === null ? '' : String(draft.quantity)} onChangeText={(value) => updateItemQuantity(draft.id, value)} keyboardType="numeric" style={styles.compactInput} />
-                    <InputField label="Valor" value={formatMoney(draft.unitPriceCents)} onChangeText={(value) => updateItem(draft.id, { unitPriceCents: moneyFromText(value) })} keyboardType="numeric" style={styles.compactInput} />
-                    <InputField label="Desc." value={formatMoney(draft.discountCents)} onChangeText={(value) => updateItem(draft.id, { discountCents: moneyFromText(value) })} keyboardType="numeric" style={styles.compactInput} />
+                    <InputField label={t('orderEdit.quantity')} value={draft.quantity === null ? '' : String(draft.quantity)} onChangeText={(value) => updateItemQuantity(draft.id, value)} keyboardType="numeric" style={styles.compactInput} />
+                    <InputField label={t('common.unitValue')} value={formatMoney(draft.unitPriceCents)} onChangeText={(value) => updateItem(draft.id, { unitPriceCents: moneyFromText(value) })} keyboardType="numeric" style={styles.compactInput} />
+                    <InputField label={t('orderEdit.discount')} value={formatMoney(draft.discountCents)} onChangeText={(value) => updateItem(draft.id, { discountCents: moneyFromText(value) })} keyboardType="numeric" style={styles.compactInput} />
                   </View>
                 </View>
-                <AppButton title="Retirar" variant="danger" compact onPress={() => removeItem(draft.id)} />
+                <AppButton title={t('orderEdit.remove')} variant="danger" compact onPress={() => removeItem(draft.id)} />
               </View>
             </AppCard>
-          )) : <AppText muted>Nenhum item selecionado ainda.</AppText>}
+          )) : <AppText muted>{t('orderDetail.noItems')}</AppText>}
         </>
       ) : null}
 
       {step === 4 ? (
         <>
-          <SectionTitle title="Resumo da OS" />
+          <SectionTitle title={t('orderNew.summaryTitle')} />
           <AppCard>
-            <AppText variant="subtitle">Solicitacao</AppText>
+            <AppText variant="subtitle">{t('orderNew.request')}</AppText>
             <AppText>{reportedIssue}</AppText>
-            <AppText muted>{withoutEquipment ? 'Servico sem equipamento' : 'Com equipamento vinculado'}</AppText>
-            <AppText muted>Tecnico: {data.technicians.find((item) => item.id === technicianId)?.name ?? 'Nao selecionado'}</AppText>
+            <AppText muted>{withoutEquipment ? t('orderNew.withoutEquipment') : t('orderNew.withEquipment')}</AppText>
+            <AppText muted>{t('common.technician')}: {data.technicians.find((item) => item.id === technicianId)?.name ?? t('common.none')}</AppText>
           </AppCard>
           <AppCard>
-            <AppText variant="subtitle">Valores</AppText>
+            <AppText variant="subtitle">{t('orderNew.values')}</AppText>
             <AppText variant="money">{formatMoney(total)}</AppText>
-            <AppText muted>{items.length} itens adicionados</AppText>
+            <AppText muted>{t('orderNew.itemsDesc', { count: items.length, plural: items.length === 1 ? '' : 's' })}</AppText>
           </AppCard>
           <AppCard>
-            <SectionTitle title="Fotos" description={`${photos.length} foto${photos.length === 1 ? '' : 's'} antes de salvar`} />
+            <SectionTitle title={t('orderNew.photosTitle')} description={t('orderNew.photosDesc', { count: photos.length, plural: photos.length === 1 ? '' : 's' })} />
             <View style={styles.footer}>
-              <AppButton title="Galeria" variant="secondary" compact onPress={() => addDraftPhoto('library')} />
-              <AppButton title="Camera" variant="secondary" compact onPress={() => addDraftPhoto('camera')} />
+              <AppButton title={t('orderDetail.gallery')} variant="secondary" compact onPress={() => addDraftPhoto('library')} />
+              <AppButton title={t('orderDetail.camera')} variant="secondary" compact onPress={() => addDraftPhoto('camera')} />
             </View>
             {photos.length ? (
               <View style={styles.photoGrid}>
                 {photos.map((photo) => (
                   <View key={photo.id} style={styles.photoItem}>
                     <Image source={{ uri: photo.localUri }} style={[styles.photo, { backgroundColor: colors.surfaceAlt }]} />
-                    <AppButton title="Retirar" variant="danger" compact onPress={() => removeDraftPhoto(photo.id)} />
+                    <AppButton title={t('common.remove')} variant="danger" compact onPress={() => removeDraftPhoto(photo.id)} />
                   </View>
                 ))}
               </View>
-            ) : <AppText muted>Nenhuma foto adicionada.</AppText>}
+            ) : <AppText muted>{t('orderDetail.noPhotos')}</AppText>}
           </AppCard>
           <AppCard>
-            <SectionTitle title="Assinatura do cliente" description="Opcional antes de salvar a OS" />
+            <SectionTitle title={t('orderNew.signatureTitle')} description={t('orderNew.signatureDesc')} />
             {showSignaturePad ? (
               <SignaturePad
-                title="Assinatura do cliente"
+                title={t('orderNew.signatureTitle')}
                 onSigningChange={setIsSigning}
                 onSave={(uri) => {
                   setCustomerSignatureUri(uri);
@@ -451,8 +424,8 @@ export default function NewOrderScreen() {
               />
             ) : (
               <>
-                <AppText muted>{customerSignatureUri ? 'Assinatura salva para esta OS.' : 'Cliente ainda nao assinou.'}</AppText>
-                <AppButton title={customerSignatureUri ? 'Refazer assinatura' : 'Assinar na tela'} variant="secondary" onPress={() => setShowSignaturePad(true)} />
+                <AppText muted>{customerSignatureUri ? t('orderNew.signatureSaved') : t('orderNew.signatureNone')}</AppText>
+                <AppButton title={customerSignatureUri ? t('orderNew.signAgain') : t('orderNew.signOnScreen')} variant="secondary" onPress={() => setShowSignaturePad(true)} />
               </>
             )}
           </AppCard>

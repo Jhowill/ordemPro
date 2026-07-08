@@ -14,6 +14,7 @@ import { SectionTitle } from '@/components/ui/SectionTitle';
 import { SignaturePad } from '@/components/ui/SignaturePad';
 import { StatusBadge } from '@/components/ui/StatusBadge';
 import { spacing } from '@/constants/theme';
+import { useI18n } from '@/hooks/useI18n';
 import { useThemeColors } from '@/hooks/useThemeColors';
 import { pickAndStoreImage } from '@/services/media';
 import { useAppData } from '@/services/storage';
@@ -25,6 +26,7 @@ const statusOptions: ServiceOrderStatus[] = ['open', 'diagnosis', 'waiting_appro
 export default function OrderDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const colors = useThemeColors();
+  const { t, locale } = useI18n();
   const { data, updateOrderStatus, addOrderPhoto, updateOrderPhoto, removeOrderPhoto, addSignature, removePayment } = useAppData();
   const [showCustomerSignaturePad, setShowCustomerSignaturePad] = useState(false);
   const [showStatusModal, setShowStatusModal] = useState(false);
@@ -33,7 +35,7 @@ export default function OrderDetailScreen() {
   const [statusNotes, setStatusNotes] = useState('');
   const [savingStatus, setSavingStatus] = useState(false);
   const order = data.orders.find((item) => item.id === id);
-  if (!order) return <ScreenContainer><EmptyState icon="alert-circle-outline" title="OS nao encontrada" description="A ordem pode ter sido removida." /></ScreenContainer>;
+  if (!order) return <ScreenContainer><EmptyState icon="alert-circle-outline" title={t('orderDetail.notFound')} description={t('orderDetail.notFoundDesc')} /></ScreenContainer>;
   const activeOrder = order;
   const customer = data.customers.find((item) => item.id === activeOrder.customerId);
   const equipment = data.equipments.find((item) => item.id === activeOrder.equipmentId);
@@ -61,40 +63,40 @@ export default function OrderDetailScreen() {
 
   async function saveStatusChange() {
     if (targetStatus === activeOrder.status) {
-      Alert.alert('Selecione outro status', 'Escolha um status diferente do atual para salvar a mudanca.');
+      Alert.alert(t('orderDetail.selectDifferentStatus'), t('orderDetail.changeSelectDesc'));
       return;
     }
     if (!statusNotes.trim()) {
-      Alert.alert('Descreva a mudanca', 'Informe uma descricao antes de salvar o novo status.');
+      Alert.alert(t('orderDetail.changeRequired'), t('orderDetail.changeRequiredDesc'));
       return;
     }
     try {
       setSavingStatus(true);
       await updateOrderStatus(activeOrder.id, targetStatus, {
-        reason: 'Alteracao manual',
+        reason: t('orderDetail.reasonLabel'),
         notes: statusNotes,
       });
       setSelectedStatus(null);
       setStatusNotes('');
       setShowStatusModal(false);
     } catch (error) {
-      Alert.alert('Status nao atualizado', error instanceof Error ? error.message : 'Tente novamente.');
+      Alert.alert(t('orderDetail.statusUpdatedFail'), error instanceof Error ? error.message : t('common.retry'));
     } finally {
       setSavingStatus(false);
     }
   }
 
   function confirmRemovePayment(paymentId: string) {
-    Alert.alert('Remover pagamento', 'Deseja retirar este pagamento da OS?', [
-      { text: 'Voltar', style: 'cancel' },
+    Alert.alert(t('orderDetail.removePayment'), t('orderDetail.removePaymentDesc'), [
+      { text: t('common.back'), style: 'cancel' },
       {
-        text: 'Remover',
+        text: t('common.remove'),
         style: 'destructive',
         onPress: async () => {
           try {
             await removePayment(paymentId);
           } catch (error) {
-            Alert.alert('Pagamento nao removido', error instanceof Error ? error.message : 'Tente novamente.');
+            Alert.alert(t('orderDetail.paymentRemovedFail'), error instanceof Error ? error.message : t('common.retry'));
           }
         },
       },
@@ -105,9 +107,9 @@ export default function OrderDetailScreen() {
     try {
       const image = await pickAndStoreImage('orders', source);
       if (!image) return;
-      await addOrderPhoto(activeOrder.id, { localUri: image.localUri, caption: `Foto da ${activeOrder.shortCode}`, includeInPdf: true });
+      await addOrderPhoto(activeOrder.id, { localUri: image.localUri, caption: `Foto ${activeOrder.shortCode}`, includeInPdf: true });
     } catch (error) {
-      Alert.alert('Foto nao adicionada', error instanceof Error ? error.message : 'Tente novamente.');
+      Alert.alert(t('orderDetail.photoAddFail'), error instanceof Error ? error.message : t('common.retry'));
     }
   }
 
@@ -118,11 +120,11 @@ export default function OrderDetailScreen() {
       await addSignature(activeOrder.id, {
         kind: 'customer',
         localUri: image.localUri,
-        signerName: customer?.name ?? 'Cliente',
+        signerName: customer?.name ?? t('common.customer'),
         signerDocument: customer?.document,
       });
     } catch (error) {
-      Alert.alert('Assinatura nao adicionada', error instanceof Error ? error.message : 'Tente novamente.');
+      Alert.alert(t('orderDetail.signatureAddFail'), error instanceof Error ? error.message : t('common.retry'));
     }
   }
 
@@ -131,23 +133,23 @@ export default function OrderDetailScreen() {
       await addSignature(activeOrder.id, {
         kind: 'customer',
         localUri: uri,
-        signerName: customer?.name ?? 'Cliente',
+        signerName: customer?.name ?? t('common.customer'),
         signerDocument: customer?.document,
       });
       setShowCustomerSignaturePad(false);
       setIsSigning(false);
     } catch (error) {
-      Alert.alert('Assinatura nao salva', error instanceof Error ? error.message : 'Tente novamente.');
+      Alert.alert(t('orderDetail.signatureSaveFail'), error instanceof Error ? error.message : t('common.retry'));
     }
   }
 
   return (
     <ScreenContainer scrollEnabled={!isSigning}>
-      <AppHeader title={activeOrder.shortCode} subtitle={customer?.name ?? 'Cliente'} back action={<StatusBadge status={activeOrder.status} />} />
+      <AppHeader title={activeOrder.shortCode} subtitle={customer?.name ?? t('common.customer')} back action={<StatusBadge status={activeOrder.status} />} />
       <View style={styles.actions}>
-        <AppButton title="Alterar status" onPress={openStatusModal} />
-        <AppButton title="Editar" variant="secondary" onPress={() => router.push(`/orders/${activeOrder.id}/edit`)} />
-        <AppButton title="PDF" variant="secondary" onPress={() => router.push(`/orders/${activeOrder.id}/pdf`)} />
+        <AppButton title={t('orderDetail.title')} onPress={openStatusModal} />
+        <AppButton title={t('orderEdit.title')} variant="secondary" onPress={() => router.push(`/orders/${activeOrder.id}/edit`)} />
+        <AppButton title={t('pdf.title')} variant="secondary" onPress={() => router.push(`/orders/${activeOrder.id}/pdf`)} />
       </View>
 
       <Modal visible={showStatusModal} transparent animationType="fade" onRequestClose={closeStatusModal}>
@@ -155,35 +157,30 @@ export default function OrderDetailScreen() {
           <Pressable style={[styles.modalBackdrop, { backgroundColor: colors.overlay }]} onPress={closeStatusModal} />
           <View style={[styles.modalSheet, { backgroundColor: colors.background }]}>
             <AppCard>
-              <SectionTitle title="Alterar status" description="Selecione o novo estado e registre o motivo da mudanca" />
+              <SectionTitle title={t('orderDetail.title')} description={t('orderDetail.subtitle')} />
               <View style={styles.statusGrid}>
                 {statusOptions.map((status) => {
                   const active = targetStatus === status;
                   return (
                     <View key={status} style={styles.statusChipWrap}>
-                      <AppButton
-                        title={statusLabel(status)}
-                        variant={active ? 'primary' : 'secondary'}
-                        compact
-                        onPress={() => setSelectedStatus(status)}
-                      />
+                      <AppButton title={statusLabel(status, locale)} variant={active ? 'primary' : 'secondary'} compact onPress={() => setSelectedStatus(status)} />
                     </View>
                   );
                 })}
               </View>
               <InputField
-                label="Descricao da mudanca"
+                label={t('orderDetail.changeDesc')}
                 value={statusNotes}
                 onChangeText={setStatusNotes}
                 multiline
                 style={styles.textArea}
-                placeholder="Ex.: Cliente aprovou o orcamento, aguardando chegada da peca."
+                placeholder={t('orderDetail.changeDescPlaceholder')}
               />
               <View style={styles.statusFooter}>
-                <AppText muted>Status atual: {statusLabel(activeOrder.status)}</AppText>
+                <AppText muted>{t('orderDetail.currentStatus', { status: statusLabel(activeOrder.status, locale) })}</AppText>
                 <View style={styles.modalActions}>
-                  <AppButton title="Voltar" variant="secondary" compact onPress={closeStatusModal} />
-                  <AppButton title="Salvar" loading={savingStatus} compact onPress={saveStatusChange} />
+                  <AppButton title={t('common.back')} variant="secondary" compact onPress={closeStatusModal} />
+                  <AppButton title={t('orderDetail.save')} loading={savingStatus} compact onPress={saveStatusChange} />
                 </View>
               </View>
             </AppCard>
@@ -192,30 +189,30 @@ export default function OrderDetailScreen() {
       </Modal>
 
       <AppCard>
-        <SectionTitle title="Cliente" />
+        <SectionTitle title={t('orderDetail.customer')} />
         <AppText>{customer?.name ?? '-'}</AppText>
         <AppText muted>{customer?.phone ?? customer?.whatsapp ?? '-'}</AppText>
       </AppCard>
 
       <AppCard>
-        <SectionTitle title="Equipamento" />
-        <AppText>{equipment ? `${equipment.type ?? equipment.category} ${equipment.brand ?? ''} ${equipment.model ?? ''}` : 'Servico sem equipamento'}</AppText>
+        <SectionTitle title={t('orderDetail.equipment')} />
+        <AppText>{equipment ? `${equipment.type ?? equipment.category} ${equipment.brand ?? ''} ${equipment.model ?? ''}` : t('common.serviceWithoutEquipment')}</AppText>
         <AppText muted>{equipment?.serialNumber ?? ''}</AppText>
       </AppCard>
 
       <AppCard>
-        <SectionTitle title="Problema e diagnostico" description={`Tecnico: ${technician?.name ?? 'Nao informado'}`} />
+        <SectionTitle title={t('orderDetail.issueAndDiagnosis')} description={`${t('common.technician')}: ${technician?.name ?? t('common.none')}`} />
         <AppText>{activeOrder.reportedIssue}</AppText>
-        <AppText muted>{activeOrder.diagnosis || 'Diagnostico ainda nao informado.'}</AppText>
-        <AppText muted>{activeOrder.performedService || 'Servico executado ainda nao informado.'}</AppText>
+        <AppText muted>{activeOrder.diagnosis || t('orderEdit.diagnosis')}</AppText>
+        <AppText muted>{activeOrder.performedService || t('orderEdit.performedService')}</AppText>
       </AppCard>
 
       <AppCard>
-        <SectionTitle title="Pecas e servicos" />
+        <SectionTitle title={t('orderDetail.serviceParts')} />
         <PaginatedList
           items={items}
           keyExtractor={(item) => item.id}
-          empty={<AppText muted>Nenhum item adicionado.</AppText>}
+          empty={<AppText muted>{t('orderDetail.noItems')}</AppText>}
           renderItem={(item) => (
             <View key={item.id} style={styles.item}>
               <AppText style={{ flex: 1 }}>{item.description}</AppText>
@@ -226,32 +223,32 @@ export default function OrderDetailScreen() {
       </AppCard>
 
       <AppCard>
-        <SectionTitle title="Fotos da OS" description={`${photos.length} foto${photos.length === 1 ? '' : 's'} salva${photos.length === 1 ? '' : 's'} localmente`} />
+        <SectionTitle title={t('orderDetail.photos')} description={t('orderDetail.photosDesc', { count: photos.length, plural: photos.length === 1 ? '' : 's' })} />
         <View style={styles.actions}>
-          <AppButton title="Galeria" variant="secondary" compact onPress={() => addPhoto('library')} />
-          <AppButton title="Camera" variant="secondary" compact onPress={() => addPhoto('camera')} />
+          <AppButton title={t('orderDetail.gallery')} variant="secondary" compact onPress={() => addPhoto('library')} />
+          <AppButton title={t('orderDetail.camera')} variant="secondary" compact onPress={() => addPhoto('camera')} />
         </View>
         {photos.length ? (
           <View style={styles.photoGrid}>
             {photos.map((photo) => (
               <View key={photo.id} style={styles.photoItem}>
                 <Image source={{ uri: photo.localUri }} style={[styles.photo, { backgroundColor: colors.surfaceAlt }]} />
-                <AppText variant="caption" muted numberOfLines={1}>{photo.caption ?? 'Foto da OS'}</AppText>
-                <AppButton title={photo.includeInPdf ? 'No PDF' : 'Oculta'} variant="secondary" compact onPress={() => updateOrderPhoto(photo.id, { includeInPdf: !photo.includeInPdf })} />
-                <AppButton title="Remover" variant="danger" compact onPress={() => removeOrderPhoto(photo.id)} />
+                <AppText variant="caption" muted numberOfLines={1}>{photo.caption ?? t('orderDetail.photos')}</AppText>
+                <AppButton title={photo.includeInPdf ? 'PDF' : t('common.close')} variant="secondary" compact onPress={() => updateOrderPhoto(photo.id, { includeInPdf: !photo.includeInPdf })} />
+                <AppButton title={t('common.remove')} variant="danger" compact onPress={() => removeOrderPhoto(photo.id)} />
               </View>
             ))}
           </View>
         ) : (
-          <AppText muted>Nenhuma foto adicionada ainda.</AppText>
+          <AppText muted>{t('orderDetail.noPhotos')}</AppText>
         )}
       </AppCard>
 
       <AppCard>
-        <SectionTitle title="Assinaturas" description="Assinaturas usadas no PDF" />
+        <SectionTitle title={t('orderDetail.signatures')} description={t('orderDetail.signaturesDesc')} />
         {showCustomerSignaturePad ? (
           <SignaturePad
-            title="Assinatura do cliente"
+            title={t('orderDetail.customerSignature')}
             onSigningChange={setIsSigning}
             onSave={saveDrawnCustomerSignature}
             onCancel={() => {
@@ -263,27 +260,27 @@ export default function OrderDetailScreen() {
           <>
             <View style={styles.signatureRow}>
               <View style={styles.signatureBox}>
-                <AppText variant="subtitle">Cliente</AppText>
+                <AppText variant="subtitle">{t('orderDetail.customerSignature')}</AppText>
                 {customerSignature ? (
-                  customerSignature.localUri.startsWith('data:image/svg+xml') ? <View style={[styles.signatureImage, { backgroundColor: colors.surfaceAlt }]}><AppText muted>Assinatura desenhada salva.</AppText></View> : <Image source={{ uri: customerSignature.localUri }} style={[styles.signatureImage, { backgroundColor: colors.surfaceAlt }]} />
-                ) : <AppText muted>Nao assinou.</AppText>}
+                  customerSignature.localUri.startsWith('data:image/svg+xml') ? <View style={[styles.signatureImage, { backgroundColor: colors.surfaceAlt }]}><AppText muted>{t('orderDetail.drawnSignature')}</AppText></View> : <Image source={{ uri: customerSignature.localUri }} style={[styles.signatureImage, { backgroundColor: colors.surfaceAlt }]} />
+                ) : <AppText muted>{t('orderDetail.signed')}</AppText>}
               </View>
               <View style={styles.signatureBox}>
-                <AppText variant="subtitle">Tecnico</AppText>
+                <AppText variant="subtitle">{t('orderDetail.technicianSignature')}</AppText>
                 {technician?.signatureUri ? (
-                  technician.signatureUri.startsWith('data:image/svg+xml') ? <View style={[styles.signatureImage, { backgroundColor: colors.surfaceAlt }]}><AppText muted>Assinatura do perfil salva.</AppText></View> : <Image source={{ uri: technician.signatureUri }} style={[styles.signatureImage, { backgroundColor: colors.surfaceAlt }]} />
-                ) : <AppText muted>Sem assinatura no perfil.</AppText>}
+                  technician.signatureUri.startsWith('data:image/svg+xml') ? <View style={[styles.signatureImage, { backgroundColor: colors.surfaceAlt }]}><AppText muted>{t('orderDetail.techProfileSignature')}</AppText></View> : <Image source={{ uri: technician.signatureUri }} style={[styles.signatureImage, { backgroundColor: colors.surfaceAlt }]} />
+                ) : <AppText muted>{t('orderDetail.noTechSignature')}</AppText>}
               </View>
             </View>
             <View style={styles.signatureActions}>
               <View style={styles.signatureAction}>
-                <AppButton title="Assinar na tela" variant="secondary" compact onPress={() => setShowCustomerSignaturePad(true)} />
+                <AppButton title={t('orderDetail.signOnScreen')} variant="secondary" compact onPress={() => setShowCustomerSignaturePad(true)} />
               </View>
               <View style={styles.signatureAction}>
-                <AppButton title="Assinar galeria" variant="secondary" compact onPress={() => addCustomerSignature('library')} />
+                <AppButton title={t('orderDetail.signLibrary')} variant="secondary" compact onPress={() => addCustomerSignature('library')} />
               </View>
               <View style={styles.signatureAction}>
-                <AppButton title="Assinar camera" variant="secondary" compact onPress={() => addCustomerSignature('camera')} />
+                <AppButton title={t('orderDetail.signCamera')} variant="secondary" compact onPress={() => addCustomerSignature('camera')} />
               </View>
             </View>
           </>
@@ -291,47 +288,46 @@ export default function OrderDetailScreen() {
       </AppCard>
 
       <AppCard>
-        <SectionTitle title="Resumo financeiro" />
-        <View style={styles.item}><AppText>Servicos</AppText><AppText>{formatMoney(activeOrder.laborTotalCents)}</AppText></View>
-        <View style={styles.item}><AppText>Pecas</AppText><AppText>{formatMoney(activeOrder.partsTotalCents)}</AppText></View>
-        <View style={styles.item}><AppText variant="subtitle">Total</AppText><AppText variant="subtitle">{formatMoney(activeOrder.totalCents)}</AppText></View>
-        <View style={styles.item}><AppText>Pago</AppText><AppText>{formatMoney(activeOrder.paidCents)}</AppText></View>
-        <View style={styles.item}><AppText>Pendente</AppText><AppText>{formatMoney(activeOrder.pendingCents)}</AppText></View>
+        <SectionTitle title={t('orderDetail.finance')} />
+        <View style={styles.item}><AppText>{t('orderDetail.serviceTotal')}</AppText><AppText>{formatMoney(activeOrder.laborTotalCents)}</AppText></View>
+        <View style={styles.item}><AppText>{t('orderDetail.partsTotal')}</AppText><AppText>{formatMoney(activeOrder.partsTotalCents)}</AppText></View>
+        <View style={styles.item}><AppText variant="subtitle">{t('orderDetail.total')}</AppText><AppText variant="subtitle">{formatMoney(activeOrder.totalCents)}</AppText></View>
+        <View style={styles.item}><AppText>{t('orderDetail.paid')}</AppText><AppText>{formatMoney(activeOrder.paidCents)}</AppText></View>
+        <View style={styles.item}><AppText>{t('orderDetail.pending')}</AppText><AppText>{formatMoney(activeOrder.pendingCents)}</AppText></View>
         <PaginatedList
           items={payments}
           keyExtractor={(payment) => payment.id}
           renderItem={(payment) => (
             <View key={payment.id} style={styles.paymentRow}>
               <View style={styles.itemInfo}>
-                <AppText muted>Pagamento</AppText>
+                <AppText muted>{t('orderDetail.payment')}</AppText>
                 <AppText muted>{formatMoney(payment.amountCents)}</AppText>
               </View>
-              <AppButton title="Remover" variant="danger" compact onPress={() => confirmRemovePayment(payment.id)} />
+              <AppButton title={t('common.remove')} variant="danger" compact onPress={() => confirmRemovePayment(payment.id)} />
             </View>
           )}
         />
       </AppCard>
 
       <AppCard>
-        <SectionTitle title="Historico de status" description="Registro local salvo no SQLite" />
+        <SectionTitle title={t('orderDetail.history')} description={t('orderDetail.historyDesc')} />
         <PaginatedList
           items={statusHistory}
           keyExtractor={(history) => history.id}
-          empty={<AppText muted>Nenhuma alteracao registrada ainda.</AppText>}
+          empty={<AppText muted>{t('orderDetail.noneHistory')}</AppText>}
           renderItem={(history) => (
             <View key={history.id} style={[styles.timelineItem, { borderLeftColor: colors.primary }]}>
-              <AppText variant="subtitle">{statusLabel(history.toStatus)}</AppText>
+              <AppText variant="subtitle">{statusLabel(history.toStatus, locale)}</AppText>
               <AppText muted>
-                {history.fromStatus ? `${statusLabel(history.fromStatus)} -> ` : ''}
-                {formatDate(history.changedAt)}
+                {history.fromStatus ? `${statusLabel(history.fromStatus, locale)} -> ` : ''}
+                {formatDate(history.changedAt, locale)}
               </AppText>
               {history.notes ? <AppText muted>{history.notes}</AppText> : null}
-              {history.reason ? <AppText muted>Motivo: {history.reason}</AppText> : null}
+              {history.reason ? <AppText muted>{t('orderDetail.statusReason', { reason: history.reason })}</AppText> : null}
             </View>
           )}
         />
       </AppCard>
-
     </ScreenContainer>
   );
 }

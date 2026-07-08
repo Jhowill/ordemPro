@@ -1,4 +1,3 @@
-import { router } from 'expo-router';
 import { useState } from 'react';
 import { Alert, StyleSheet, View } from 'react-native';
 
@@ -10,12 +9,14 @@ import { HoldToConfirmButton } from '@/components/ui/HoldToConfirmButton';
 import { InputField } from '@/components/ui/InputField';
 import { ScreenContainer } from '@/components/ui/ScreenContainer';
 import { spacing } from '@/constants/theme';
+import { useI18n } from '@/hooks/useI18n';
 import { useAppData } from '@/services/storage';
 import { isValidPin, normalizePinInput } from '@/utils/pinSecurity';
 import { createSecurePinSettings, verifySecurityPin } from '@/utils/securePinStorage';
 
 export default function SecuritySettingsScreen() {
   const { data, clearAllData, optimizeStorage, saveSecuritySettings, verifyDatabaseIntegrity } = useAppData();
+  const { t } = useI18n();
   const [currentPin, setCurrentPin] = useState('');
   const [newPin, setNewPin] = useState('');
   const [confirmPin, setConfirmPin] = useState('');
@@ -34,11 +35,11 @@ export default function SecuritySettingsScreen() {
 
   function validateNewPin() {
     if (!isValidPin(newPin)) {
-      Alert.alert('PIN invalido', 'Use um PIN numerico com 4 a 6 digitos.');
+      Alert.alert(t('security.alerts.invalidPin'), t('security.alerts.pinRules'));
       return false;
     }
     if (newPin !== confirmPin) {
-      Alert.alert('PIN diferente', 'A confirmacao precisa ser igual ao novo PIN.');
+      Alert.alert(t('security.alerts.differentPin'), t('security.alerts.pinMismatch'));
       return false;
     }
     return true;
@@ -49,11 +50,11 @@ export default function SecuritySettingsScreen() {
     try {
       isValid = await verifySecurityPin(currentPin, data.security);
     } catch {
-      Alert.alert('Falha ao validar PIN', 'Tente novamente.');
+      Alert.alert(t('security.alerts.currentPinFail'), t('security.alerts.retrySimple'));
       return false;
     }
     if (!isValid) {
-      Alert.alert('PIN incorreto', 'Informe o PIN atual para continuar.');
+      Alert.alert(t('security.alerts.wrongPin'), t('security.alerts.currentPinRequired'));
       return false;
     }
     return true;
@@ -65,9 +66,9 @@ export default function SecuritySettingsScreen() {
       setSavingPin(true);
       await saveSecuritySettings(await createSecurePinSettings(newPin));
       clearPinFields();
-      Alert.alert('PIN ativado', 'O app pedira o PIN ao abrir novamente.');
+      Alert.alert(t('security.alerts.activated'), t('security.alerts.activatedDesc'));
     } catch (error) {
-      Alert.alert('Nao foi possivel salvar', error instanceof Error ? error.message : 'Tente novamente.');
+      Alert.alert(t('security.alerts.saveFail'), error instanceof Error ? error.message : t('security.alerts.retrySimple'));
     } finally {
       setSavingPin(false);
     }
@@ -79,9 +80,9 @@ export default function SecuritySettingsScreen() {
       setSavingPin(true);
       await saveSecuritySettings(await createSecurePinSettings(newPin));
       clearPinFields();
-      Alert.alert('PIN alterado', 'O novo PIN ja esta ativo.');
+      Alert.alert(t('security.alerts.changed'), t('security.alerts.changedDesc'));
     } catch (error) {
-      Alert.alert('Nao foi possivel alterar', error instanceof Error ? error.message : 'Tente novamente.');
+      Alert.alert(t('security.alerts.saveFail'), error instanceof Error ? error.message : t('security.alerts.retrySimple'));
     } finally {
       setSavingPin(false);
     }
@@ -93,9 +94,9 @@ export default function SecuritySettingsScreen() {
       setSavingPin(true);
       await saveSecuritySettings({ isPinEnabled: false });
       clearPinFields();
-      Alert.alert('PIN desativado', 'O app nao pedira PIN ao abrir.');
+      Alert.alert(t('security.alerts.disabled'), t('security.alerts.disabledDesc'));
     } catch (error) {
-      Alert.alert('Nao foi possivel desativar', error instanceof Error ? error.message : 'Tente novamente.');
+      Alert.alert(t('security.alerts.saveFail'), error instanceof Error ? error.message : t('security.alerts.retrySimple'));
     } finally {
       setSavingPin(false);
     }
@@ -105,10 +106,9 @@ export default function SecuritySettingsScreen() {
     try {
       setClearing(true);
       await clearAllData();
-      Alert.alert('Dados limpos', 'O OrdemPro foi zerado neste aparelho.');
-      router.replace('/onboarding/company');
+      Alert.alert(t('security.alerts.cleared'), t('security.alerts.clearedDesc'));
     } catch (error) {
-      Alert.alert('Nao foi possivel limpar', error instanceof Error ? error.message : 'Tente novamente.');
+      Alert.alert(t('security.alerts.clearFail'), error instanceof Error ? error.message : t('security.alerts.retrySimple'));
     } finally {
       setClearing(false);
     }
@@ -119,11 +119,15 @@ export default function SecuritySettingsScreen() {
       setOptimizing(true);
       const result = await optimizeStorage();
       Alert.alert(
-        'Armazenamento otimizado',
-        `${result.removedFiles} arquivo(s) local(is) removido(s).\n${result.removedPdfRecords} registro(s) antigo(s) de PDF removido(s).\n${result.scannedFiles} arquivo(s) de midia verificado(s).`,
+        t('security.optimizeTitle'),
+        t('security.alerts.optimizeResult', {
+          removedFiles: result.removedFiles,
+          removedPdfRecords: result.removedPdfRecords,
+          scannedFiles: result.scannedFiles,
+        }),
       );
     } catch (error) {
-      Alert.alert('Nao foi possivel otimizar', error instanceof Error ? error.message : 'Tente novamente.');
+      Alert.alert(t('security.alerts.optimizeFail'), error instanceof Error ? error.message : t('security.alerts.retrySimple'));
     } finally {
       setOptimizing(false);
     }
@@ -134,11 +138,11 @@ export default function SecuritySettingsScreen() {
       setCheckingDatabase(true);
       const result = await verifyDatabaseIntegrity();
       Alert.alert(
-        result.ok ? 'Banco local saudavel' : 'Atenção no banco local',
-        result.ok ? 'O SQLite respondeu sem sinais de corrupcao.' : result.details.join('\n'),
+        result.ok ? t('security.alerts.integrityOk') : t('security.alerts.integrityWarn'),
+        result.ok ? t('security.alerts.integrityOkDesc') : result.details.join('\n'),
       );
     } catch (error) {
-      Alert.alert('Falha ao verificar banco', error instanceof Error ? error.message : 'Tente novamente.');
+      Alert.alert(t('security.alerts.integrityFail'), error instanceof Error ? error.message : t('security.alerts.retrySimple'));
     } finally {
       setCheckingDatabase(false);
     }
@@ -146,21 +150,19 @@ export default function SecuritySettingsScreen() {
 
   return (
     <ScreenContainer>
-      <AppHeader title="Seguranca" subtitle="PIN local e privacidade" back />
+      <AppHeader title={t('security.title')} subtitle={t('security.subtitle')} back />
       <AppCard>
-        <AppText variant="subtitle">Bloqueio por PIN</AppText>
+        <AppText variant="subtitle">{pinEnabled ? t('security.pin.change') : t('security.pin.activate')}</AppText>
         <AppText muted>
-          {pinEnabled
-            ? 'Ativo. O OrdemPro solicita o PIN quando o app e aberto.'
-            : 'Desativado. Ative um PIN numerico para bloquear o acesso local ao app.'}
+          {pinEnabled ? t('security.pin.enabled') : t('security.pin.disabled')}
         </AppText>
       </AppCard>
 
       <AppCard>
-        <AppText variant="subtitle">{pinEnabled ? 'Alterar PIN' : 'Ativar PIN'}</AppText>
+        <AppText variant="subtitle">{pinEnabled ? t('security.pin.change') : t('security.pin.activate')}</AppText>
         {pinEnabled ? (
           <InputField
-            label="PIN atual"
+            label={t('security.pin.current')}
             value={currentPin}
             onChangeText={(value) => setCurrentPin(normalizePinInput(value))}
             keyboardType="number-pad"
@@ -169,7 +171,7 @@ export default function SecuritySettingsScreen() {
           />
         ) : null}
         <InputField
-          label={pinEnabled ? 'Novo PIN' : 'PIN'}
+          label={pinEnabled ? t('security.pin.next') : t('security.pin.next')}
           value={newPin}
           onChangeText={(value) => setNewPin(normalizePinInput(value))}
           keyboardType="number-pad"
@@ -177,7 +179,7 @@ export default function SecuritySettingsScreen() {
           maxLength={6}
         />
         <InputField
-          label="Confirmar PIN"
+          label={t('security.pin.confirm')}
           value={confirmPin}
           onChangeText={(value) => setConfirmPin(normalizePinInput(value))}
           keyboardType="number-pad"
@@ -185,31 +187,31 @@ export default function SecuritySettingsScreen() {
           maxLength={6}
         />
         <View style={styles.actions}>
-          <AppButton title={pinEnabled ? 'Salvar novo PIN' : 'Ativar PIN'} loading={savingPin} onPress={pinEnabled ? changePin : enablePin} />
-          {pinEnabled ? <AppButton title="Desativar PIN" variant="danger" loading={savingPin} onPress={disablePin} /> : null}
+          <AppButton title={pinEnabled ? t('security.pin.save') : t('security.pin.activate')} loading={savingPin} onPress={pinEnabled ? changePin : enablePin} />
+          {pinEnabled ? <AppButton title={t('security.pin.disable')} variant="danger" loading={savingPin} onPress={disablePin} /> : null}
         </View>
       </AppCard>
 
       <AppCard>
-        <AppText variant="subtitle">Privacidade</AppText>
-        <AppText muted>Os dados ficam no aparelho. Compartilhamento e backup acontecem somente por acao do usuario.</AppText>
+        <AppText variant="subtitle">{t('security.privacyTitle')}</AppText>
+        <AppText muted>{t('security.privacyDesc')}</AppText>
       </AppCard>
       <AppCard>
-        <AppText variant="subtitle">Otimizar armazenamento</AppText>
-        <AppText muted>Remove midias locais sem uso e mantem no maximo os 5 PDFs mais recentes de cada OS.</AppText>
-        <AppButton title="Otimizar agora" variant="secondary" loading={optimizing} onPress={handleOptimizeStorage} />
+        <AppText variant="subtitle">{t('security.optimizeTitle')}</AppText>
+        <AppText muted>{t('security.optimizeDesc')}</AppText>
+        <AppButton title={t('security.optimizeNow')} variant="secondary" loading={optimizing} onPress={handleOptimizeStorage} />
       </AppCard>
       <AppCard>
-        <AppText variant="subtitle">Verificar banco local</AppText>
-        <AppText muted>Confere a integridade do SQLite deste aparelho antes que uma falha vire problema de abertura.</AppText>
-        <AppButton title="Verificar SQLite" variant="secondary" loading={checkingDatabase} onPress={handleCheckDatabase} />
+        <AppText variant="subtitle">{t('security.verifyTitle')}</AppText>
+        <AppText muted>{t('security.verifyDesc')}</AppText>
+        <AppButton title={t('security.verifyNow')} variant="secondary" loading={checkingDatabase} onPress={handleCheckDatabase} />
       </AppCard>
       <AppCard>
-        <AppText variant="subtitle">Limpar dados do app</AppText>
-        <AppText muted>Apaga empresa, clientes, equipamentos, OS, fotos, assinaturas, PDFs e backups locais deste aparelho.</AppText>
+        <AppText variant="subtitle">{t('security.clearTitle')}</AppText>
+        <AppText muted>{t('security.clearDesc')}</AppText>
         <HoldToConfirmButton
-          title="Segure por 3s para limpar tudo"
-          holdTitle="Continue segurando para confirmar"
+          title={t('security.clearHold')}
+          holdTitle={t('security.clearHoldActive')}
           loading={clearing}
           onConfirm={handleClearData}
         />
