@@ -17,6 +17,8 @@ export function InputField({ label, error, style, ...props }: Props) {
       <TextInput
         placeholderTextColor={colors.muted}
         {...props}
+        cursorColor={colors.primary}
+        selectionColor={colors.primary}
         style={[
           styles.input,
           typography.body,
@@ -38,4 +40,3 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.sm,
   },
 });
-

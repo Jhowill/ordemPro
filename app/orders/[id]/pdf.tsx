@@ -10,6 +10,7 @@ import { AppHeader } from '@/components/ui/AppHeader';
 import { AppText } from '@/components/ui/AppText';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { ScreenContainer } from '@/components/ui/ScreenContainer';
+import { useThemeColors } from '@/hooks/useThemeColors';
 import { imageUriToDataUri } from '@/services/media';
 import { buildOrderPdfHtml, PDF_PAGE_MARGINS } from '@/services/pdfTemplate';
 import { useAppData } from '@/services/storage';
@@ -42,6 +43,7 @@ async function preparePdfData(data: AppData, orderId: string): Promise<AppData> 
 export default function OrderPdfScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const { data, updatePdfRecord } = useAppData();
+  const colors = useThemeColors();
   const [loading, setLoading] = useState(false);
   const order = data.orders.find((item) => item.id === id);
   const pdf = data.pdfs.find((item) => item.orderId === id);
@@ -117,7 +119,7 @@ export default function OrderPdfScreen() {
       <AppCard>
         <AppText variant="subtitle">{pdf ? 'PDF gerado' : 'Nenhum PDF gerado'}</AppText>
         <AppText muted>{pdf ? `Versao ${pdf.version} - ${formatDate(pdf.generatedAt)}` : 'Gere o documento profissional para enviar ao cliente.'}</AppText>
-        {activeOrder.isPdfOutdated ? <AppText color="#F59E0B">A OS foi alterada depois da ultima geracao.</AppText> : null}
+        {activeOrder.isPdfOutdated ? <AppText color={colors.warning}>A OS foi alterada depois da ultima geracao.</AppText> : null}
       </AppCard>
       <AppCard>
         <AppText variant="subtitle">Previa do conteudo</AppText>

@@ -20,6 +20,8 @@ export function SearchInput({ value, onChangeText, placeholder = 'Buscar...' }: 
         onChangeText={onChangeText}
         placeholder={placeholder}
         placeholderTextColor={colors.muted}
+        cursorColor={colors.primary}
+        selectionColor={colors.primary}
         style={[styles.input, typography.body, { color: colors.text }]}
       />
     </View>
@@ -39,4 +41,3 @@ const styles = StyleSheet.create({
   },
   input: { flex: 1 },
 });
-

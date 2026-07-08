@@ -22,6 +22,7 @@ export const lightColors = {
   border: '#E5E7EB',
   divider: '#EEF2F7',
   overlay: 'rgba(15, 23, 42, 0.45)',
+  dangerProgress: 'rgba(255, 255, 255, 0.24)',
   white: '#FFFFFF',
 };
 
@@ -49,6 +50,7 @@ export const darkColors = {
   border: '#334155',
   divider: '#1F2937',
   overlay: 'rgba(0, 0, 0, 0.62)',
+  dangerProgress: 'rgba(255, 255, 255, 0.24)',
   white: '#FFFFFF',
 };
 
@@ -88,4 +90,3 @@ export const typography = {
 };
 
 export type ThemeColors = typeof lightColors;
-

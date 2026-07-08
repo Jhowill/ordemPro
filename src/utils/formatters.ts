@@ -77,8 +77,8 @@ export function statusLabel(status: string) {
   return map[status] ?? status;
 }
 
-export function statusColors(status: string) {
-  const map: Record<string, { color: string; backgroundColor: string; borderColor: string }> = {
+export function statusColors(status: string, isDarkTheme = false) {
+  const lightMap: Record<string, { color: string; backgroundColor: string; borderColor: string }> = {
     open: { color: '#2563EB', backgroundColor: '#DBEAFE', borderColor: '#93C5FD' },
     diagnosis: { color: '#7C3AED', backgroundColor: '#EDE9FE', borderColor: '#C4B5FD' },
     waiting_approval: { color: '#D97706', backgroundColor: '#FEF3C7', borderColor: '#FCD34D' },
@@ -89,5 +89,17 @@ export function statusColors(status: string) {
     delivered: { color: '#0F766E', backgroundColor: '#CCFBF1', borderColor: '#5EEAD4' },
     cancelled: { color: '#DC2626', backgroundColor: '#FEE2E2', borderColor: '#FCA5A5' },
   };
-  return map[status] ?? { color: '#2563EB', backgroundColor: '#DBEAFE', borderColor: '#93C5FD' };
+  const darkMap: Record<string, { color: string; backgroundColor: string; borderColor: string }> = {
+    open: { color: '#93C5FD', backgroundColor: 'rgba(37, 99, 235, 0.18)', borderColor: 'rgba(147, 197, 253, 0.42)' },
+    diagnosis: { color: '#C4B5FD', backgroundColor: 'rgba(124, 58, 237, 0.18)', borderColor: 'rgba(196, 181, 253, 0.42)' },
+    waiting_approval: { color: '#FCD34D', backgroundColor: 'rgba(217, 119, 6, 0.18)', borderColor: 'rgba(252, 211, 77, 0.42)' },
+    approved: { color: '#6EE7B7', backgroundColor: 'rgba(5, 150, 105, 0.18)', borderColor: 'rgba(110, 231, 183, 0.42)' },
+    in_progress: { color: '#67E8F9', backgroundColor: 'rgba(8, 145, 178, 0.18)', borderColor: 'rgba(103, 232, 249, 0.42)' },
+    waiting_part: { color: '#FDBA74', backgroundColor: 'rgba(194, 65, 12, 0.18)', borderColor: 'rgba(253, 186, 116, 0.42)' },
+    completed: { color: '#86EFAC', backgroundColor: 'rgba(22, 163, 74, 0.18)', borderColor: 'rgba(134, 239, 172, 0.42)' },
+    delivered: { color: '#5EEAD4', backgroundColor: 'rgba(15, 118, 110, 0.18)', borderColor: 'rgba(94, 234, 212, 0.42)' },
+    cancelled: { color: '#FCA5A5', backgroundColor: 'rgba(220, 38, 38, 0.18)', borderColor: 'rgba(252, 165, 165, 0.42)' },
+  };
+  const map = isDarkTheme ? darkMap : lightMap;
+  return map[status] ?? map.open;
 }

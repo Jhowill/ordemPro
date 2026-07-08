@@ -79,7 +79,7 @@ export function HoldToConfirmButton({ title, holdTitle, completedTitle = 'Confir
         { backgroundColor: colors.danger, opacity: pressed && !loading ? 0.9 : 1 },
       ]}
     >
-      <View style={[styles.progress, { width: `${Math.round(progress * 100)}%` }]} />
+      <View style={[styles.progress, { backgroundColor: colors.dangerProgress, width: `${Math.round(progress * 100)}%` }]} />
       <View style={styles.content}>
         {loading ? <ActivityIndicator color={colors.white} /> : null}
         <AppText variant="button" color={colors.white}>{label}</AppText>
@@ -103,7 +103,6 @@ const styles = StyleSheet.create({
     top: 0,
     left: 0,
     bottom: 0,
-    backgroundColor: 'rgba(255, 255, 255, 0.24)',
   },
   content: {
     flexDirection: 'row',

@@ -9,12 +9,14 @@ import { AppHeader } from '@/components/ui/AppHeader';
 import { InputField } from '@/components/ui/InputField';
 import { ScreenContainer } from '@/components/ui/ScreenContainer';
 import { spacing } from '@/constants/theme';
+import { useThemeColors } from '@/hooks/useThemeColors';
 import { pickAndStoreImage } from '@/services/media';
 import { useAppData } from '@/services/storage';
 import { formatCpfCnpjInput, formatPhoneInput } from '@/utils/formatters';
 
 export default function CompanySettingsScreen() {
   const { data, saveCompany } = useAppData();
+  const colors = useThemeColors();
   const [form, setForm] = useState({
     name: data.company?.name ?? '',
     tradeName: data.company?.tradeName ?? '',
@@ -54,7 +56,7 @@ export default function CompanySettingsScreen() {
       <AppHeader title="Dados da empresa" subtitle="Usado no PDF" back />
       <AppCard>
         <AppText variant="subtitle">Logo da empresa</AppText>
-        {form.logoUri ? <Image source={{ uri: form.logoUri }} style={styles.logoPreview} resizeMode="contain" /> : <AppText muted>Nenhuma logo selecionada.</AppText>}
+        {form.logoUri ? <Image source={{ uri: form.logoUri }} style={[styles.logoPreview, { backgroundColor: colors.surfaceAlt }]} resizeMode="contain" /> : <AppText muted>Nenhuma logo selecionada.</AppText>}
         <View style={styles.row}>
           <AppButton title={form.logoUri ? 'Trocar logo' : 'Adicionar logo'} variant="secondary" onPress={chooseLogo} />
           {form.logoUri ? <AppButton title="Remover" variant="danger" onPress={() => update('logoUri', '')} /> : null}
@@ -75,6 +77,6 @@ export default function CompanySettingsScreen() {
 }
 
 const styles = StyleSheet.create({
-  logoPreview: { width: '100%', height: 104, marginVertical: spacing.sm },
+  logoPreview: { width: '100%', height: 104, marginVertical: spacing.sm, borderRadius: 8 },
   row: { flexDirection: 'row', gap: spacing.sm, marginTop: spacing.sm },
 });

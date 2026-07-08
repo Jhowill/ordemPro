@@ -17,6 +17,7 @@ import { formatCpfCnpjInput, formatPhoneInput } from '@/utils/formatters';
 
 export default function CompanyOnboardingScreen() {
   const { data, saveCompany, saveTerms } = useAppData();
+  const colors = useThemeColors();
   const [step, setStep] = useState(0);
   const [form, setForm] = useState({
     name: data.company?.name ?? 'Tech Solutions Assistencia',
@@ -117,7 +118,7 @@ export default function CompanyOnboardingScreen() {
           <AppHeader title="Endereco e logo" subtitle="Campos opcionais para enriquecer o PDF" />
           <AppCard>
             <AppText variant="subtitle">Logo da empresa</AppText>
-            {form.logoUri ? <Image source={{ uri: form.logoUri }} style={styles.logoPreview} resizeMode="contain" /> : <AppText muted>Nenhuma logo selecionada.</AppText>}
+            {form.logoUri ? <Image source={{ uri: form.logoUri }} style={[styles.logoPreview, { backgroundColor: colors.surfaceAlt }]} resizeMode="contain" /> : <AppText muted>Nenhuma logo selecionada.</AppText>}
             <View style={styles.footer}>
               <AppButton title={form.logoUri ? 'Trocar logo' : 'Adicionar logo'} variant="secondary" onPress={chooseLogo} />
               {form.logoUri ? <AppButton title="Remover" variant="danger" onPress={() => update('logoUri', '')} /> : null}
@@ -213,5 +214,5 @@ const styles = StyleSheet.create({
   dot: { width: 7, height: 7, borderRadius: 4 },
   termRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.md },
   textArea: { minHeight: 82, textAlignVertical: 'top' },
-  logoPreview: { width: '100%', height: 96, marginTop: spacing.sm, marginBottom: spacing.sm },
+  logoPreview: { width: '100%', height: 96, marginTop: spacing.sm, marginBottom: spacing.sm, borderRadius: 8 },
 });
