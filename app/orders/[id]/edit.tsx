@@ -229,7 +229,7 @@ export default function EditOrderScreen() {
           keyExtractor={(item) => item.id}
           empty={<AppText muted>Nenhum item selecionado ainda.</AppText>}
           renderItem={(item) => (
-            <View key={item.id} style={styles.itemBlock}>
+            <View key={item.id} style={[styles.itemBlock, { borderTopColor: colors.border }]}>
               <View style={styles.itemRow}>
                 <View style={styles.itemInfo}>
                   <AppText variant="subtitle">{item.description}</AppText>
@@ -265,7 +265,7 @@ const styles = StyleSheet.create({
   row: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm, marginBottom: spacing.sm },
   itemRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm, marginBottom: spacing.sm },
   itemInfo: { flex: 1, gap: spacing.xxs },
-  itemBlock: { borderTopWidth: 1, borderTopColor: '#E5E7EB', paddingTop: spacing.sm, marginTop: spacing.sm },
+  itemBlock: { borderTopWidth: 1, paddingTop: spacing.sm, marginTop: spacing.sm },
   compactFields: { flexDirection: 'row', gap: spacing.xs },
   compactInput: { minHeight: 42, paddingHorizontal: spacing.xs },
   textArea: { minHeight: 96, textAlignVertical: 'top' },

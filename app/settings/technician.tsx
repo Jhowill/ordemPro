@@ -190,7 +190,7 @@ export default function TechnicianSettingsScreen() {
             ) : (
               <>
                 {signatureUri ? (
-                  signatureUri.startsWith('data:image/svg+xml') ? <View style={styles.signature}><AppText muted>Assinatura desenhada salva.</AppText></View> : <Image source={{ uri: signatureUri }} style={styles.signature} />
+                  signatureUri.startsWith('data:image/svg+xml') ? <View style={[styles.signature, { backgroundColor: colors.surfaceAlt }]}><AppText muted>Assinatura desenhada salva.</AppText></View> : <Image source={{ uri: signatureUri }} style={[styles.signature, { backgroundColor: colors.surfaceAlt }]} />
                 ) : <AppText muted>Nenhuma assinatura salva.</AppText>}
                 <View style={styles.row}>
                   <AppButton title="Assinar na tela" variant="secondary" compact onPress={() => setShowSignaturePad(true)} />
@@ -219,5 +219,5 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  signature: { width: '100%', height: 120, resizeMode: 'contain', borderRadius: 8, backgroundColor: '#F8FAFC', alignItems: 'center', justifyContent: 'center' },
+  signature: { width: '100%', height: 120, resizeMode: 'contain', borderRadius: 8, alignItems: 'center', justifyContent: 'center' },
 });

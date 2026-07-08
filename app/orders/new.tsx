@@ -426,7 +426,7 @@ export default function NewOrderScreen() {
               <View style={styles.photoGrid}>
                 {photos.map((photo) => (
                   <View key={photo.id} style={styles.photoItem}>
-                    <Image source={{ uri: photo.localUri }} style={styles.photo} />
+                    <Image source={{ uri: photo.localUri }} style={[styles.photo, { backgroundColor: colors.surfaceAlt }]} />
                     <AppButton title="Retirar" variant="danger" compact onPress={() => removeDraftPhoto(photo.id)} />
                   </View>
                 ))}
@@ -470,6 +470,6 @@ const styles = StyleSheet.create({
   compactInput: { minHeight: 42, paddingHorizontal: spacing.xs },
   photoGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm, marginTop: spacing.sm },
   photoItem: { width: '47%', gap: spacing.xs },
-  photo: { width: '100%', aspectRatio: 1, borderRadius: 8, backgroundColor: '#E5E7EB' },
+  photo: { width: '100%', aspectRatio: 1, borderRadius: 8 },
   textArea: { minHeight: 96, textAlignVertical: 'top' },
 });

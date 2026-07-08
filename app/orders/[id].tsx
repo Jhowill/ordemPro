@@ -235,7 +235,7 @@ export default function OrderDetailScreen() {
           <View style={styles.photoGrid}>
             {photos.map((photo) => (
               <View key={photo.id} style={styles.photoItem}>
-                <Image source={{ uri: photo.localUri }} style={styles.photo} />
+                <Image source={{ uri: photo.localUri }} style={[styles.photo, { backgroundColor: colors.surfaceAlt }]} />
                 <AppText variant="caption" muted numberOfLines={1}>{photo.caption ?? 'Foto da OS'}</AppText>
                 <AppButton title={photo.includeInPdf ? 'No PDF' : 'Oculta'} variant="secondary" compact onPress={() => updateOrderPhoto(photo.id, { includeInPdf: !photo.includeInPdf })} />
                 <AppButton title="Remover" variant="danger" compact onPress={() => removeOrderPhoto(photo.id)} />
@@ -265,13 +265,13 @@ export default function OrderDetailScreen() {
               <View style={styles.signatureBox}>
                 <AppText variant="subtitle">Cliente</AppText>
                 {customerSignature ? (
-                  customerSignature.localUri.startsWith('data:image/svg+xml') ? <View style={styles.signatureImage}><AppText muted>Assinatura desenhada salva.</AppText></View> : <Image source={{ uri: customerSignature.localUri }} style={styles.signatureImage} />
+                  customerSignature.localUri.startsWith('data:image/svg+xml') ? <View style={[styles.signatureImage, { backgroundColor: colors.surfaceAlt }]}><AppText muted>Assinatura desenhada salva.</AppText></View> : <Image source={{ uri: customerSignature.localUri }} style={[styles.signatureImage, { backgroundColor: colors.surfaceAlt }]} />
                 ) : <AppText muted>Nao assinou.</AppText>}
               </View>
               <View style={styles.signatureBox}>
                 <AppText variant="subtitle">Tecnico</AppText>
                 {technician?.signatureUri ? (
-                  technician.signatureUri.startsWith('data:image/svg+xml') ? <View style={styles.signatureImage}><AppText muted>Assinatura do perfil salva.</AppText></View> : <Image source={{ uri: technician.signatureUri }} style={styles.signatureImage} />
+                  technician.signatureUri.startsWith('data:image/svg+xml') ? <View style={[styles.signatureImage, { backgroundColor: colors.surfaceAlt }]}><AppText muted>Assinatura do perfil salva.</AppText></View> : <Image source={{ uri: technician.signatureUri }} style={[styles.signatureImage, { backgroundColor: colors.surfaceAlt }]} />
                 ) : <AppText muted>Sem assinatura no perfil.</AppText>}
               </View>
             </View>
@@ -319,7 +319,7 @@ export default function OrderDetailScreen() {
           keyExtractor={(history) => history.id}
           empty={<AppText muted>Nenhuma alteracao registrada ainda.</AppText>}
           renderItem={(history) => (
-            <View key={history.id} style={styles.timelineItem}>
+            <View key={history.id} style={[styles.timelineItem, { borderLeftColor: colors.primary }]}>
               <AppText variant="subtitle">{statusLabel(history.toStatus)}</AppText>
               <AppText muted>
                 {history.fromStatus ? `${statusLabel(history.fromStatus)} -> ` : ''}
@@ -352,10 +352,10 @@ const styles = StyleSheet.create({
   timelineItem: { borderLeftWidth: 2, paddingLeft: spacing.sm, marginBottom: spacing.sm },
   photoGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm, marginTop: spacing.sm },
   photoItem: { width: '47%', gap: spacing.xs },
-  photo: { width: '100%', aspectRatio: 1, borderRadius: 8, backgroundColor: '#E5E7EB' },
+  photo: { width: '100%', aspectRatio: 1, borderRadius: 8 },
   signatureRow: { flexDirection: 'row', gap: spacing.sm, marginBottom: spacing.sm },
   signatureBox: { flex: 1, gap: spacing.xs },
-  signatureImage: { width: '100%', height: 80, resizeMode: 'contain', borderRadius: 8, backgroundColor: '#F8FAFC', alignItems: 'center', justifyContent: 'center' },
+  signatureImage: { width: '100%', height: 80, resizeMode: 'contain', borderRadius: 8, alignItems: 'center', justifyContent: 'center' },
   signatureActions: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm, marginBottom: spacing.md },
   signatureAction: { flexGrow: 1, minWidth: '47%' },
 });

@@ -3,10 +3,12 @@ import { StyleSheet, View } from 'react-native';
 
 import { AppButton } from '@/components/ui/AppButton';
 import { AppText } from '@/components/ui/AppText';
-import { lightColors, spacing } from '@/constants/theme';
+import { spacing, ThemeColors } from '@/constants/theme';
+import { useThemeColors } from '@/hooks/useThemeColors';
 
 type Props = {
   children: ReactNode;
+  colors: ThemeColors;
 };
 
 type State = {
@@ -14,7 +16,7 @@ type State = {
   message: string;
 };
 
-export class AppErrorBoundary extends Component<Props, State> {
+class AppErrorBoundaryBase extends Component<Props, State> {
   state: State = { hasError: false, message: '' };
 
   static getDerivedStateFromError(error: Error): State {
@@ -34,18 +36,25 @@ export class AppErrorBoundary extends Component<Props, State> {
 
   render() {
     if (!this.state.hasError) return this.props.children;
+    const { colors } = this.props;
 
     return (
-      <View style={styles.root}>
+      <View style={[styles.root, { backgroundColor: colors.background }]}>
         <AppText variant="title" style={styles.center}>Algo saiu do eixo</AppText>
         <AppText muted style={styles.center}>
           O OrdemPro evitou fechar sozinho. Tente novamente e, se continuar, reinicie o app.
         </AppText>
-        <AppText variant="caption" color={lightColors.muted} style={styles.center}>{this.state.message}</AppText>
+        <AppText variant="caption" color={colors.muted} style={styles.center}>{this.state.message}</AppText>
         <AppButton title="Tentar novamente" onPress={this.reset} />
       </View>
     );
   }
+}
+
+export function AppErrorBoundary({ children }: { children: ReactNode }) {
+  const colors = useThemeColors();
+
+  return <AppErrorBoundaryBase colors={colors}>{children}</AppErrorBoundaryBase>;
 }
 
 const styles = StyleSheet.create({
@@ -54,7 +63,6 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     gap: spacing.md,
     padding: spacing.lg,
-    backgroundColor: lightColors.background,
   },
   center: { textAlign: 'center' },
 });

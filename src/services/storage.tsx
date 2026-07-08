@@ -3,7 +3,7 @@ import { createContext, ReactNode, useCallback, useContext, useEffect, useMemo, 
 import { createEmptyAppData, initialData } from '@/data/seed';
 import { normalizeAppData } from '@/data/normalizeAppData';
 import { checkDatabaseIntegrity, loadAppData, replaceAppData } from '@/database/appDatabase';
-import { AppData, CatalogPart, CatalogService, CompanyProfile, Customer, DefaultTerms, Equipment, Payment, PdfSettings, PhotoAttachment, SecuritySettings, ServiceOrder, ServiceOrderItem, ServiceOrderPdf, ServiceOrderStatusHistory, SignatureRecord, TechnicianProfile } from '@/types';
+import { AppData, CatalogPart, CatalogService, CompanyProfile, Customer, DefaultTerms, Equipment, Payment, PdfSettings, PhotoAttachment, SecuritySettings, ServiceOrder, ServiceOrderItem, ServiceOrderPdf, ServiceOrderStatusHistory, SignatureRecord, TechnicianProfile, ThemeMode } from '@/types';
 import { calculateOrderTotals } from '@/services/calculations';
 import { cleanupOrphanMedia, clearStoredMedia, deleteLocalFile } from '@/services/media';
 import { makeId, nowIso } from '@/utils/formatters';
@@ -33,6 +33,7 @@ type AppDataContextValue = {
   saveCompany: (company: Partial<CompanyProfile>) => Promise<void>;
   saveTerms: (terms: Partial<DefaultTerms>) => Promise<void>;
   savePdfSettings: (settings: Partial<PdfSettings>) => Promise<void>;
+  saveThemeMode: (themeMode: ThemeMode) => Promise<void>;
   addCustomer: (input: Omit<Customer, 'id' | 'createdAt' | 'updatedAt' | 'status'>) => Promise<Customer>;
   addEquipment: (input: Omit<Equipment, 'id' | 'createdAt' | 'updatedAt' | 'status'>) => Promise<Equipment>;
   addCatalogService: (input: Pick<CatalogService, 'name' | 'category' | 'defaultPriceCents'>) => Promise<void>;
@@ -218,6 +219,13 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
           updatedAt: nowIso(),
         },
       }));
+    },
+    [commit],
+  );
+
+  const saveThemeMode = useCallback<AppDataContextValue['saveThemeMode']>(
+    async (themeMode) => {
+      await commit((current) => ({ ...current, themeMode }));
     },
     [commit],
   );
@@ -775,6 +783,7 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
       saveCompany,
       saveTerms,
       savePdfSettings,
+      saveThemeMode,
       addCustomer,
       addEquipment,
       addCatalogService,
@@ -804,7 +813,7 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
       resetDemo,
       clearAllData,
     }),
-    [addCatalogPart, addCatalogService, addCustomer, addEquipment, addOrderPhoto, addPayment, addSignature, clearAllData, createOrder, data, exportBackup, importBackup, loadError, loading, optimizeStorage, removeCatalogPart, removeCatalogService, removeOrderPhoto, removePayment, removeTechnician, replaceOrderItems, resetDemo, saveCatalogPart, saveCatalogService, saveCompany, savePdfSettings, saveSecuritySettings, saveTechnician, saveTerms, updateOrder, updateOrderPhoto, updateOrderStatus, updatePdfRecord, verifyDatabaseIntegrity],
+    [addCatalogPart, addCatalogService, addCustomer, addEquipment, addOrderPhoto, addPayment, addSignature, clearAllData, createOrder, data, exportBackup, importBackup, loadError, loading, optimizeStorage, removeCatalogPart, removeCatalogService, removeOrderPhoto, removePayment, removeTechnician, replaceOrderItems, resetDemo, saveCatalogPart, saveCatalogService, saveCompany, savePdfSettings, saveSecuritySettings, saveTechnician, saveTerms, saveThemeMode, updateOrder, updateOrderPhoto, updateOrderStatus, updatePdfRecord, verifyDatabaseIntegrity],
   );
 
   return <AppDataContext.Provider value={value}>{children}</AppDataContext.Provider>;

@@ -10,12 +10,13 @@ import { AppText } from '@/components/ui/AppText';
 import { AppLock } from '@/components/security/AppLock';
 import { AppErrorBoundary } from '@/components/system/AppErrorBoundary';
 import { AppDataProvider, useAppData } from '@/services/storage';
-import { useThemeColors } from '@/hooks/useThemeColors';
+import { useIsDarkTheme, useThemeColors } from '@/hooks/useThemeColors';
 
 function RootNavigator() {
   const { data, loading, loadError } = useAppData();
   const segments = useSegments();
   const colors = useThemeColors();
+  const isDarkTheme = useIsDarkTheme();
   const didEvaluatePin = useRef(false);
   const appState = useRef<AppStateStatus>(AppState.currentState);
   const backgroundedAt = useRef<number | null>(null);
@@ -87,7 +88,7 @@ function RootNavigator() {
 
   return (
     <>
-      <StatusBar style="auto" />
+      <StatusBar style={isDarkTheme ? 'light' : 'dark'} backgroundColor={colors.background} />
       <Stack screenOptions={{ headerShown: false }} />
     </>
   );
@@ -97,11 +98,11 @@ export default function Layout() {
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
       <SafeAreaProvider>
-        <AppErrorBoundary>
-          <AppDataProvider>
+        <AppDataProvider>
+          <AppErrorBoundary>
             <RootNavigator />
-          </AppDataProvider>
-        </AppErrorBoundary>
+          </AppErrorBoundary>
+        </AppDataProvider>
       </SafeAreaProvider>
     </GestureHandlerRootView>
   );
