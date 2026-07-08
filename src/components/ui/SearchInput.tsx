@@ -2,7 +2,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { StyleSheet, TextInput, View } from 'react-native';
 
 import { radius, spacing, typography } from '@/constants/theme';
-import { useThemeColors } from '@/hooks/useThemeColors';
+import { useIsDarkTheme, useThemeColors } from '@/hooks/useThemeColors';
 
 type Props = {
   value: string;
@@ -12,6 +12,7 @@ type Props = {
 
 export function SearchInput({ value, onChangeText, placeholder = 'Buscar...' }: Props) {
   const colors = useThemeColors();
+  const isDarkTheme = useIsDarkTheme();
   return (
     <View style={[styles.wrap, { backgroundColor: colors.surface, borderColor: colors.border }]}>
       <Ionicons name="search" size={18} color={colors.muted} />
@@ -21,6 +22,7 @@ export function SearchInput({ value, onChangeText, placeholder = 'Buscar...' }: 
         placeholder={placeholder}
         placeholderTextColor={colors.muted}
         cursorColor={colors.primary}
+        keyboardAppearance={isDarkTheme ? 'dark' : 'light'}
         selectionColor={colors.primary}
         style={[styles.input, typography.body, { color: colors.text }]}
       />

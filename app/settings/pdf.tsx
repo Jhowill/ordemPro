@@ -79,7 +79,7 @@ function SettingSwitch({ label, value, onValueChange }: { label: string; value: 
     <AppCard>
       <View style={styles.row}>
         <AppText variant="subtitle" style={{ flex: 1 }}>{label}</AppText>
-        <Switch value={value} onValueChange={onValueChange} trackColor={{ true: colors.primarySoft, false: colors.border }} thumbColor={value ? colors.primary : colors.disabled} />
+        <Switch value={value} onValueChange={onValueChange} trackColor={{ true: colors.primarySoft, false: colors.border }} thumbColor={value ? colors.primary : colors.disabled} ios_backgroundColor={colors.border} />
       </View>
     </AppCard>
   );

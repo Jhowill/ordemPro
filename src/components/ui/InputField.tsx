@@ -1,7 +1,7 @@
 import { TextInput, TextInputProps, StyleSheet, View } from 'react-native';
 
 import { radius, spacing, typography } from '@/constants/theme';
-import { useThemeColors } from '@/hooks/useThemeColors';
+import { useIsDarkTheme, useThemeColors } from '@/hooks/useThemeColors';
 import { AppText } from './AppText';
 
 type Props = TextInputProps & {
@@ -11,6 +11,7 @@ type Props = TextInputProps & {
 
 export function InputField({ label, error, style, ...props }: Props) {
   const colors = useThemeColors();
+  const isDarkTheme = useIsDarkTheme();
   return (
     <View style={styles.wrap}>
       <AppText variant="small">{label}</AppText>
@@ -18,6 +19,7 @@ export function InputField({ label, error, style, ...props }: Props) {
         placeholderTextColor={colors.muted}
         {...props}
         cursorColor={colors.primary}
+        keyboardAppearance={props.keyboardAppearance ?? (isDarkTheme ? 'dark' : 'light')}
         selectionColor={colors.primary}
         style={[
           styles.input,

@@ -199,7 +199,7 @@ function TermToggle({ label, enabled, onToggle }: { label: string; enabled: bool
             <AppText variant="subtitle">{label}</AppText>
             <AppText muted>{enabled ? 'Sera exibido nos PDFs futuros' : 'Oculto nos PDFs futuros'}</AppText>
           </View>
-          <Switch value={enabled} onValueChange={onToggle} trackColor={{ true: colors.primarySoft, false: colors.border }} thumbColor={enabled ? colors.primary : colors.disabled} />
+          <Switch value={enabled} onValueChange={onToggle} trackColor={{ true: colors.primarySoft, false: colors.border }} thumbColor={enabled ? colors.primary : colors.disabled} ios_backgroundColor={colors.border} />
         </View>
       </AppCard>
     </Pressable>
