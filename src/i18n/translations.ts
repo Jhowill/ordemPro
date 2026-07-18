@@ -375,6 +375,7 @@ const translations: Record<AppLocale, TranslationTree> = {
       authorization: 'Autorizacao',
       withdrawal: 'Retirada',
       dataResponsibility: 'Responsabilidade sobre dados',
+      unclaimedEquipment: 'Equipamento nao retirado',
     },
     orderNew: {
       title: 'Nova Ordem de Servico',
@@ -880,6 +881,7 @@ const translations: Record<AppLocale, TranslationTree> = {
       authorization: 'Authorization',
       withdrawal: 'Withdrawal',
       dataResponsibility: 'Data responsibility',
+      unclaimedEquipment: 'Unclaimed equipment',
     },
     orderNew: {
       title: 'New Service Order',
@@ -1359,6 +1361,7 @@ const translations: Record<AppLocale, TranslationTree> = {
       authorization: 'Autorisation',
       withdrawal: 'Retrait',
       dataResponsibility: 'Responsabilite des donnees',
+      unclaimedEquipment: 'Equipement non retire',
     },
     orderNew: {
       title: 'Nouvel ordre de service',
@@ -1831,6 +1834,7 @@ const translations: Record<AppLocale, TranslationTree> = {
       authorization: 'Autorizacion',
       withdrawal: 'Retiro',
       dataResponsibility: 'Responsabilidad de datos',
+      unclaimedEquipment: 'Equipo no retirado',
     },
     orderNew: {
       title: 'Nueva orden de servicio',

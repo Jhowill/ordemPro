@@ -1,5 +1,5 @@
 import { ReactNode } from 'react';
-import { KeyboardAvoidingView, Platform, ScrollView, ScrollViewProps, StyleSheet, View } from 'react-native';
+import { Keyboard, KeyboardAvoidingView, Platform, Pressable, ScrollView, ScrollViewProps, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { spacing } from '@/constants/theme';
@@ -16,7 +16,14 @@ type Props = {
 export function ScreenContainer({ children, scroll = true, scrollEnabled = true, padded = true, footer }: Props) {
   const colors = useThemeColors();
   const content = scroll ? (
-    <ScrollView contentContainerStyle={[styles.content, padded && styles.padded]} scrollEnabled={scrollEnabled} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
+    <ScrollView
+      contentContainerStyle={[styles.content, padded && styles.padded]}
+      scrollEnabled={scrollEnabled}
+      keyboardDismissMode={Platform.OS === 'ios' ? 'interactive' : 'on-drag'}
+      keyboardShouldPersistTaps="handled"
+      onScrollBeginDrag={Keyboard.dismiss}
+      showsVerticalScrollIndicator={false}
+    >
       {children}
     </ScrollView>
   ) : (
@@ -25,10 +32,12 @@ export function ScreenContainer({ children, scroll = true, scrollEnabled = true,
 
   return (
     <SafeAreaView style={[styles.safe, { backgroundColor: colors.background }]}>
-      <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={styles.safe}>
-        {content}
-        {footer ? <View style={[styles.footer, { backgroundColor: colors.background }]}>{footer}</View> : null}
-      </KeyboardAvoidingView>
+      <Pressable accessible={false} onPress={Keyboard.dismiss} style={styles.safe}>
+        <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={styles.safe}>
+          {content}
+          {footer ? <View style={[styles.footer, { backgroundColor: colors.background }]}>{footer}</View> : null}
+        </KeyboardAvoidingView>
+      </Pressable>
     </SafeAreaView>
   );
 }

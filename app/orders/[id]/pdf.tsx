@@ -139,8 +139,12 @@ export default function OrderPdfScreen() {
         <AppText>{t('details.customerTitle')}: {customer?.name ?? '-'}</AppText>
         <AppText>{t('details.equipmentTitle')}: {equipment ? `${equipment.type ?? equipment.category} ${equipment.brand ?? ''} ${equipment.model ?? ''}` : t('common.serviceWithoutEquipment')}</AppText>
         <AppText>{t('common.technician')}: {technician?.name ?? data.company?.responsibleName ?? '-'}</AppText>
-        <AppText>{t('orderDetail.total')}: {formatMoney(activeOrder.totalCents)}</AppText>
-        <AppText muted>{t('pdf.summaryCounts', { items: items.length, photos: photos.length, signatures: signatures.length })}</AppText>
+        {data.pdfSettings.showValues ? <AppText>{t('orderDetail.total')}: {formatMoney(activeOrder.totalCents)}</AppText> : null}
+        <AppText muted>{t('pdf.summaryCounts', {
+          items: items.length,
+          photos: data.pdfSettings.showPhotos ? photos.length : 0,
+          signatures: data.pdfSettings.showSignatures ? signatures.length : 0,
+        })}</AppText>
       </AppCard>
       <AppButton title={pdf ? t('pdf.updated') : t('pdf.title')} loading={loading} onPress={generate} />
       <AppButton title={t('pdf.share')} variant="secondary" onPress={share} />

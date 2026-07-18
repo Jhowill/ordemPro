@@ -70,6 +70,7 @@ export default function PdfSettingsScreen() {
         <InputField label={t('pdf.authorization')} value={terms.serviceAuthorizationText} onChangeText={(serviceAuthorizationText) => setTerms((current) => ({ ...current, serviceAuthorizationText }))} multiline style={styles.textArea} />
         <InputField label={t('pdf.withdrawal')} value={terms.withdrawalText} onChangeText={(withdrawalText) => setTerms((current) => ({ ...current, withdrawalText }))} multiline style={styles.textArea} />
         <InputField label={t('pdf.dataResponsibility')} value={terms.dataResponsibilityText} onChangeText={(dataResponsibilityText) => setTerms((current) => ({ ...current, dataResponsibilityText }))} multiline style={styles.textArea} />
+        <InputField label={t('pdf.unclaimedEquipment')} value={terms.unclaimedEquipmentText} onChangeText={(unclaimedEquipmentText) => setTerms((current) => ({ ...current, unclaimedEquipmentText }))} multiline style={styles.textArea} />
       </AppCard>
     </ScreenContainer>
   );
