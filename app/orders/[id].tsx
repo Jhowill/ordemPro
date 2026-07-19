@@ -1,6 +1,6 @@
 import { router, useLocalSearchParams } from 'expo-router';
 import { useState } from 'react';
-import { Alert, Image, Modal, Pressable, StyleSheet, View } from 'react-native';
+import { Alert, Image, Keyboard, KeyboardAvoidingView, Modal, Platform, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 
 import { AppButton } from '@/components/ui/AppButton';
 import { AppCard } from '@/components/ui/AppCard';
@@ -73,8 +73,7 @@ export default function OrderDetailScreen() {
     try {
       setSavingStatus(true);
       await updateOrderStatus(activeOrder.id, targetStatus, {
-        reason: t('orderDetail.reasonLabel'),
-        notes: statusNotes,
+        reason: statusNotes.trim(),
       });
       setSelectedStatus(null);
       setStatusNotes('');
@@ -153,10 +152,17 @@ export default function OrderDetailScreen() {
       </View>
 
       <Modal visible={showStatusModal} transparent animationType="fade" onRequestClose={closeStatusModal}>
-        <View style={styles.modalRoot}>
+        <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={styles.modalRoot}>
           <Pressable style={[styles.modalBackdrop, { backgroundColor: colors.overlay }]} onPress={closeStatusModal} />
-          <View style={[styles.modalSheet, { backgroundColor: colors.background }]}>
-            <AppCard>
+          <Pressable accessible={false} onPress={Keyboard.dismiss} style={[styles.modalSheet, { backgroundColor: colors.background }]}>
+            <ScrollView
+              contentContainerStyle={styles.modalContent}
+              keyboardDismissMode={Platform.OS === 'ios' ? 'interactive' : 'on-drag'}
+              keyboardShouldPersistTaps="handled"
+              onScrollBeginDrag={Keyboard.dismiss}
+              showsVerticalScrollIndicator={false}
+            >
+              <AppCard>
               <SectionTitle title={t('orderDetail.title')} description={t('orderDetail.subtitle')} />
               <View style={styles.statusGrid}>
                 {statusOptions.map((status) => {
@@ -183,9 +189,10 @@ export default function OrderDetailScreen() {
                   <AppButton title={t('orderDetail.save')} loading={savingStatus} compact onPress={saveStatusChange} />
                 </View>
               </View>
-            </AppCard>
-          </View>
-        </View>
+              </AppCard>
+            </ScrollView>
+          </Pressable>
+        </KeyboardAvoidingView>
       </Modal>
 
       <AppCard>
@@ -340,7 +347,8 @@ const styles = StyleSheet.create({
   modalActions: { flexDirection: 'row', gap: spacing.sm },
   modalRoot: { flex: 1, justifyContent: 'flex-end' },
   modalBackdrop: { ...StyleSheet.absoluteFillObject },
-  modalSheet: { padding: spacing.md, paddingBottom: spacing.lg, borderTopLeftRadius: 18, borderTopRightRadius: 18 },
+  modalSheet: { maxHeight: '92%', borderTopLeftRadius: 18, borderTopRightRadius: 18 },
+  modalContent: { padding: spacing.md, paddingBottom: spacing.lg },
   textArea: { minHeight: 84, textAlignVertical: 'top' },
   item: { flexDirection: 'row', justifyContent: 'space-between', gap: spacing.md, marginBottom: spacing.xs },
   itemInfo: { flex: 1 },

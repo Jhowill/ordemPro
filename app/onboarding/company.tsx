@@ -139,7 +139,11 @@ export default function CompanyOnboardingScreen() {
           <TermToggle label={t('onboarding.terms.serviceAuthorization')} enabled={enabledTerms.serviceAuthorizationText} onToggle={() => setEnabledTerms((current) => ({ ...current, serviceAuthorizationText: !current.serviceAuthorizationText }))} />
           {enabledTerms.serviceAuthorizationText ? <InputField label={t('pdf.authorization')} value={terms.serviceAuthorizationText} onChangeText={(value) => updateTerm('serviceAuthorizationText', value)} multiline style={styles.textArea} /> : null}
           <TermToggle label={t('onboarding.terms.withdrawal')} enabled={enabledTerms.withdrawalText} onToggle={() => setEnabledTerms((current) => ({ ...current, withdrawalText: !current.withdrawalText }))} />
+          {enabledTerms.withdrawalText ? <InputField label={t('pdf.withdrawal')} value={terms.withdrawalText} onChangeText={(value) => updateTerm('withdrawalText', value)} multiline style={styles.textArea} /> : null}
           <TermToggle label={t('onboarding.terms.dataResponsibility')} enabled={enabledTerms.dataResponsibilityText} onToggle={() => setEnabledTerms((current) => ({ ...current, dataResponsibilityText: !current.dataResponsibilityText }))} />
+          {enabledTerms.dataResponsibilityText ? <InputField label={t('pdf.dataResponsibility')} value={terms.dataResponsibilityText} onChangeText={(value) => updateTerm('dataResponsibilityText', value)} multiline style={styles.textArea} /> : null}
+          <TermToggle label={t('pdf.unclaimedEquipment')} enabled={enabledTerms.unclaimedEquipmentText} onToggle={() => setEnabledTerms((current) => ({ ...current, unclaimedEquipmentText: !current.unclaimedEquipmentText }))} />
+          {enabledTerms.unclaimedEquipmentText ? <InputField label={t('pdf.unclaimedEquipment')} value={terms.unclaimedEquipmentText} onChangeText={(value) => updateTerm('unclaimedEquipmentText', value)} multiline style={styles.textArea} /> : null}
         </>
       ) : null}
 

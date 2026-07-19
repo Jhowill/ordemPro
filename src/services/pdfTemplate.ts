@@ -38,7 +38,10 @@ export function buildOrderPdfHtml(data: AppData, order: ServiceOrder, options: P
   const photos = data.photos.filter((item) => item.orderId === order.id && item.includeInPdf);
   const customerSignature = data.signatures.find((item) => item.orderId === order.id && item.kind === 'customer');
   const primary = safeColor(data.pdfSettings.primaryColor);
+  const showValues = data.pdfSettings.showValues;
   const technicianName = technician?.name ?? company?.responsibleName ?? t('common.responsible');
+  const configuredFooter = data.pdfSettings.footerText?.trim();
+  const footerText = configuredFooter === 'Documento gerado pelo OrdemPro.' ? '' : configuredFooter;
   const bodyMargin = options.useBodyMargins === false
     ? '0'
     : `${PDF_PAGE_MARGINS.top}px ${PDF_PAGE_MARGINS.right}px ${PDF_PAGE_MARGINS.bottom}px ${PDF_PAGE_MARGINS.left}px`;
@@ -50,8 +53,7 @@ export function buildOrderPdfHtml(data: AppData, order: ServiceOrder, options: P
         <tr>
           <td>${escapeHtml(item.description)}</td>
           <td class="center">${item.quantity}</td>
-          <td class="right">${formatMoney(item.unitPriceCents)}</td>
-          <td class="right">${formatMoney(item.totalCents)}</td>
+          ${showValues ? `<td class="right">${formatMoney(item.unitPriceCents)}</td><td class="right">${formatMoney(item.totalCents)}</td>` : ''}
         </tr>`,
       )
       .join('');
@@ -158,12 +160,12 @@ export function buildOrderPdfHtml(data: AppData, order: ServiceOrder, options: P
 
       <section class="flow-section">
         <h2>${escapeHtml(t('orderEdit.serviceCatalog').toUpperCase())}</h2>
-        <table><thead><tr><th>${escapeHtml(t('catalog.serviceName'))}</th><th>${escapeHtml(t('orderEdit.quantity'))}</th><th>${escapeHtml(t('common.unitValue'))}</th><th>${escapeHtml(t('common.total'))}</th></tr></thead><tbody>${rows(services) || `<tr><td colspan="4">${escapeHtml(t('catalog.servicesEmpty'))}</td></tr>`}</tbody></table>
+        <table><thead><tr><th>${escapeHtml(t('catalog.serviceName'))}</th><th>${escapeHtml(t('orderEdit.quantity'))}</th>${showValues ? `<th>${escapeHtml(t('common.unitValue'))}</th><th>${escapeHtml(t('common.total'))}</th>` : ''}</tr></thead><tbody>${rows(services) || `<tr><td colspan="${showValues ? 4 : 2}">${escapeHtml(t('catalog.servicesEmpty'))}</td></tr>`}</tbody></table>
       </section>
 
       <section class="flow-section">
         <h2>${escapeHtml(t('orderEdit.partCatalog').toUpperCase())}</h2>
-        <table><thead><tr><th>${escapeHtml(t('catalog.partName'))}</th><th>${escapeHtml(t('orderEdit.quantity'))}</th><th>${escapeHtml(t('common.unitValue'))}</th><th>${escapeHtml(t('common.total'))}</th></tr></thead><tbody>${rows(parts) || `<tr><td colspan="4">${escapeHtml(t('catalog.partsEmpty'))}</td></tr>`}</tbody></table>
+        <table><thead><tr><th>${escapeHtml(t('catalog.partName'))}</th><th>${escapeHtml(t('orderEdit.quantity'))}</th>${showValues ? `<th>${escapeHtml(t('common.unitValue'))}</th><th>${escapeHtml(t('common.total'))}</th>` : ''}</tr></thead><tbody>${rows(parts) || `<tr><td colspan="${showValues ? 4 : 2}">${escapeHtml(t('catalog.partsEmpty'))}</td></tr>`}</tbody></table>
       </section>
 
       ${
@@ -173,7 +175,7 @@ export function buildOrderPdfHtml(data: AppData, order: ServiceOrder, options: P
       }
 
       ${
-        data.pdfSettings.showValues
+        showValues
           ? `<section class="final-section"><h2>${escapeHtml(t('common.total').toUpperCase())}</h2>
             <table class="summary">
               <tr><td>${escapeHtml(t('orderEdit.serviceCatalog'))}</td><td class="right">${formatMoney(order.laborTotalCents)}</td></tr>
@@ -191,7 +193,9 @@ export function buildOrderPdfHtml(data: AppData, order: ServiceOrder, options: P
           <div class="terms">
             <p>${escapeHtml(data.terms.warrantyText)}</p>
             <p>${escapeHtml(data.terms.serviceAuthorizationText)}</p>
+            <p>${escapeHtml(data.terms.withdrawalText)}</p>
             <p>${escapeHtml(data.terms.dataResponsibilityText)}</p>
+            <p>${escapeHtml(data.terms.unclaimedEquipmentText)}</p>
           </div>
         </div>
       </section>
@@ -215,7 +219,8 @@ export function buildOrderPdfHtml(data: AppData, order: ServiceOrder, options: P
         }
 
       <div class="footer">
-        ${escapeHtml(data.pdfSettings.footerText ?? t('common.appName'))} - ${escapeHtml(formatDate(order.openedAt, data.locale))}
+        ${footerText ? `${escapeHtml(footerText)} - ` : ''}${escapeHtml(formatDate(order.openedAt, data.locale))}
+        ${data.pdfSettings.showAppBranding ? `<br />${escapeHtml(t('common.appName'))}` : ''}
       </div>
     </body>
   </html>`;
